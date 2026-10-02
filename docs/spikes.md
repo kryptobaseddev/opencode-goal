@@ -1,0 +1,25 @@
+# Spikes against OpenCode 2.0.22
+
+Run on 2026-10-02 with the owner's installed binary (`opencode v2.0.22`) inside an isolated
+HOME/XDG root, a scripted OpenAI-compatible fixture provider, and the probe plugin in
+`spikes/probe/`. Reproduce with `bun spikes/run.ts` (server side) and
+`bun spikes/tui-host.ts` + `python3 spikes/tui-capture.py` (real TUI in a pty).
+
+| # | Question | Observed | Design consequence |
+|---|---|---|---|
+| S1 | Does a plugin instance see other projects' events? | **Yes.** The probe in project A received `session.created`, `session.execution.started`, `session.step.started`, … for a session in project B on the same server. Global events (`model.updated`, `agent.updated`) carry no `location`. | Every handler filters on `event.location?.directory === ctx.location.directory` and on sessions the goal store owns. |
+| S2 | Is `session.prompt({id})` idempotent; does `metadata` survive? | **Yes.** Two admissions with `id: "msg_probe_fixed_1"` returned the same record (attempt 1's text); `metadata` arrived in the `prompt` hook and on the stored message. Default `delivery` is `steer`. A plugin command did not create a model turn of its own. | Continuations use deterministic ids `msg_goal_<goal>_<run>_<turn>`; a retried admission cannot double-send. `/goal` subcommands cost no model turn. |
+| S3 | Is a system block added in the `context` hook stable across turns? | **Yes.** `system` hash identical across 9 consecutive requests with the probe block appended (4 parts, 7,959 chars). `SystemPart` also accepts a `cache` hint. | The contract renders into `event.system` once per run; volatile data goes near the tail. Provider-side cache hits still need a live-provider check. |
+| S4 | What environment does a plugin-spawned login shell get? | `$SHELL -lc` (zsh) resolved `node`, `bun`, `npm`, `git` with the profile PATH. In the harness the server inherited the terminal env. | Host checks run as `$SHELL -lc '<cmd>'` with `cwd = ctx.location.directory`, falling back to `/bin/sh -lc`. The background service's own env is not relied on. |
+| S5 | Shape of a question form and its reply | `form.created.form.fields[0] = {key:"q0", title, description, type:"string", options:[{value,label,description}], custom:true}`; `form.replied = {id, sessionID, answer:{q0:"Start goal now"}}`. | `goal_start` is accepted only after a `form.replied` in the same session whose answer equals the launch label of a question form created there. |
+| S6 | Do TUI plugins load from a plugin directory; do RPC methods and events work? | **Yes.** Raw `tui.tsx` with Solid JSX compiled at load time; `sidebar.content` and `prompt.footer.status` rendered in the real TUI (180×50 pty); `client.rpc(Def).ping()` returned; 43 `rpc.probe-rpc.tick` events reached the TUI. The server plugin's `setup` ran twice in one host lifetime. | Ship TSX source, no build step. Feed the TUI by RPC methods + events. Make `setup` idempotent and always dispose. Test UI updates through logs or the OpenTUI test renderer, not screen scraping (the TUI redraws only changed cells). |
+| S7 | Can a tool be restricted to one hidden agent; can a plugin run a child session? | **Yes.** With `options.permission: "probe_verdict"`, a deny rule on every other agent and an allow on `probe-verifier`, the build agent's tool list omitted it and a forced call failed (`No tool named "probe_verdict" is currently available`). The verifier saw only `glob, grep, read, probe_verdict`. `session.create({parentID, agent})` → `prompt` → `wait` → `remove` all worked. | The verifier is a hidden agent whose only extra tool is `goal_verdict`; `goal_verdict` also refuses any other agent at execute time. Verifier children are removed after use. |
+| S8 | Interrupt reasons | Esc / `session.interrupt` → `session.execution.interrupted {reason:"user"}` (after `session.step.failed {type:"aborted"}`). Dismissed question → `form.cancelled`, `session.tool.failed {message:"The user dismissed this question"}`, then `interrupted {reason:"shutdown"}`. | `interrupted` always pauses. A `form.cancelled` just before `shutdown` is reported as "question dismissed", not as a server shutdown. |
+| S9 | YAML parser in the plugin runtime | `Bun.YAML.parse` works (Bun 1.4.2). | `goal.yaml` is parsed with `Bun.YAML`; no YAML dependency. |
+
+Other observations
+
+- The first request of a new session is a title request with no tools; fixture scripts must answer it.
+- Plugin tools registered with `namespace` + `codemode: false` reach the model as `<namespace>_<name>` (e.g. `probe_echo`); `execute` stays in the list for Code Mode tools.
+- Event types seen: `session.created`, `session.inbox.enqueued/delivered`, `session.execution.started/succeeded/interrupted`, `session.instructions.updated`, `session.usage.updated`, `session.step.started/ended/failed`, `session.tool.called/success/failed`, `session.text.started/ended`, `form.created/replied/cancelled`, `session.deleted`. `session.idle` and `session.status` never appeared.
+- `session.log` without `follow` returned only `log.synced`; read history through events or `session.message.get` instead.

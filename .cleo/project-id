@@ -1,0 +1,5 @@
+# CLEO portable project identity (write-once; ADR-094, T12325).
+# Legacy mirror of the id in .cleo/project.json (T12716) for older CLEO builds.
+# Commit this file. Never edit or regenerate it: every checkout, clone and
+# device of this project resolves to the id below.
+5f4ab735-ef8e-4c8b-8d64-1eb3021ed2ff
