@@ -1,0 +1,40 @@
+schema: goal/v1
+id: checkout-latency
+title: Checkout p95 under 250ms
+intent:
+  verbatim: "make checkout faster, it's killing conversion on mobile"
+outcome: Checkout API p95 is below 250ms on the documented slow path
+why: Mobile conversion drops when checkout exceeds 300ms
+scope:
+  in: [src/checkout/**]
+  out: [client-side code]
+non_goals:
+  - Redesigning the cart schema
+constraints:
+  - No new runtime dependencies
+criteria:
+  - id: C1
+    statement: WHEN npm run test:checkout runs THE suite SHALL exit 0
+    check: {kind: command, run: "npm run test:checkout", expect: {exit: 0}, timeout: 300, live: true}
+  - id: C2
+    statement: p95 latency SHALL be below 250ms across 3 consecutive runs
+    check: {kind: command, run: "node bench/checkout.mjs", runs: 3, expect: {stdout_regex: "p95=(1|2[0-4])\\d\\dms"}}
+  - id: C3
+    statement: docs/perf.md explains the fix and its measured effect
+    essential: false
+    check: {kind: verifier, ask: "Does docs/perf.md explain the checkout fix and its measured effect?"}
+invariants:
+  - id: I1
+    statement: The full test suite SHALL CONTINUE TO pass
+    check: {kind: command, run: "npm test"}
+protect: ["**/*.test.ts", "bench/**"]
+assumptions:
+  - {id: A1, text: Measured locally against the seeded dev DB, rationale: no staging access, reversible: true}
+plan:
+  - {id: S1, title: Profile the slow path}
+  - {id: S2, title: Remove N+1 in loadCart, proves: [C1, C2], depends_on: [S1]}
+  - {id: S3, title: Document the change, proves: [C3], depends_on: [S2]}
+budget: {turns: 40, wall: 3h, tokens: 3M, cost_usd: 15}
+stop:
+  when: All essential criteria are host-verified and invariants hold
+  escalate_when: [A fix requires changing the public checkout API]
