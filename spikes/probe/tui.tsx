@@ -1,5 +1,6 @@
 /** @jsxImportSource @opentui/solid */
-import type { Context } from "@opencode/plugin/tui"
+import type { Plugin } from "@opencode/plugin/tui"
+type Context = Plugin.Context
 import { createSignal } from "solid-js"
 import { ProbeRpc } from "./rpc"
 import { appendFileSync } from "node:fs"

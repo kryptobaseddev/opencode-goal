@@ -1,7 +1,8 @@
 // Spike probe: logs what OpenCode 2 actually does so the design can be checked
 // against the running host. Plain-object export + type-only imports, so the
 // probe does not depend on @opencode/plugin being resolvable at runtime.
-import type { Context } from "@opencode/plugin"
+import type { Plugin } from "@opencode/plugin"
+type Context = Plugin.Context
 import { appendFileSync, mkdirSync } from "node:fs"
 import { createHash } from "node:crypto"
 import { join } from "node:path"
@@ -96,8 +97,8 @@ export default {
         )
       })
       for (const agent of editor.list()) {
-        if (agent.id === "probe-verifier") continue
-        editor.update(agent.id, (item: any) => item.permissions.push({ action: "probe_verdict", resource: "*", effect: "deny" }))
+        if (String(agent.id) === "probe-verifier") continue
+        editor.update(String(agent.id), (item: any) => item.permissions.push({ action: "probe_verdict", resource: "*", effect: "deny" }))
       }
     })
 
@@ -107,7 +108,7 @@ export default {
         description: "Probe tool: echoes its input.",
         options: { namespace: "probe", codemode: false },
         input: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false },
-        execute: async (input: any, context) => {
+        execute: async (input: any, context: any) => {
           log("tool.echo", { input, sessionID: context.sessionID, agent: context.agent, messageID: context.messageID })
           return { content: `echo: ${input.text}`, metadata: { echoed: input.text } }
         },
@@ -117,7 +118,7 @@ export default {
         description: "Probe tool reserved for the probe-verifier agent.",
         options: { namespace: "probe", codemode: false, permission: "probe_verdict" },
         input: { type: "object", properties: { ok: { type: "boolean" } }, required: ["ok"], additionalProperties: false },
-        execute: async (input: any, context) => {
+        execute: async (input: any, context: any) => {
           log("tool.verdict", { input, agent: context.agent })
           return { content: context.agent === "probe-verifier" ? "accepted" : "refused: wrong agent" }
         },
