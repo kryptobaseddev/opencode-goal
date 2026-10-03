@@ -103,7 +103,10 @@ export function checkQuotes(root: string, verdict: VerifierVerdict): { ok: boole
 export async function verifyClaim(contract: Contract, state: RunState, deps: { root: string; contractText: string; verifier?: VerifierRun; shell?: typeof runShell }): Promise<VerifyOutcome> {
   const { root } = deps
   const integrity: string[] = []
-  if (lockOf(deps.contractText) !== state.lock) integrity.push("goal.yaml changed since the run started; only the owner may change the contract (/goal edit).")
+  if (lockOf(deps.contractText) !== state.lock)
+    integrity.push(
+      "goal.yaml changed since the run started: the contract is sha256-locked for this run. The owner re-locks an amended contract with /goal amend confirm (audit-trailed, generation-bound) or aborts and starts fresh; a worker must never edit .opencode/goals/.",
+    )
   if (contract.protect.length) {
     const touched = changedSince(root, state.base.commit).filter((f) => matchesAny(f, contract.protect))
     if (touched.length) integrity.push(`protected paths were modified: ${touched.slice(0, 10).join(", ")}. Restore them; do not change the oracle to make it pass.`)

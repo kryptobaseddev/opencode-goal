@@ -278,6 +278,62 @@ export class GoalApp {
     })
   }
 
+  /**
+   * T038: owner-approved amendment. The owner edits goal.yaml out-of-band, then
+   * `/goal amend` proposes (diff summary) and `/goal amend confirm` re-locks:
+   * atomic generation-bound records, ledger trail, and the explicit branch
+   * decision — prior evidence is retained for criteria whose checks did not
+   * change; changed or new criteria reset to unknown and re-verify.
+   */
+  private async amendGoal(state: RunState, confirmed: boolean): Promise<string> {
+    const read = this.store.readContract(state.slug)
+    if (!read) return `no contract on disk for ${state.slug}`
+    if (!read.contract) return `goal.yaml for "${state.slug}" is invalid:\n${formatIssues(read.issues)}\nThe run keeps its current lock; fix goal.yaml and amend again.`
+    const next = read.contract
+    const nextLock = read.lock
+    if (nextLock === state.lock) return "Nothing to amend: goal.yaml is byte-identical to the locked contract."
+
+    const prior = this.contractOf(state)!
+    const key = (c: { id: string; check: unknown }) => `${c.id}:${JSON.stringify(c.check)}`
+    const before = new Map([...prior.criteria, ...prior.invariants].map((c) => [c.id, key(c)]))
+    const after = new Map([...next.criteria, ...next.invariants].map((c) => [c.id, key(c)]))
+    const unchanged = [...after.entries()].filter(([id, k]) => before.get(id) === k).map(([id]) => id)
+    const changed = [...after.entries()].filter(([id, k]) => before.has(id) && before.get(id) !== k).map(([id]) => id)
+    const added = [...after.keys()].filter((id) => !before.has(id))
+    const removed = [...before.keys()].filter((id) => !after.has(id))
+    const summary = [
+      `outcome: ${prior.outcome === next.outcome ? "unchanged" : "CHANGED"}`,
+      `criteria unchanged [${unchanged.join(", ") || "-"}] changed [${changed.join(", ") || "-"}] added [${added.join(", ") || "-"}] removed [${removed.join(", ") || "-"}]`,
+    ].join(" · ")
+
+    if (!confirmed) {
+      state.amendments.push({ change: summary, rationale: "proposed; awaiting /goal amend confirm", at: Date.now(), status: "proposed" })
+      this.store.ledger(state.slug, { type: "amend-proposed", turn: state.turn, summary })
+      this.persist(state)
+      return `Proposed amendment: ${summary}\nReview the diff, then run /goal amend confirm to re-lock (generation ${state.amendments.filter((a) => a.status === "accepted").length + 1}).`
+    }
+
+    const generation = state.amendments.filter((a) => a.status === "accepted").length + 1
+    const at = Date.now()
+    const oldLock = state.lock
+    // atomic, generation-bound record + evidence snapshot
+    state.amendments.push({ change: summary, rationale: "owner-confirmed via /goal amend confirm", at, status: "accepted" })
+    this.store.evidence(state.slug, state.runId, `amendment-${generation}-${at}`, { generation, oldLock, newLock: nextLock, at, by: "owner", summary, changed, added, removed, unchanged, contract: read.text })
+    state.lock = nextLock
+    // branch decision (council 145323Z): retain evidence for unchanged oracles
+    for (const id of changed.concat(added)) state.criteria[id] = { status: "unknown", rejections: 0 }
+    for (const id of removed) delete state.criteria[id]
+    const steps = new Set(next.plan.map((s) => s.id))
+    for (const id of Object.keys(state.steps)) if (!steps.has(id)) delete state.steps[id]
+    // the in-memory contract cache must serve the amended contract from the next request on
+    this.loaded.set(state.slug, { contract: next, lock: nextLock, text: read.text })
+    this.store.ledger(state.slug, { type: "amended", turn: state.turn, generation, oldLock, newLock: nextLock, summary })
+    this.persist(state)
+    this.emitUpdate(state)
+    this.notice(state.sessionID, `Goal amended (generation ${generation}): ${summary}`, "success")
+    return `Amended ${state.slug} (generation ${generation}): ${summary}. Changed criteria reset to unknown and re-verify on the next claim.`
+  }
+
   private async admit(state: RunState, kind: PendingKind) {
     if (this.disposed || !isActive(state.status)) return
     const contract = this.contractOf(state)
@@ -695,7 +751,7 @@ export class GoalApp {
 
   // ───────────────────────────── owner actions (command, RPC)
 
-  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject", arg?: string): Promise<{ ok: boolean; message: string }> {
+  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend", arg?: string): Promise<{ ok: boolean; message: string }> {
     return this.serial(async () => {
       const state = this.runs.get(sessionID)
       if (!state) return { ok: false, message: "No goal in this session. Start one with /goal start <slug> or write one with /goal new <what you want>." }
@@ -727,6 +783,12 @@ export class GoalApp {
           this.store.ledger(state.slug, { type: "aborted", reason: "owner" })
           this.persist(state)
           return { ok: true, message: `Goal aborted: ${state.title}` }
+        case "amend": {
+          if (!contract) return { ok: false, message: "contract unavailable" }
+          const confirmed = (arg?.split(/\s+/) ?? []).includes("confirm")
+          const message = await this.amendGoal(state, confirmed)
+          return { ok: message.startsWith("Amended") || message.startsWith("Proposed"), message }
+        }
         case "verify":
           if (!contract) return { ok: false, message: "contract unavailable" }
           await this.verify(state, contract, "owner")
@@ -846,12 +908,13 @@ export class GoalApp {
       case "abort":
       case "verify":
       case "approve":
-      case "reject": {
+      case "reject":
+      case "amend": {
         const result = await this.ownerAct(sessionID, sub as any, arg)
         return say(result.message, result.ok ? "success" : "error")
       }
       case "help":
-        return say("/goal new <words> · /goal start <slug> · /goal status · pause · resume · verify · abort · approve <C#> · reject <C#> <why> · validate <slug> · list")
+        return say("/goal new <words> · /goal start <slug> · /goal status · pause · resume · verify · abort · amend [confirm] · approve <C#> · reject <C#> <why> · validate <slug> · list")
       default:
         // Anything else is a request to write a goal from these words.
         await this.ctx.session.prompt({ sessionID, text, skills: [{ id: "write-goal" }] } as any)
@@ -913,16 +976,22 @@ export class GoalApp {
     this.registrations.push(
       await this.ctx.tool.hook("execute.before", (event: any) => {
         const state = this.runs.get(event.sessionID)
-        if (!state || !isActive(state.status)) return
+        if (!state) return
         const contract = this.contractOf(state)
-        if (!contract) return
-        if (event.tool === "question" && contract.autonomy.questions === "defer")
+        if (contract && isActive(state.status) && event.tool === "question" && contract.autonomy.questions === "defer")
           throw new Error("Goal mode defers questions to the owner during a run. Make the most reasonable reversible choice and note it as an assumption in goal_progress, or call goal_block if this truly needs the owner.")
         const paths = targetPaths(event.tool, event.input)
         for (const p of paths) {
           const rel = p.startsWith(this.root) ? p.slice(this.root.length + 1) : p.replace(/^\.\//, "")
-          if (rel.startsWith(".opencode/goals/")) throw new Error("The goal contract and run state are owned by the owner and the host; do not edit .opencode/goals/.")
-          if (contract.protect.some((g) => globMatch(rel, g))) throw new Error(`${rel} is protected by the goal contract (an oracle the worker may not change). If it is wrong, call goal_flag.`)
+          // T037: the goal folder stays untouchable for the whole life of the
+          // run — including stopped states (paused/needs_review/budget_limited),
+          // the unguarded amendment window the council flagged. Terminal runs
+          // release the folder so the next contract can be written.
+          if (!isTerminal(state.status) && rel.startsWith(".opencode/goals/"))
+            throw new Error("The goal contract and run state are owned by the owner and the host. Do not edit .opencode/goals/ while the goal exists — the owner amends via /goal amend (re-lock with audit trail) or aborts and edits before a fresh /goal start.")
+          if (isActive(state.status) && contract) {
+            if (contract.protect.some((g) => globMatch(rel, g))) throw new Error(`${rel} is protected by the goal contract (an oracle the worker may not change). If it is wrong, call goal_flag.`)
+          }
         }
       }),
     )
