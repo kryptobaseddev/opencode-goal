@@ -15,6 +15,18 @@ import { Store } from "../engine/store"
 import { Registry } from "../engine/registry"
 import { admissionNote } from "../engine/similarity"
 import { goalHelp } from "./help"
+import { cleoFacts, cleoLinkEvent, type Runner } from "../engine/cleo-link"
+
+/** Spawn the cleo CLI with a hard timeout; all failures resolve safely. */
+const defaultRunner: Runner = (command, args, timeoutMs = 2500) =>
+  new Promise((resolve) => {
+    const child = Bun.spawn([command, ...args], { stdout: "pipe", stderr: "ignore" })
+    const timer = setTimeout(() => child.kill(), timeoutMs)
+    Promise.all([new Response(child.stdout).text(), child.exited])
+      .then(([stdout, exit]) => resolve({ stdout, exit: Number(exit) }))
+      .catch(() => resolve({ stdout: "", exit: 1 }))
+      .finally(() => clearTimeout(timer))
+  })
 import { ascendingId, runId as newRunId } from "../util/ids"
 import { fingerprint, headCommit } from "../util/git"
 import { runHostCheck, verifyClaim, type VerifierVerdict } from "../verify/pipeline"
@@ -309,6 +321,10 @@ export class GoalApp {
       await Bun.write(join(this.store.dir(slug), "evidence", state.runId, "contract.yaml"), text)
       this.runs.set(sessionID, state)
       this.store.ledger(slug, { type: "start", runId: state.runId, sessionID, source, lock, commit: state.base.commit })
+      // T027: record the CLEO project linkage when present (CLI-only; absent
+      // CLEO changes nothing — no event, no field).
+      const link = cleoLinkEvent(await cleoFacts(this.root, defaultRunner))
+      if (link) this.store.ledger(slug, link)
       this.persist(state)
       this.notice(sessionID, `Goal started: ${contract.title}`, "success")
       if (!this.factsOf(sessionID).busy) await this.admit(state, "kickoff")
