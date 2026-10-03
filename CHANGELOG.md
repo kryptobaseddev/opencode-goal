@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0 — 2026-10-03
+
+Built under the goal loop itself, with two council verdicts as decision records (`.cleo/council-runs/20261003T145323Z-a46b2ff9` and `…162655Z-800c52ca`).
+
+- **Verifier reliability**: hardened prompt (exactly one `goal_verdict` call) with a sanctioned fenced-json fallback recorded as `by:"verifier-fallback"` and quote-re-read identically; child transcripts persisted under `evidence/` — a prose-answering or silent verifier can no longer kill a round.
+- **Live counters**: `session.usage.updated` is per-message cumulative on 2.0.22; baselined at goal start with throttled persist+emit — `run.json` and the TUI no longer freeze at the kickoff snapshot.
+- **Start-time rehearsal**: `/goal start` executes every command check once before locking, records the baseline, and refuses unrunnable check text (shell exit 126/127 or a `zsh:`/`bash:` diagnostic — never a tool's own stderr, so red bug-fix baselines stay legal).
+- **Amendment**: `/goal amend` propose + `/goal amend confirm` re-locks an owner-edited contract with generation-bound records under `evidence/`, retaining prior evidence for unchanged criteria; the goal-folder write guard now covers stopped states; the integrity message names real paths.
+- **Identity at scale**: descriptive slugs kept (hash/word names rejected by council); **supersession** (`supersedes: <slug>@<lock-prefix>`, terminal predecessor, archived, mid-flight admission rule requiring recorded owner acknowledgment); **archive tier** (`/goal archive` → `.opencode/goals-archive/`, demote-never-delete, registry keeps answering "was this ever a goal here?"); **admission probe** (exact existence + ranked title/intent similarity over live and archived goals, surfaced as owner options in `/goal new`).
+- **Registry**: machine-level derived index (`~/.local/share/opencode/goal-registry.json`, `OCGOAL_REGISTRY` override), updated on persist with no-op skip and rebuild-by-scan parity; the scale benchmark (`spikes/scale-bench.ts`) shows folders stay fast at 5,000 goals (13.8 ms) while full list builds justify the index (157.6 ms).
+- **Surfaces**: `/goal help` agent-forward guide from a pure builder; optional first-class CLEO linkage (CLI-only, `cleo-linked` ledger event, absent CLEO records nothing); TUI probes target the dashboard panel.
+- **Coverage**: continuation notices are single synthetic rows; host scenarios for budget wrap-up, `goal_wait`, absent/diff, human approval, compaction survival, `session.deleted` and provider degradation; `parseContract` warns on multi-line command checks.
+- Provenance: OpenCode store probe persisted (`docs/opencode-store-probe.md`); upstream CLEO reports #1804/#1805 (evidence-atom DX) and #1833 (a retraction with thanks).
+
 ## 0.1.0-alpha.2 — 2026-10-03
 
 Second pre-release, dogfooded: built and shipped from inside the first real-model goal run (`docs/dogfood-1.md`).
