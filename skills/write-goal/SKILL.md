@@ -100,7 +100,7 @@ Optional blocks: `why`, `scope {in, out}`, `constraints`, `budget {turns, wall: 
 
 Rules the validator enforces: `schema: goal/v1`; `id` equals the directory; `intent.verbatim`, `outcome`, ≥1 `non_goals` and ≥1 essential criterion are required; ids are `C1…`, `I1…`, `S1…`, `A1…` and unique; every criterion has a check of a known kind with its required fields; invariants are host-checkable; plan references exist and have no cycles; budgets parse. Warnings: an outcome that reads as an activity ("keep improving…"), vague words without a number ("fast", "robust", "clean"), no host-checkable essential criterion. **Quote any value containing `: `** with single quotes.
 
-Full field reference: `references/goal-schema.md`. Question bank and recommendation heuristics: `references/interview.md`.
+Full field reference: `references/goal-schema.md`. Question bank and recommendation heuristics: `references/interview.md`. Four complete contracts (bugfix, perf, migration, feature): `references/examples.md`.
 
 ## Weak → strong
 

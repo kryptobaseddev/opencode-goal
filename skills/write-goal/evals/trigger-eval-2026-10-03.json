@@ -1,0 +1,354 @@
+{
+  "skill": "write-goal",
+  "fixture": "/Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture",
+  "runs_per_query": 1,
+  "recall": [
+    7,
+    8
+  ],
+  "precision": [
+    8,
+    8
+  ],
+  "results": [
+    {
+      "query": "write a goal for getting the checkout tests green and run it until it's done",
+      "should_trigger": true,
+      "hits": 1,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Skill(write-goal)",
+        "ToolSearch()",
+        "Bash(git status && git log --oneline -5 && ls -la && cat package.json 2>/dev/null; ls .opencode)",
+        "Bash(find . -path ./node_modules -prune -o -type f -not -path './.claude/skills/*' -print | hea)",
+        "Bash(for f in docs/overview.md src/parser.ts test/auth/login.test.ts; do echo \"=== $f\"; cat \"$f)",
+        "Bash(grep -rni \"checkout\\|cart\\|payment\\|order\" --exclude-dir=.claude . ; echo \"grep-exit=$?\"; )",
+        "Bash(npm test >/dev/null 2>&1; echo \"npm-test-exit=$?\"; git -C /Users/keatonhoskins/projects/op)",
+        "Bash(mkdir -p .opencode/goals/checkout-tests-green && cat > .opencode/goals/checkout-tests-gree)"
+      ],
+      "calls_before_trigger": [
+        1
+      ],
+      "rate": 1.0,
+      "triggered": true,
+      "passed": true
+    },
+    {
+      "query": "grill me on this goal before you start: migrate auth to the new client",
+      "should_trigger": true,
+      "hits": 1,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Skill(write-goal)",
+        "Bash(git status --short && git log --oneline -5 && ls -la && find . -path ./.git -prune -o -pat)",
+        "Bash(for f in package.json .claude/settings.json docs/overview.md src/parser.ts test/auth/login)",
+        "Bash(grep -rniE \"auth|client|token|login|legacy\" src test docs package.json; echo \"--- baseline)",
+        "ToolSearch()",
+        "Bash(node --test >/dev/null 2>&1; echo \"node --test exit=$?\"; ls node_modules 2>&1 | head; ls p)",
+        "Write(/Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture/.opencode/goals/migrate-auth)"
+      ],
+      "calls_before_trigger": [
+        1
+      ],
+      "rate": 1.0,
+      "triggered": true,
+      "passed": true
+    },
+    {
+      "query": "/goal new make the build pass on node 24",
+      "should_trigger": true,
+      "hits": 0,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Bash(pwd; git rev-parse --show-toplevel; node --version; npm --version; ls -la; cat package.jso)",
+        "Bash(cleo briefing 2>&1 | head -c 4000)",
+        "Bash(find . -not -path './node_modules/*' -not -path './.git/*' | head -100; echo ---; git -C .)",
+        "Bash(for f in package.json src/parser.ts test/auth/login.test.ts docs/overview.md .claude/setti)",
+        "Bash(npm test 2>&1; echo \"EXIT=$?\"; echo; cat .claude/skills/write-goal/evals/trigger_queries.j)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && cat .tmp/check-skill.ts; echo ===; cat .)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && cat .tmp/check-examples.ts; echo \"-----\")",
+        "Read(/Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture/test/auth/login.test.ts)",
+        "Edit(/Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture/test/auth/login.test.ts)",
+        "Bash(npm test 2>&1; echo \"EXIT=$?\"; echo ---; npm run build 2>&1 | head -5; echo ---; node -e ')",
+        "Read(/Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture/package.json)",
+        "Edit(/Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture/package.json)",
+        "Bash(npm test 2>&1; echo \"EXIT=$?\")"
+      ],
+      "calls_before_trigger": [],
+      "rate": 0.0,
+      "triggered": false,
+      "passed": false
+    },
+    {
+      "query": "turn this into a goal mode run: remove every legacyClient call",
+      "should_trigger": true,
+      "hits": 1,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Skill(write-goal)",
+        "Bash(pwd && git status --short && git log --oneline -5 && ls -la && cat package.json 2>/dev/nul)",
+        "Bash(find . -path ./node_modules -prune -o -path ./.git -prune -o -path ./.claude -prune -o -ty)",
+        "Bash(for f in package.json docs/overview.md src/parser.ts test/auth/login.test.ts; do echo \"===)",
+        "Bash(npm test 2>&1 | grep -m3 -E \"Error|error\"; ls tsconfig* .github 2>&1 | head; git -C . log )",
+        "Bash(mkdir -p .opencode/goals/remove-legacy-client-calls && cat > .opencode/goals/remove-legacy)",
+        "ToolSearch()"
+      ],
+      "calls_before_trigger": [
+        1
+      ],
+      "rate": 1.0,
+      "triggered": true,
+      "passed": true
+    },
+    {
+      "query": "set up a goal so the agent keeps working on the perf regression unattended",
+      "should_trigger": true,
+      "hits": 1,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Skill(write-goal)",
+        "Bash(pwd && git status --short && git log --oneline -15 && ls -la && cat package.json 2>/dev/nu)",
+        "Bash(find . -path ./node_modules -prune -o -type f -print | grep -v '/.git/' | head -100; echo )",
+        "Bash(for f in package.json .claude/settings.json docs/overview.md src/parser.ts test/auth/login)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture/.claude/skills/write-goal)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture && node --version && (npm)",
+        "ToolSearch()",
+        "Bash(grep -n -i -A25 'perf' .claude/skills/write-goal/references/examples.md | head -60)",
+        "Write(/Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture/.opencode/goals/fix-perf-reg)"
+      ],
+      "calls_before_trigger": [
+        1
+      ],
+      "rate": 1.0,
+      "triggered": true,
+      "passed": true
+    },
+    {
+      "query": "help me write a good /goal objective for fixing the flaky e2e suite",
+      "should_trigger": true,
+      "hits": 1,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Skill(write-goal)",
+        "Bash(pwd && git status --short && git log --oneline -5 && ls -la && cat package.json 2>/dev/nul)",
+        "ToolSearch()",
+        "Bash(find . -path ./node_modules -prune -o -type f -print | grep -v '^./.git/' | sort | head -1)",
+        "Bash(for f in docs/overview.md src/parser.ts test/auth/login.test.ts .claude/settings.json; do )",
+        "Bash(node --version; npm test 2>&1 | tail -30; echo \"npm test exit: ${PIPESTATUS[0]}\")",
+        "Read(/Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture/.claude/skills/write-goal/re)",
+        "Read(/Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture/.claude/skills/write-goal/as)",
+        "Bash(for i in 1 2 3 4 5; do node --test >/dev/null 2>&1; echo \"run $i exit=$?\"; done; cat .open)",
+        "Bash(mkdir -p .opencode/goals/fix-flaky-e2e-suite && cat > .opencode/goals/fix-flaky-e2e-suite/)"
+      ],
+      "calls_before_trigger": [
+        1
+      ],
+      "rate": 1.0,
+      "triggered": true,
+      "passed": true
+    },
+    {
+      "query": "draft a goal.yaml for the docs overhaul",
+      "should_trigger": true,
+      "hits": 1,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Skill(write-goal)",
+        "Bash(pwd && git status --short && git log --oneline -10 && ls -la && find . -path ./node_module)",
+        "ToolSearch()",
+        "Bash(for f in package.json .claude/settings.json docs/overview.md src/parser.ts test/auth/login)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture/.claude/skills/write-goal)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture && git rev-parse --show-t)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && grep -rniE \"overhaul\" --include=*.md --i)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && cleo find \"docs overhaul\" --quiet; echo )",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && ls src src/contract 2>/dev/null; grep -r)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && sed -n 40,110p src/verify/pipeline.ts; e)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && grep -nE \"fingerprint|noChange|no_change)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && grep -rnE \"fingerprint\\(|idleTurns|stale)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && grep -rnE \"fingerprint\\(|noProgress|unch)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && sed -n 440,450p src/server/app.ts)"
+      ],
+      "calls_before_trigger": [
+        1
+      ],
+      "rate": 1.0,
+      "triggered": true,
+      "passed": true
+    },
+    {
+      "query": "make this run until it's done: all lint errors fixed",
+      "should_trigger": true,
+      "hits": 1,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Skill(write-goal)",
+        "Bash(pwd && git status --short && ls -la && git log --oneline | head -5 && ls .claude/skills/wr)",
+        "ToolSearch()",
+        "Bash(/bin/ls -la; echo ---; find . -path ./node_modules -prune -o -path ./.git -prune -o -type )",
+        "Bash(for f in package.json .claude/settings.json docs/overview.md src/parser.ts test/auth/login)",
+        "Bash(cat .claude/skills/write-goal/references/interview.md; echo ======; cat .claude/skills/wri)",
+        "Bash(cat .claude/skills/write-goal/assets/goal.template.yaml; echo; echo '#####'; cat .claude/s)",
+        "Bash(for d in .opencode/goals/*/; do for f in \"$d\"*; do echo \"##### $f\"; cat \"$f\"; echo; done; )",
+        "Bash(node --version; npm test 2>&1 | tail -25; echo \"exit=${PIPESTATUS[0]}\"; echo ---; for t in)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && grep -E '\"(lint|typecheck|check|format)[)",
+        "Bash(mkdir -p .opencode/goals/fix-lint-errors && cat > .opencode/goals/fix-lint-errors/context.)"
+      ],
+      "calls_before_trigger": [
+        1
+      ],
+      "rate": 1.0,
+      "triggered": true,
+      "passed": true
+    },
+    {
+      "query": "fix the failing test in test/auth/login.test.ts",
+      "should_trigger": false,
+      "hits": 0,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Bash(git status --short && ls -la && cat package.json 2>/dev/null; find . -path ./node_modules )",
+        "Bash(echo \"--- test ---\" && cat -n test/auth/login.test.ts && echo \"--- parser ---\" && cat -n s)",
+        "Bash(node --version && node --test test/auth/login.test.ts 2>&1 | head -40; echo \"exit=$?\"; gre)",
+        "Bash(grep -rn -i -e login -e auth . --exclude-dir=.git --exclude-dir=skills | head -20; echo \"-)",
+        "Bash(cleo briefing --summary 2>/dev/null | head -c 1500; echo; echo \"exit=${PIPESTATUS[0]}\")"
+      ],
+      "calls_before_trigger": [],
+      "rate": 0.0,
+      "triggered": false,
+      "passed": true
+    },
+    {
+      "query": "what are my goals for this sprint?",
+      "should_trigger": false,
+      "hits": 0,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Bash(pwd && ls -la && git rev-parse --show-toplevel && find . -maxdepth 4 -not -path './.git/*')",
+        "Bash(cleo briefing 2>&1 | head -80)",
+        "Bash(find .opencode -type f | sort && for f in $(find .opencode -type f | sort) docs/overview.m)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && echo \"=== login test\"; cat .tmp/eval-fix)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && cleo find \"sprint\" --limit 0 2>&1 | head)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal/.opencode/goals/dogfood-buildout && cat goa)",
+        "Bash(date -r 1790999637; date)"
+      ],
+      "calls_before_trigger": [],
+      "rate": 0.0,
+      "triggered": false,
+      "passed": true
+    },
+    {
+      "query": "write a unit test for the parser",
+      "should_trigger": false,
+      "hits": 0,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Bash(git status --short && git log --oneline -5 && find . -path ./node_modules -prune -o -path )",
+        "Bash(cat package.json src/parser.ts test/auth/login.test.ts docs/overview.md .claude/settings.j)",
+        "Bash(node --version && ls -la && git -C . check-ignore -v . ; git rev-parse --show-toplevel)",
+        "Write(/Users/keatonhoskins/projects/opencode-goal/.tmp/eval-fixture/test/parser.test.ts)",
+        "Bash(node --test test/parser.test.ts; echo \"exit=$?\"; echo \"--- full suite ---\"; npm test 2>&1 )"
+      ],
+      "calls_before_trigger": [],
+      "rate": 0.0,
+      "triggered": false,
+      "passed": true
+    },
+    {
+      "query": "set a goal in the football game score tracker component",
+      "should_trigger": false,
+      "hits": 0,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Bash(git status --short && git log --oneline -5 && find . -path ./node_modules -prune -o -path )",
+        "Bash(cat package.json docs/overview.md && echo ---- && cat src/parser.ts && echo ---- && grep -)",
+        "ToolSearch()"
+      ],
+      "calls_before_trigger": [],
+      "rate": 0.0,
+      "triggered": false,
+      "passed": true
+    },
+    {
+      "query": "refactor the login handler to use async/await",
+      "should_trigger": false,
+      "hits": 0,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Bash(git status --short && git log --oneline -5 && find . -path ./node_modules -prune -o -path )",
+        "Bash(for f in package.json src/parser.ts test/auth/login.test.ts docs/overview.md .claude/setti)",
+        "Bash(grep -rniE \"login|handler|callback|\\.then\\(\" . --exclude-dir=.git --exclude-dir=skills 2>/)"
+      ],
+      "calls_before_trigger": [],
+      "rate": 0.0,
+      "triggered": false,
+      "passed": true
+    },
+    {
+      "query": "explain how the goal plugin verifies completion",
+      "should_trigger": false,
+      "hits": 0,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && git ls-files | head -100 && echo --- && )",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && find .tmp/eval-fixture -type f | head -5)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && cat -n src/verify/pipeline.ts && cat -n )",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && grep -n -i \"verif\\|claim\\|done\\|oracle\\|)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && sed -n 420,460p src/server/app.ts && ech)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && grep -n -i \"verif\\|claim\\|oracle\\|protec)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && grep -n \"lockOf\\|max_rejections\\|mode:\" )",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && sed -n 276,284p src/contract/parse.ts)"
+      ],
+      "calls_before_trigger": [],
+      "rate": 0.0,
+      "triggered": false,
+      "passed": true
+    },
+    {
+      "query": "add a goals table to the database schema",
+      "should_trigger": false,
+      "hits": 0,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Bash(pwd && git rev-parse --show-toplevel && ls -la && git status --short . | head -50)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && ls -la && ls -la .tmp && git check-ignor)",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && /bin/ls -la && git ls-files | head -100 )",
+        "Bash(cd /Users/keatonhoskins/projects/opencode-goal && grep -n -i \"database\\|goals table\" skill)",
+        "ToolSearch()"
+      ],
+      "calls_before_trigger": [],
+      "rate": 0.0,
+      "triggered": false,
+      "passed": true
+    },
+    {
+      "query": "loop over the files and rename them",
+      "should_trigger": false,
+      "hits": 0,
+      "runs": 1,
+      "errors": 0,
+      "sequence": [
+        "Bash(pwd; ls -la; git status --short 2>/dev/null | head -50; find . -path ./.git -prune -o -typ)",
+        "Bash(cat package.json docs/overview.md; git -C . check-ignore -v . 2>&1; git -C . ls-files . | )"
+      ],
+      "calls_before_trigger": [],
+      "rate": 0.0,
+      "triggered": false,
+      "passed": true
+    }
+  ]
+}
