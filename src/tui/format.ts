@@ -46,13 +46,18 @@ export function bar(done: number, total: number, width = 10): string {
 
 const proven = (view: GoalView) => view.criteria.filter((c) => c.status === "pass").length
 
-function usageLine(view: GoalView, now: number): string {
+function usageParts(view: GoalView, now: number): { time: string; spend?: string } {
   const limit = (name: string) => view.budget.find((b) => b.name === name)?.limit
-  const parts = [`turn ${view.turn}${limit("turns") ? `/${limit("turns")}` : ""}`]
-  parts.push(`${fmtDuration(elapsed(view, now))}${limit("wall") ? `/${fmtDuration(limit("wall")!)}` : ""}`)
-  if (view.usage.tokens || limit("tokens")) parts.push(`${fmtTokens(view.usage.tokens)}${limit("tokens") ? `/${fmtTokens(limit("tokens")!)}` : ""} tok`)
-  if (view.usage.cost || limit("cost")) parts.push(`$${view.usage.cost.toFixed(2)}${limit("cost") ? `/$${limit("cost")}` : ""}`)
-  return parts.join(" · ")
+  const time = `turn ${view.turn}${limit("turns") ? `/${limit("turns")}` : ""} · ${fmtDuration(elapsed(view, now))}${limit("wall") ? `/${fmtDuration(limit("wall")!)}` : ""}`
+  const spend: string[] = []
+  if (view.usage.tokens || limit("tokens")) spend.push(`${fmtTokens(view.usage.tokens)}${limit("tokens") ? `/${fmtTokens(limit("tokens")!)}` : ""} tok`)
+  if (view.usage.cost || limit("cost")) spend.push(`$${view.usage.cost.toFixed(2)}${limit("cost") ? `/$${limit("cost")}` : ""}`)
+  return { time, ...(spend.length ? { spend: spend.join(" · ") } : {}) }
+}
+
+const usageLine = (view: GoalView, now: number) => {
+  const u = usageParts(view, now)
+  return u.spend ? `${u.time} · ${u.spend}` : u.time
 }
 
 export function cardLines(view: GoalView, now: number, width = 40, maxCriteria = 8): Line[] {
@@ -67,8 +72,8 @@ export function cardLines(view: GoalView, now: number, width = 40, maxCriteria =
   for (const c of view.criteria.slice(0, maxCriteria)) {
     const mark = c.status === "pass" ? "✓" : c.status === "fail" ? "✗" : c.status === "claimed" ? "◐" : "·"
     const tone: Tone = c.status === "pass" ? "success" : c.status === "fail" ? "error" : c.status === "claimed" ? "info" : "muted"
-    const tag = c.by ? ` ${c.by}` : c.invariant ? " inv" : ""
-    lines.push({ text: `${fit(`${mark} ${c.id} ${c.statement}`, width - tag.length)}${tag}`, tone })
+    const tag = c.by ? c.by : c.invariant ? "inv" : ""
+    lines.push({ text: `${fit(`${mark} ${c.id} ${c.statement}`, width - tag.length - 1).padEnd(width - tag.length)}${tag}`.trimEnd(), tone })
   }
   if (view.criteria.length > maxCriteria) lines.push({ text: `  +${view.criteria.length - maxCriteria} more`, tone: "muted" })
   if (view.steps.length) {
@@ -77,7 +82,10 @@ export function cardLines(view: GoalView, now: number, width = 40, maxCriteria =
     const current = view.steps[index] ?? view.steps.find((s) => s.status !== "done")
     lines.push({ text: fit(current ? `step ${index >= 0 ? index + 1 : done}/${view.steps.length} ${current.id} ${current.title}` : `steps ${done}/${view.steps.length} done`, width), tone: "base" })
   }
-  lines.push({ text: fit(usageLine(view, now), width), tone: view.budgetRatio >= 0.8 ? "warning" : "muted" })
+  const usage = usageParts(view, now)
+  const tone: Tone = view.budgetRatio >= 0.8 ? "warning" : "muted"
+  lines.push({ text: fit(usage.time, width), tone })
+  if (usage.spend) lines.push({ text: fit(usage.spend, width), tone })
   if (view.progress) lines.push({ text: fit(`↻ ${view.progress.note}`, width), tone: "muted" })
   if (view.verdict && !view.verdict.passed && view.status !== "complete") lines.push({ text: fit(`⚠ ${view.verdict.lines[0] ?? "verdict failed"}`, width), tone: "warning" })
   if (view.wait && view.status === "waiting") lines.push({ text: fit(`◷ resumes in ${fmtDuration(view.wait.until - now)}: ${view.wait.reason}`, width), tone: "info" })

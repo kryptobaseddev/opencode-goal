@@ -1,0 +1,18 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`tui formatting the sidebar card renders status, criteria board, step, budgets and the last verdict 1`] = `
+[
+  "◎ Goal                         ▶ running",
+  "Checkout p95 under 250ms",
+  "criteria ■■■□□□□□□□ 1/4",
+  "✓ C1 checkout tests green           host",
+  "✗ C2 p95 under 250ms across 3 runs  host",
+  "· C3 docs/perf.md explains the fix",
+  "· I1 full suite still passes         inv",
+  "step 2/3 S2 Remove N+1 in loadCart",
+  "turn 7/40 · 42m/3h",
+  "1.2M/3.0M tok · $4.10/$15",
+  "↻ ran bench: p95 231ms (-38%)",
+  "⚠ C2 FAILED [host] p95 312ms",
+]
+`;
