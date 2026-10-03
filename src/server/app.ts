@@ -14,6 +14,7 @@ import { account, budgetUse, initialRun, isActive, isTerminal, modelCan, ownerCa
 import { Store } from "../engine/store"
 import { Registry } from "../engine/registry"
 import { admissionNote } from "../engine/similarity"
+import { goalHelp } from "./help"
 import { ascendingId, runId as newRunId } from "../util/ids"
 import { fingerprint, headCommit } from "../util/git"
 import { runHostCheck, verifyClaim, type VerifierVerdict } from "../verify/pipeline"
@@ -998,7 +999,7 @@ export class GoalApp {
         return say(result.message, result.ok ? "success" : "error")
       }
       case "help":
-        return say("/goal new <words> · /goal start <slug> · /goal status · pause · resume · verify · abort · amend [confirm] · archive · approve <C#> · reject <C#> <why> · validate <slug> · list")
+        return say(goalHelp({ version: (this.ctx.options as any)?.version ?? "v0.2.0" }), "info")
       default:
         // Anything else is a request to write a goal from these words.
         await this.ctx.session.prompt({ sessionID, text, skills: [{ id: "write-goal" }] } as any)
