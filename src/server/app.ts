@@ -407,14 +407,23 @@ export class GoalApp {
     this.store.ledger(state.slug, { type: "admit", kind, turn: state.turn, messageID: state.pending.messageID })
     this.persist(state)
     try {
-      // S2: a fixed id makes a retried admission idempotent.
-      await this.ctx.session.prompt({
+      // S2 + T041: a fixed id makes a retried admission idempotent, and the
+      // continuation lands as ONE synthetic notice row in the transcript
+      // (research §0.6) instead of a user message; resume drives the turn.
+      // Falls back to a plain prompt on hosts without synthetic resume.
+      const payload = {
         sessionID: state.sessionID,
         id: state.pending.messageID,
         text: triggerText(state, contract, kind as TailKind),
+        description: `goal ${kind} · ${state.slug} · turn ${state.turn}`,
         metadata: { goal: { slug: state.slug, run: state.runId, turn: state.turn, kind } },
         resume: true,
-      } as any)
+      }
+      try {
+        await this.ctx.session.synthetic(payload as any)
+      } catch {
+        await this.ctx.session.prompt(payload as any)
+      }
       state.counters.failures = Math.max(0, state.counters.failures - 1)
     } catch (error) {
       state.counters.failures += 1
