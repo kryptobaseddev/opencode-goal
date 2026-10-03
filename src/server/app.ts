@@ -13,6 +13,7 @@ import { GoalRpc, type GoalSummary, type GoalView } from "../rpc"
 import { account, budgetUse, initialRun, isActive, isTerminal, modelCan, ownerCan, setStatus, type PendingKind, type RunState, type Status } from "../engine/state"
 import { Store } from "../engine/store"
 import { Registry } from "../engine/registry"
+import { admissionNote } from "../engine/similarity"
 import { ascendingId, runId as newRunId } from "../util/ids"
 import { fingerprint, headCommit } from "../util/git"
 import { runHostCheck, verifyClaim, type VerifierVerdict } from "../verify/pipeline"
@@ -947,7 +948,26 @@ export class GoalApp {
       case "new":
       case "write": {
         if (!arg) return say("Usage: /goal new <what you want done>", "warning")
-        await this.ctx.session.prompt({ sessionID, text: arg, skills: [{ id: "write-goal" }] } as any)
+        // T033: admission probe before the interview — exact existence and
+        // ranked similarity over live + archived goals, prepended for the
+        // write-goal interview to surface as owner options.
+        const candidates = [
+          ...this.store.slugs().map((slug) => {
+            const runState = this.store.readRun(slug)
+            const read = this.store.readContract(slug)
+            return { slug, title: runState?.title ?? read?.contract?.title ?? slug, ...(runState ? { status: runState.status } : {}) }
+          }),
+          ...this.store.archivedSlugs().map((slug) => {
+            const read = this.store.readContract(slug)
+            return { slug, title: read?.contract?.title ?? slug, status: "archived", archived: true as const }
+          }),
+          ...this.registry.list().filter((g) => g.project === this.rootReal).map((g) => ({ slug: g.slug, title: g.title, ...(g.status ? { status: g.status } : {}), ...(g.archived ? { archived: true as const } : {}) })),
+        ]
+        const deduped = [...new Map(candidates.map((c) => [c.slug, c])).values()]
+        const slugHint = arg.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64)
+        const note = admissionNote(arg, slugHint, deduped)
+        const first = note ? `${arg}\n\n${note}` : arg
+        await this.ctx.session.prompt({ sessionID, text: first, skills: [{ id: "write-goal" }] } as any)
         return
       }
       case "start": {
