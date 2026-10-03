@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { GoalView } from "../../src/rpc"
-import { bannerText, bar, cardLines, fmtDuration, pillText, statusText } from "../../src/tui/format"
+import { bannerText, bar, cardLines, fmtDuration, panelLines, pillText, statusText } from "../../src/tui/format"
 
 const view: GoalView = {
   slug: "checkout-latency",
@@ -9,6 +9,10 @@ const view: GoalView = {
   status: "running",
   runId: "r1",
   turn: 7,
+  timeline: [
+    { t: 1_760_000_000_000, kind: "start", text: "run started via command" },
+    { t: 1_760_000_060_000, kind: "admit", text: "turn 1 admitted (kickoff)" },
+  ],
   activeMs: 42 * 60_000,
   activeSince: null,
   usage: { tokens: 1_200_000, cost: 4.1 },

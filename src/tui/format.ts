@@ -1,5 +1,6 @@
-// Pure formatting for the TUI: everything the sidebar, pill and banner show is
-// computed here from a GoalView, so it can be tested without a terminal.
+// Pure formatting for the TUI: everything the sidebar, pill, banner and
+// dashboard panel show is computed here from a GoalView, so it can be tested
+// without a terminal.
 import type { GoalView } from "../rpc"
 
 export type Tone = "base" | "muted" | "success" | "warning" | "error" | "info"
@@ -91,6 +92,57 @@ export function cardLines(view: GoalView, now: number, width = 40, maxCriteria =
   if (view.wait && view.status === "waiting") lines.push({ text: fit(`◷ resumes in ${fmtDuration(view.wait.until - now)}: ${view.wait.reason}`, width), tone: "info" })
   if (view.reason && ["paused", "blocked", "needs_review", "budget_limited", "failed"].includes(view.status)) lines.push({ text: fit(`${st.icon} ${view.reason}`, width), tone: st.tone })
   if (view.awaitingUser) lines.push({ text: fit("? waiting for your answer", width), tone: "warning" })
+  return lines
+}
+
+const clock = (t: number) => new Date(t).toTimeString().slice(0, 8)
+
+const budgetCell = (b: { name: string; used: number; limit: number }) => {
+  if (b.name === "cost") return `$${b.used.toFixed(2)}/$${b.limit.toFixed(2)}`
+  if (b.name === "wall") return `${fmtDuration(b.used)}/${fmtDuration(b.limit)}`
+  if (b.name === "tokens") return `${fmtTokens(b.used)}/${fmtTokens(b.limit)} tok`
+  return `${b.used}/${b.limit}`
+}
+
+/**
+ * The session.panel goal dashboard: the contract's criteria board with
+ * per-criterion evidence, the plan, the latest verdict and the ledger
+ * timeline. Pure so the snapshot test can pin it.
+ */
+export function panelLines(view: GoalView, now: number, width = 46): Line[] {
+  const st = statusOf(view.status)
+  const lines: Line[] = []
+  lines.push({ text: fit(`◎ GOAL ${st.icon} ${st.label}`, width), tone: st.tone, bold: true })
+  lines.push({ text: fit(view.title, width), tone: "base", bold: true })
+  lines.push({ text: fit(usageLine(view, now), width), tone: view.budgetRatio >= 0.8 ? "warning" : "muted" })
+  const limits = view.budget.filter((b) => b.limit > 0)
+  if (limits.length) lines.push({ text: fit(limits.map(budgetCell).join(" · "), width), tone: view.budgetRatio >= 0.8 ? "warning" : "muted" })
+  lines.push({ text: fit(`Outcome ${view.outcome}`, width), tone: "muted" })
+
+  lines.push({ text: `Criteria ${bar(proven(view), view.criteria.length)} ${proven(view)}/${view.criteria.length}`, tone: proven(view) === view.criteria.length && view.criteria.length ? "success" : "base", bold: true })
+  for (const c of view.criteria) {
+    const mark = c.status === "pass" ? "✓" : c.status === "fail" ? "✗" : c.status === "claimed" ? "◐" : "·"
+    const tone: Tone = c.status === "pass" ? "success" : c.status === "fail" ? "error" : c.status === "claimed" ? "info" : "muted"
+    const tag = c.by ? ` [${c.by}]` : c.invariant ? " [invariant]" : ""
+    lines.push({ text: fit(`${mark} ${c.id} ${c.statement}${tag}`, width), tone })
+    const evidence = c.detail?.split("\n")[0]
+    if (evidence) lines.push({ text: fit(`    ${evidence}`, width), tone: "muted" })
+  }
+
+  if (view.steps.length) {
+    lines.push({ text: "Plan", tone: "base", bold: true })
+    for (const s of view.steps)
+      lines.push({ text: fit(`${s.status === "done" ? "✓" : s.status === "active" ? "▸" : "·"} ${s.id} ${s.title}`, width), tone: s.status === "active" ? "info" : s.status === "done" ? "success" : "muted" })
+  }
+
+  if (view.verdict) {
+    lines.push({ text: `Verdict — turn ${view.verdict.turn}: ${view.verdict.passed ? "passed" : "failed"}`, tone: view.verdict.passed ? "success" : "warning", bold: true })
+    for (const l of view.verdict.lines.slice(0, 4)) lines.push({ text: fit(`  ${l.split("\n")[0]}`, width), tone: view.verdict.passed ? "success" : "warning" })
+  }
+
+  lines.push({ text: "Timeline", tone: "base", bold: true })
+  if (!view.timeline.length) lines.push({ text: "  (no events yet)", tone: "muted" })
+  for (const e of view.timeline.slice(-10)) lines.push({ text: fit(`${clock(e.t)} ${e.text}`, width), tone: "muted" })
   return lines
 }
 

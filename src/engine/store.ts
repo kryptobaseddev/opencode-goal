@@ -62,6 +62,22 @@ export class Store {
     renameSync(tmp, path)
   }
 
+  /** The last n ledger events, oldest first; tolerant of a torn final line. */
+  recent(slug: string, n: number): LedgerEvent[] {
+    const path = join(this.dir(slug), "ledger.jsonl")
+    if (!existsSync(path)) return []
+    const lines = readFileSync(path, "utf8").trimEnd().split("\n")
+    const out: LedgerEvent[] = []
+    for (const line of lines.slice(-n)) {
+      try {
+        out.push(JSON.parse(line) as LedgerEvent)
+      } catch {
+        // a half-written trailing line is skipped, never fatal
+      }
+    }
+    return out
+  }
+
   ledger(slug: string, event: Omit<LedgerEvent, "t"> & { t?: number }) {
     const dir = this.dir(slug)
     mkdirSync(dir, { recursive: true })

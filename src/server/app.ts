@@ -174,6 +174,14 @@ export class GoalApp {
     return f
   }
 
+  /** Recent ledger events for the dashboard's Timeline section, oldest first. */
+  private timelineOf(state: RunState) {
+    return this.store
+      .recent(state.slug, 30)
+      .slice(-18)
+      .map((e) => ({ t: e.t, kind: e.type, text: timelineText(e) }))
+  }
+
   view(state: RunState): GoalView | undefined {
     const contract = this.contractOf(state)
     if (!contract) return undefined
@@ -187,6 +195,7 @@ export class GoalApp {
       ...(state.reason ? { reason: state.reason } : {}),
       runId: state.runId,
       turn: state.turn,
+      timeline: this.timelineOf(state),
       activeMs: state.activeMs,
       activeSince: state.activeSince,
       usage: { tokens: state.usage.tokens, cost: state.usage.cost },
@@ -1096,6 +1105,39 @@ export class GoalApp {
 }
 
 // ───────────────────────────── helpers
+
+/** One-line summary of a ledger event for the dashboard's Timeline section. */
+function timelineText(e: Record<string, unknown>): string {
+  const str = (v: unknown, max = 70) => String(v ?? "").slice(0, max)
+  switch (e.type) {
+    case "start":
+      return `run started via ${str(e.source, 20)}`
+    case "admit":
+      return `turn ${e.turn} admitted (${str(e.kind, 30)})`
+    case "admit-failed":
+      return `turn ${e.turn} admission failed: ${str(e.error)}`
+    case "claim":
+      return `completion claimed at turn ${e.turn}`
+    case "verdict":
+      return `verdict ${e.passed ? "passed" : "failed"}${Array.isArray(e.lines) && e.lines[0] ? ` — ${str(e.lines[0], 90)}` : ""}`
+    case "complete":
+      return "goal complete"
+    case "paused":
+      return `paused: ${str(e.reason, 60)}`
+    case "resumed":
+      return `resumed (${str(e.by, 40)})`
+    case "waiting":
+      return `waiting ${e.seconds ? `${e.seconds}s` : ""}: ${str(e.reason, 50)}`
+    case "blocked":
+      return `blocked: ${str(e.reason, 60)}`
+    case "steer":
+      return `owner steered: ${str(e.text, 60)}`
+    default: {
+      const extra = e.reason ?? e.error ?? e.note ?? e.text ?? ""
+      return `${str(e.type, 24)}${extra ? `: ${str(extra, 60)}` : ""}`
+    }
+  }
+}
 
 /** Build a user message for the context hook from the host's own Message class. */
 function makeUserMessage(messages: any[], text: string): any {

@@ -1,0 +1,112 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`tui goal dashboard panel renders the criteria board with per-criterion evidence, plan, verdict and ledger timeline 1`] = `
+[
+  {
+    "bold": true,
+    "text": "◎ GOAL ◐ verifying",
+    "tone": "info",
+  },
+  {
+    "bold": true,
+    "text": "Checkout p95 under 250ms",
+    "tone": "base",
+  },
+  {
+    "text": "turn 9/40 · 1h 01m · 1.4M/3.0M tok · $5.25/$15",
+    "tone": "muted",
+  },
+  {
+    "text": "9/40 · 1.4M/3.0M tok · $5.25/$15.00",
+    "tone": "muted",
+  },
+  {
+    "text": "Outcome Checkout API p95 is below 250ms",
+    "tone": "muted",
+  },
+  {
+    "bold": true,
+    "text": "Criteria ■■■□□□□□□□ 1/4",
+    "tone": "base",
+  },
+  {
+    "text": "✓ C1 checkout tests green [host]",
+    "tone": "success",
+  },
+  {
+    "text": "bun test: 42 pass, 0 fail",
+    "tone": "muted",
+  },
+  {
+    "text": "✗ C2 p95 under 250ms across 3 runs [host]",
+    "tone": "error",
+  },
+  {
+    "text": "C2 FAILED [host] p95 312ms (run 2/3)",
+    "tone": "muted",
+  },
+  {
+    "text": "· C3 docs/perf.md explains the fix",
+    "tone": "muted",
+  },
+  {
+    "text": "· I1 full suite still passes [invariant]",
+    "tone": "muted",
+  },
+  {
+    "bold": true,
+    "text": "Plan",
+    "tone": "base",
+  },
+  {
+    "text": "✓ S1 Profile the slow path",
+    "tone": "success",
+  },
+  {
+    "text": "▸ S2 Remove N+1 in loadCart",
+    "tone": "info",
+  },
+  {
+    "text": "· S3 Document the change",
+    "tone": "muted",
+  },
+  {
+    "bold": true,
+    "text": "Verdict — turn 8: failed",
+    "tone": "warning",
+  },
+  {
+    "text": "C2 FAILED [host] p95 312ms",
+    "tone": "warning",
+  },
+  {
+    "text": "C1 passed [host] bun test: 42 pass",
+    "tone": "warning",
+  },
+  {
+    "bold": true,
+    "text": "Timeline",
+    "tone": "base",
+  },
+  {
+    "text": "08:53:20 run started via command",
+    "tone": "muted",
+  },
+  {
+    "text": "08:54:20 turn 1 admitted (kickoff)",
+    "tone": "muted",
+  },
+  {
+    "text": "08:55:20 completion claimed at turn 4",
+    "tone": "muted",
+  },
+  {
+    "text": "08:56:20 verdict failed — C2 FAILED [host] p95 312ms",
+    "tone": "muted",
+  },
+  {
+    "text": "08:57:20 turn 5 admitted (verdict)",
+    "tone": "muted",
+  },
+]
+`;

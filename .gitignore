@@ -2,3 +2,8 @@ node_modules/
 .tmp/
 *.log
 .probe/
+
+# goal runtime state (HANDOFF §8.4): the contract dir stays, the run artifacts don't
+.opencode/goals/*/run.json
+.opencode/goals/*/ledger.jsonl
+.opencode/goals/*/evidence/

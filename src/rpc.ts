@@ -45,6 +45,8 @@ export type CriterionView = {
   at?: number
 }
 
+export type TimelineEntry = { t: number; kind: string; text: string }
+
 export type GoalView = {
   slug: string
   title: string
@@ -53,6 +55,7 @@ export type GoalView = {
   reason?: string
   runId: string
   turn: number
+  timeline: TimelineEntry[]
   activeMs: number
   activeSince: number | null
   usage: { tokens: number; cost: number }
