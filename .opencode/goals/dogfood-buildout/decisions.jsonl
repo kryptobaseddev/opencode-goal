@@ -1,0 +1,5 @@
+{"t": "2026-10-03T03:05:00Z", "q": "session intent captured verbatim", "options": [], "a": "dogfood yourself by building your goal system out and testing it fully in opencode 2 for our project", "by": "owner"}
+{"t": "2026-10-03T03:10:00Z", "q": "What does this goal cover?", "options": ["all three (T012+T010+T009)", "T012 only", "T012+T010"], "a": "all three (T012+T010+T009)", "by": "owner"}
+{"t": "2026-10-03T03:10:00Z", "q": "Ship v0.1.0-alpha.2 including pushing the tag?", "options": ["tag+push+isolated install test, owner reinstalls", "full ship incl owner config", "no release"], "a": "tag+push+isolated install test, owner reinstalls", "by": "owner"}
+{"t": "2026-10-03T03:10:00Z", "q": "Budget?", "options": ["none", "3h wall", "3M tokens"], "a": "none", "by": "owner"}
+{"t": "2026-10-03T03:10:00Z", "q": "TUI dashboard panel visibility?", "options": ["always visible in layout", "keybinding-only"], "a": "always visible in layout", "by": "owner"}

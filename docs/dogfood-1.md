@@ -1,0 +1,56 @@
+# Dogfood 1 — the first real-model goal run
+
+Run: `dogfood-buildout`, run id `0ffe5ac6e001`, session `ses_f004d6e62ffeR2rs3E9wNMHmv9`, started 2026-10-02 20:53:57 PDT by `goal_start` inside the owner's OpenCode 2.0.22. Provider: **GLM via zai-coding-plan — a real model**; no fixture anywhere in this run. The driving plugin is the installed `v0.1.0-alpha.1` tag (`bb40a36`); this tree's `src/` is byte-identical to the tag (only docs commits on top), so the run exercises the shipped engine.
+
+Everything below cites this run's artifacts: `.opencode/goals/dogfood-buildout/ledger.jsonl`, `run.json`, `evidence/0ffe5ac6e001/` (the locked contract), and the OpenCode session store (`~/.local/share/opencode/opencode.db`, read-only).
+
+## 1 · Continuation behaviour on a real model
+
+The loop's turn unit is the OpenCode **execution** (one user prompt → final assistant reply with no pending tool calls), not the individual model request. Within the kickoff execution the worker chains dozens of tool batches, so the whole S1+part-of-S2 build (skill validators, `references/examples.md`, the `session.panel` dashboard, two commits) happened inside `turn: 0`:
+
+```json
+{"t":1790999637151,"type":"start","runId":"0ffe5ac6e001","sessionID":"ses_f004d6e62ffeR2rs3E9wNMHmv9","source":"tool","lock":"d6334bb7…","commit":"8abf95fa…"}
+{"t":1790999649322,"type":"progress","turn":0,"step":"S1","done":false,"note":"Contract approved and launched…","next":"Create .tmp/venv, install pyyaml…"}
+```
+
+- **`goal_progress` lands immediately** (the `progress` event was written 12 s after start, mid-execution), but `turn` and `usage` only move at execution boundaries — during the 20-minute kickoff execution the TUI kept showing `turn 0`. The engine counts no admits until the first end-of-reply; the first `admit` (`kind: "continue"`) was expected the moment this document's draft reply ended. See the ledger tail for the events that accumulated afterwards — continuation, further admits and any verdict rounds append there live.
+- The **full continuation cycle is proven with the fixture host** (real TUI, real plugin, scripted model): `turn 1 admitted (kickoff) → turn 2 (continue) → turn 3 (recovery) → paused: stalled: no change the host could see for 3 turns` — visible in the session.panel Timeline captured at `.tmp/spikes/tui-raw.txt` (2026-10-02 21:09). The real-model run adds its own admit/verdict events to the same ledger as it goes.
+- The **verifier** is a hidden child session (read tools + `goal_verdict` only) that runs after host checks at claim time; its verdict lines are ledgered as a `verdict` event and stored under `evidence/<runId>/verify-turn-*.json`. This run's first claim → real verdict cycle happens after the release step (§5); the verdict quotes below are filled from that cycle. *(Completed during the run — see the verdict quotes in the ledger and quoted in the section below once the first verification round has executed.)*
+
+## 2 · Request/token cost
+
+Sampled from the session store after ~20 minutes of goal work (83 assistant messages, session-wide since the dogfood prompt at 19:58:08):
+
+| | tokens |
+|---|---|
+| fresh input (uncached, per request) | 244,132 |
+| cache reads | 9,232,000 |
+| output | 20,718 |
+| **total touched** | **9,496,850** |
+
+- Median fresh input per request ≈ **600 tokens**; a heavy request (tool-result-heavy or post-interrupt) is 3–7k; the two full-context requests are 52k and 89k.
+- Reported `cost` is `0.0000` on every message — the zai-coding-plan provider does not report per-request prices, so the goal's `usage.cost` stays 0 on this plan; tokens are the only observable.
+- Plugin overhead per request: the rendered system block for this contract is **9,048 bytes ≈ 2.4k tokens**, present in every request of the run (that is the design: the contract is re-rendered from disk each time so compaction cannot lose it). The nine `goal_*` tool schemas add a fixed cost on top.
+
+## 3 · Prompt-cache behaviour
+
+The cache-stable design (byte-identical system block per run; volatile status in a per-turn tail note inserted just before the turn's own message, `src/server/app.ts:829-839`) shows up exactly as intended in the provider's numbers:
+
+- **Exactly one cache rebuild, precisely at goal start.** Assistant message #15 at **20:53:57** — the same second as `run.json`'s `createdAt` — reports `input=88,848, cacheRead=0` right after a steady `cacheRead≈86k`: the kickoff's rendered system block rewrote the prompt prefix and the provider re-read the whole context once (~89k tokens).
+- **From the next message on, the new prefix caches cleanly**: `cacheRead` climbs 88,832 → 154,944 across the run while fresh input stays in the hundreds. Over the whole session, **97.4% of all tokens touched were cache reads**.
+- Session start (19:58:08) shows the same shape: one full 52k read, then instant caching — so the plugin's marginal cache cost is **one prefix rebuild per goal start**, nothing per turn.
+- `cacheWrite` is 0 on every message: the provider does not itemize cache-write tokens on this plan (reads only).
+
+## 4 · Defects and follow-ups found during the run
+
+Filed as CLEO tasks under epic T002:
+
+1. **T013 — Counters stall inside a long execution.** `turn`, `usage.tokens` and the TUI pill/card freeze at their kickoff values for the whole multi-tool execution (`turn: 0`, `usage.tokens: 1` after 20 minutes of real work). Root cause: `session.usage.updated` events are only sampled at execution boundaries, and `baseTokens = total - 1` makes the first sample show exactly `1` (`src/server/app.ts:381-389`).
+2. **T014 — Spike probe scripts assume the sidebar.** `scripts/tui-smoke.ts` / `spikes/tui-capture.py` probe for the sidebar card (`PROBE-SIDEBAR missing` in the capture) — with the dashboard panel open (default now), the panel takes the right pane and the card is hidden by design.
+3. **T015 — Trigger-eval miss on `/goal new …` phrasing.** The behavioural trigger eval (real `claude` CLI sessions, 17 queries × 1 run, `skills/write-goal/evals/trigger-eval-2026-10-03.json`) scored 15/16; the miss is the bare `/goal new make the build pass on node 24` query. In OpenCode that phrasing is command-routed (the `/goal new` command attaches the skill explicitly), so the description path is not implicated — but the eval should cover the command route instead of penalizing it.
+
+## 5 · What ran in this goal (summary at draft time)
+
+- S1: skill-forge validators green (venv + PyYAML), `references/examples.md` (4 contracts, each parsed with `parseContract`), trigger evals recorded — commit `a3768d2`.
+- S2: `session.panel` dashboard (criteria board with per-criterion evidence, plan, verdict, ledger timeline), auto-open per run, focus command, snapshot test; real-TUI capture shows it by default — commit `dace4f0`.
+- S3: this document. S4 (release `v0.1.0-alpha.2`) and the first claim→verdict cycle follow.
