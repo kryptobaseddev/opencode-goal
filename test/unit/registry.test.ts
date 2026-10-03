@@ -39,11 +39,16 @@ describe("goal registry (T026)", () => {
 
     expect(registry.update(a, "alpha", { title: "alpha", status: "running", runId: "r-alpha", lock: "lock-alpha", updatedAt: 1000 })).toBe(true)
     expect(registry.update(b, "beta", { title: "beta", status: "complete", runId: "r-beta", lock: "lock-beta", updatedAt: 2000 })).toBe(true)
-    // a transition refreshes the entry
+    // a transition refreshes the entry — including archive flags (T032)
     expect(registry.update(a, "alpha", { title: "alpha", status: "paused", runId: "r-alpha", lock: "lock-alpha", updatedAt: 3000 })).toBe(true)
+    expect(registry.update(a, "alpha", { title: "alpha", status: "paused", runId: "r-alpha", lock: "lock-alpha", archived: true, updatedAt: 4000 })).toBe(true)
+    expect(registry.read().projects[a]!.goals["alpha"]!.archived).toBe(true)
+    registry.update(a, "alpha", { title: "alpha", status: "paused", runId: "r-alpha", lock: "lock-alpha", updatedAt: 5000 })
+    expect(registry.read().projects[a]!.goals["alpha"]!.archived).toBeUndefined()
+    registry.update(a, "alpha", { title: "alpha", status: "paused", runId: "r-alpha", lock: "lock-alpha", archived: true, updatedAt: 6000 })
     // an unchanged update does not rewrite the file
     const before = JSON.stringify(registry.read())
-    expect(registry.update(a, "alpha", { title: "alpha", status: "paused", runId: "r-alpha", lock: "lock-alpha", updatedAt: 3000 })).toBe(false)
+    expect(registry.update(a, "alpha", { title: "alpha", status: "paused", runId: "r-alpha", lock: "lock-alpha", archived: true, updatedAt: 6000 })).toBe(false)
     expect(JSON.stringify(registry.read())).toBe(before)
 
     const list = registry.list()

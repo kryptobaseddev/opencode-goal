@@ -115,7 +115,7 @@ export function setStatus(state: RunState, status: Status, reason?: string, now 
   return state
 }
 
-export type OwnerAction = "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend"
+export type OwnerAction = "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend" | "archive"
 
 /** Owner transitions; returns an error string when the action does not apply. */
 export function ownerCan(state: RunState, action: OwnerAction): string | undefined {
@@ -132,6 +132,10 @@ export function ownerCan(state: RunState, action: OwnerAction): string | undefin
       // T038: amendment re-locks a live contract; a terminal goal gets a new
       // goal instead (supersession), never a rewrite of history.
       return isTerminal(state.status) ? `goal is ${state.status}; write a new goal or supersede it instead` : undefined
+    case "archive":
+      // T032: demote-never-delete applies to finished work; a live goal is
+      // aborted first, never archived mid-flight.
+      return isTerminal(state.status) ? undefined : `goal is ${state.status}; abort it before archiving`
     case "approve":
     case "reject":
       return isTerminal(state.status) ? `goal is ${state.status}` : undefined

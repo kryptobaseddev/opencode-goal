@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFile
 import { homedir, tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 
-export type RegistryEntry = { title: string; status: string; runId?: string; lock?: string; updatedAt: number }
+export type RegistryEntry = { title: string; status: string; runId?: string; lock?: string; archived?: boolean; updatedAt: number }
 export type RegistryData = { version: 1; projects: Record<string, { goals: Record<string, RegistryEntry>; updatedAt: number }> }
 
 export const DEFAULT_REGISTRY_PATH = join(homedir(), ".local", "share", "opencode", "goal-registry.json")
@@ -43,7 +43,8 @@ export class Registry {
       current.title === entry.title &&
       current.status === entry.status &&
       current.runId === entry.runId &&
-      current.lock === entry.lock
+      current.lock === entry.lock &&
+      current.archived === entry.archived
     )
       return false
     project.goals[slug] = entry

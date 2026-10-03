@@ -29,6 +29,29 @@ export class Store {
       .sort()
   }
 
+  /** T032: the archive tier sits beside goals/ — demoted, never deleted. */
+  get archiveDir() {
+    return join(this.root, ".opencode", "goals-archive")
+  }
+
+  archivedSlugs(): string[] {
+    if (!existsSync(this.archiveDir)) return []
+    return readdirSync(this.archiveDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory() && existsSync(join(this.archiveDir, d.name, "goal.yaml")))
+      .map((d) => d.name)
+      .sort()
+  }
+
+  archivedPath(slug: string) {
+    return join(this.archiveDir, slug)
+  }
+
+  /** Move a goal folder into the archive tier (ledger and evidence travel along). */
+  archive(slug: string) {
+    mkdirSync(this.archiveDir, { recursive: true })
+    renameSync(this.dir(slug), this.archivedPath(slug))
+  }
+
   readContract(slug: string): (ParseResult & { text: string }) | undefined {
     const path = this.contractPath(slug)
     if (!existsSync(path)) return undefined

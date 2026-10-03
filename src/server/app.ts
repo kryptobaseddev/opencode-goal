@@ -757,7 +757,7 @@ export class GoalApp {
 
   // ───────────────────────────── owner actions (command, RPC)
 
-  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend", arg?: string): Promise<{ ok: boolean; message: string }> {
+  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend" | "archive", arg?: string): Promise<{ ok: boolean; message: string }> {
     return this.serial(async () => {
       const state = this.runs.get(sessionID)
       if (!state) return { ok: false, message: "No goal in this session. Start one with /goal start <slug> or write one with /goal new <what you want>." }
@@ -794,6 +794,19 @@ export class GoalApp {
           const confirmed = (arg?.split(/\s+/) ?? []).includes("confirm")
           const message = await this.amendGoal(state, confirmed)
           return { ok: message.startsWith("Amended") || message.startsWith("Proposed"), message }
+        }
+        case "archive": {
+          // T032: demote, never delete — the folder moves to goals-archive/
+          // with ledger and evidence intact; the registry keeps answering yes.
+          clearTimeout(this.timers.get(sessionID))
+          const finalStatus = state.status
+          this.store.ledger(state.slug, { type: "archived", from: finalStatus })
+          this.registry.update(this.rootReal, state.slug, { title: state.title, status: finalStatus, ...(state.runId ? { runId: state.runId } : {}), ...(state.lock ? { lock: state.lock } : {}), archived: true, updatedAt: Date.now() })
+          this.store.archive(state.slug)
+          this.loaded.delete(state.slug)
+          this.runs.delete(sessionID)
+          this.notice(sessionID, `Goal archived: ${state.title} (history intact under .opencode/goals-archive/${state.slug}/)`, "success")
+          return { ok: true, message: `Goal archived: ${state.title}` }
         }
         case "verify":
           if (!contract) return { ok: false, message: "contract unavailable" }
@@ -890,8 +903,17 @@ export class GoalApp {
         void this.rpc?.events.emit("notice", { sessionID, level: "info", text: this.statusText(state), panel: true }).catch(() => {})
         return
       }
-      case "list":
-        return say(this.listText() || "No goals in .opencode/goals/ yet. /goal new <what you want> writes one.")
+      case "list": {
+        const archived = this.registry.list().filter((g) => g.project === this.rootReal && g.archived)
+        const live = this.listText() || "No live goals in .opencode/goals/."
+        const all = arg.toLowerCase() === "all"
+        const archivedText = all
+          ? archived.map((g) => `${g.slug} — archived (${g.status})`).join("\n")
+          : archived.length
+            ? `${archived.length} archived goal(s): ${archived.map((g) => g.slug).join(", ")} (/goal list all)`
+            : ""
+        return say([live, archivedText].filter(Boolean).join("\n"))
+      }
       case "new":
       case "write": {
         if (!arg) return say("Usage: /goal new <what you want done>", "warning")
@@ -900,7 +922,10 @@ export class GoalApp {
       }
       case "start": {
         if (!arg) return say(`Usage: /goal start <slug>. Goals here: ${this.store.slugs().join(", ") || "none"}`, "warning")
-        const message = await this.startGoal(sessionID, arg.split(/\s+/)[0]!, "command")
+        const slug0 = arg.split(/\s+/)[0]!
+        if (!this.store.slugs().includes(slug0) && this.store.archivedSlugs().includes(slug0))
+          return say(`"${slug0}" exists, archived at .opencode/goals-archive/${slug0}/ (history intact; it WAS a goal here). Move it back or write a superseding goal.`, "warning")
+        const message = await this.startGoal(sessionID, slug0, "command")
         return say(message, message.startsWith("Goal \"") ? "success" : "error")
       }
       case "validate": {
@@ -915,12 +940,13 @@ export class GoalApp {
       case "verify":
       case "approve":
       case "reject":
-      case "amend": {
+      case "amend":
+      case "archive": {
         const result = await this.ownerAct(sessionID, sub as any, arg)
         return say(result.message, result.ok ? "success" : "error")
       }
       case "help":
-        return say("/goal new <words> · /goal start <slug> · /goal status · pause · resume · verify · abort · amend [confirm] · approve <C#> · reject <C#> <why> · validate <slug> · list")
+        return say("/goal new <words> · /goal start <slug> · /goal status · pause · resume · verify · abort · amend [confirm] · archive · approve <C#> · reject <C#> <why> · validate <slug> · list")
       default:
         // Anything else is a request to write a goal from these words.
         await this.ctx.session.prompt({ sessionID, text, skills: [{ id: "write-goal" }] } as any)
