@@ -60,6 +60,8 @@ export type RunState = {
   turnFacts: { tools: number; goalCalls: number; stepsChanged: boolean }
   steers: number
   compacted: boolean
+  /** last wall-clock ms the TUI/rpc was refreshed by a usage.recorded burst (T013) */
+  lastUsageEmit?: number
   flags: Array<{ criterion?: string; kind: string; reason: string; at: number }>
   amendments: Array<{ change: string; rationale: string; at: number; status: "proposed" | "accepted" | "rejected" }>
 }

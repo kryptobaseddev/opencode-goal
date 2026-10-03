@@ -377,14 +377,25 @@ export class GoalApp {
         state.turnFacts.tools += 1
         return
       case "session.usage.updated": {
+        // T013: this event fires per message with cumulative session totals
+        // (probed live on 2.0.22 — see docs/dogfood-1.md). The old handler
+        // updated memory only, so run.json and the TUI froze at the values
+        // captured at goal start (the sentinel 1) for the whole kickoff
+        // execution of run 0ffe5ac6e001. Baseline = the cumulative total at
+        // goal start; persist and re-render throttled so counters stay live.
         const total = (data.tokens?.input ?? 0) + (data.tokens?.output ?? 0) + (data.tokens?.reasoning ?? 0)
         if (state.usage.baseTokens === null) {
-          // first sample after start: count this step but not the session's history
-          state.usage.baseTokens = Math.max(0, total - 1)
+          state.usage.baseTokens = total
           state.usage.baseCost = data.cost ?? 0
         }
         state.usage.tokens = Math.max(0, total - (state.usage.baseTokens ?? 0))
         state.usage.cost = Math.max(0, (data.cost ?? 0) - (state.usage.baseCost ?? 0))
+        const now = Date.now()
+        if (state.lastUsageEmit === undefined || now - state.lastUsageEmit > 1000) {
+          state.lastUsageEmit = now
+          this.persist(state)
+          this.emitUpdate(state)
+        }
         return
       }
       case "session.compaction.ended":
