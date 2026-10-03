@@ -78,9 +78,9 @@ export async function ledger(host: Awaited<ReturnType<typeof goalHost>>, slug = 
   return (await host.readProject(`.opencode/goals/${slug}/ledger.jsonl`)).trim().split("\n").map((l) => JSON.parse(l))
 }
 
-export async function waitStatus(host: Awaited<ReturnType<typeof goalHost>>, statuses: string[], timeoutMs = 60000) {
+export async function waitStatus(host: Awaited<ReturnType<typeof goalHost>>, statuses: string[], timeoutMs = 60000, slug = "demo") {
   return until(async () => {
-    const r = await run(host).catch(() => undefined)
+    const r = await run(host, slug).catch(() => undefined)
     return r && statuses.includes(r.status) ? r : undefined
   }, timeoutMs, 200)
 }

@@ -241,8 +241,32 @@ export class GoalApp {
       const loaded = this.load(slug, true)
       if ("error" in loaded) return loaded.error
       const { contract, lock, text } = loaded
+      // T036: start-time rehearsal — run every command check once BEFORE
+      // locking. A check whose text cannot run at all refuses the start; a
+      // legitimate red check is recorded as the baseline (a bug-fix goal
+      // SHOULD start red). The unrunnable signature is the shell's own
+      // failure (exit 126/127 or a zsh:/bash: diagnostic) — never a tool's
+      // stderr, so `grep missing-file` stays a valid red baseline.
+      const commandChecks = [...contract.criteria, ...contract.invariants].filter((c) => c.check.kind === "command")
+      const rehearsal: Array<{ id: string; pass: boolean; unrunnable: boolean; ms: number; detail: string }> = []
+      for (const c of commandChecks) {
+        const started = Date.now()
+        const result = await runHostCheck(c.check, this.root, headCommit(this.root))
+        const last = Array.isArray(result.raw) ? (result.raw as unknown[]).at(-1) as { exit?: number; stderr?: string } | undefined : undefined
+        const unrunnable = Number(last?.exit) === 126 || Number(last?.exit) === 127 || /\b(zsh|bash|sh|dash):(\d+:)?\s.*(permission denied|command not found|no such file or directory)/i.test(String(last?.stderr ?? ""))
+        rehearsal.push({ id: c.id, pass: result.pass, unrunnable, ms: Date.now() - started, detail: result.detail.slice(0, 400) })
+        if (unrunnable) {
+          this.store.ledger(slug, { type: "rehearsal-refused", id: c.id, exit: last?.exit, detail: result.detail.split("\n").slice(0, 3).join(" | ").slice(0, 300) })
+          const diagnostic = String(last?.stderr ?? "").split("\n").find((l) => /permission denied|command not found|no such file/i.test(l)) ?? `exit ${last?.exit}`
+          return `Refused to start "${slug}": the check command for ${c.id} cannot run — ${diagnostic.trim()}. Command checks must be runnable from the project root; keep each on ONE line (YAML folded scalars keep newlines before indented lines) and rehearse the stored command. Fix goal.yaml and /goal start again.`
+        }
+      }
       const state = initialRun(contract, { sessionID, runId: newRunId(), lock, commit: headCommit(this.root) })
       state.fingerprint = fingerprint(this.root)
+      if (rehearsal.length) {
+        this.store.evidence(slug, state.runId, "rehearsal", { at: Date.now(), results: rehearsal })
+        this.store.ledger(slug, { type: "rehearsal", turn: 0, baseline: rehearsal.map((r) => ({ id: r.id, pass: r.pass })) })
+      }
       this.store.evidence(slug, state.runId, "contract", { lock, text })
       await Bun.write(join(this.store.dir(slug), "evidence", state.runId, "contract.yaml"), text)
       this.runs.set(sessionID, state)
