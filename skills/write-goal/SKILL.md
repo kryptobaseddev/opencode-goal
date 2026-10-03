@@ -119,4 +119,5 @@ Full field reference: `references/goal-schema.md`. Question bank and recommendat
 | No non-goal | At least one, so the loop does not fill the vacuum |
 | Inventing a budget or turn cap | Leave it out unless the owner wants one |
 | A `command` check spread over indented lines | One line — folded scalars keep newlines before indented lines; rehearse the stored command before claiming |
+| A multi-lookahead `regex` in a `contains` check | The engine matches without dot-all — every `(?=.*phrase)` must be satisfiable on ONE line of the file; prefer one needle per criterion, or a single alternation |
 | Launching before the owner saw the exact contract | Review step, then the `Start goal now` question |
