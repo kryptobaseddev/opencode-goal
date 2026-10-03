@@ -11,7 +11,7 @@ Written 2026-10-02 at the end of the first build session (Claude Code, Opus 5.5)
 | Installed | Globally in the owner's OpenCode 2.0.22: `~/.config/opencode/opencode.jsonc` → `"plugins": ["github:kryptobaseddev/opencode-goal#v0.1.0-alpha.1"]` (added with `opencode plugin add`; config backed up first as `opencode.jsonc.bak-20261002-194347-before-opencode-goal`). `opencode plugin list` shows `opencode-goal bb40a36`. |
 | Tests | 40 pass (`bun test`, ~26 s): 31 unit + 1 harness + 8 end-to-end on a real `opencode serve` 2.0.22. Plus `OCGOAL_GIT_INSTALL=1 bun test test/host/git-install.test.ts` (installs the tag from GitHub into an isolated OpenCode) — passes. |
 | Real-model use | **Not done yet.** Every end-to-end test uses a scripted fake provider. The first job of the next session is a real goal with a real model. |
-| CLEO | Project `opencode-goal`; saga T001 › epic T002. T003–T008 complete with evidence. T009 (TUI), T010 (skill), T011 (packaging/docs) open — see §9. |
+| CLEO | Project `opencode-goal`; saga T001 › epic T002. T003–T008 and T011 complete with evidence. Open: **T012** (first real-model dogfood run — start here), T009 (TUI panel), T010 (skill pass) — see §9. |
 
 Important: the installed copy is the **pinned tag**, not this working tree. Editing the repo changes nothing in your OpenCode until you cut a new tag and reinstall it (§8). That is deliberate — the owner asked to install and iterate through versions like a real user.
 
@@ -150,9 +150,9 @@ Uninstall: `opencode plugin remove "github:kryptobaseddev/opencode-goal#<tag>"` 
 
 | # | Work | CLEO |
 |---|---|---|
-| 1 | **First real-model run.** Start a small real goal in a scratch project with a real provider; watch continuation, the verifier (a real model must call `goal_verdict` with real quotes), cost, and prompt-cache behaviour (S3 proved byte stability, not provider cache hits). Record findings. | new task under T002 |
+| 1 | **First real-model run.** Start a small real goal in a scratch project with a real provider; watch continuation, the verifier (a real model must call `goal_verdict` with real quotes), cost, and prompt-cache behaviour (S3 proved byte stability, not provider cache hits). Record findings in `docs/dogfood-1.md`. | **T012** |
 | 2 | **write-goal skill pass with `skill-forge` and `skill-creator`** (owner request): sharpen the interview, add `references/examples.md` with four complete goals, run trigger evals, consider also publishing it in awesome-skills. The first session's subagent for this was stopped at a usage limit; v0.1 was written directly. | T010 (open) |
-| 3 | **README** with install, quick start, goal.yaml reference, commands, safety model, plugin options; then mark T011 done after the git-install evidence. | T011 (open) |
+| 3 | README polish as real use shows gaps (the README now covers install, quick start, contract, commands, tools, storage, options). | T011 done |
 | 4 | **TUI**: `session.panel` "goal" dashboard (contract, per-criterion evidence, ledger timeline, verdicts), keybindings, then complete T009 (its acceptance is met: snapshot test + real TUI capture). | T009 (open) |
 | 5 | Continuation notices: switch continuations to `session.synthetic({id, text, description, resume:true})` so the transcript shows one notice row instead of a user message (research §0.6); keep the id idempotency. | new |
 | 6 | Not built from the design: `goal_amend` (proposals the owner accepts), `/goal edit`, standalone-server lease, relay mode (fresh session per plan step), goal queues, home-screen board, Claude Code / Codex adapters, headless runner with exit codes 0/3/6 and a `goal.summary` line. | new |
