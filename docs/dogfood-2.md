@@ -51,8 +51,6 @@ Mid-run (turn 2), the server restarted. The ledger records the designed behavior
 
 A goal that builds a new version of the very plugin that verifies goals must plan the reinstall into its release step: the final verifier round runs the **installed** engine, not the working tree. v0.2.0 shipped the verifier fallback on 2026-10-03, but this session's C18 round was still judged by v0.1.0-alpha.1 (installed tag `bb40a36`) — silent child, no transcript, by construction. The write-goal skill now carries this rule: at recon time, if the goal's scope includes the goal plugin itself, the release plan must end with the owner's reinstall + reload + resume before the final claim.
 
-## 6 · What shipped
-
 ## 8 · What shipped
 
 v0.2.0 (commit `06d9bfc`, tag pushed 2026-10-03): verifier reliability, live counters, rehearsal, amendment, supersession, archive, registry, admission probe, `/goal help`, CLEO link, synthetic notices, path coverage — 82 tests green (31 of them host scenarios on a real `opencode serve`), the tag installs from git in an isolated OpenCode (`git-install` test, 1 pass), and the full transcript of this run is `ledger.jsonl`.
