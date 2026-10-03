@@ -320,6 +320,8 @@ Where the code differs from the proposal above:
 
 ## As built — v0.2.0 (2026-10-03)
 
+Council decision record (145323Z + 162655Z), one line: **start-time rehearsal**, owner-approved amendment, **keep descriptive slug** names, **supersedes**/archive — details below.
+
 Built under the goal loop itself (runs `0ffe5ac6e001` and `10388d06d001`), with two council verdicts as decision records:
 
 - **Contract integrity (council run `20261003T145323Z-a46b2ff9`, confidence high)** — extend the sha256 lock with **start-time rehearsal** (a check that cannot run refuses the lock; the unrunnable signature is shell exit 126/127 or a `zsh:`/`bash:` diagnostic — never a tool's stderr, so `grep missing-file` stays a legitimate red baseline) and an **owner-approved amendment path** (`/goal amend` propose → `/goal amend confirm` re-lock; generation-bound records under `evidence/`; prior evidence retained for unchanged criteria; the write guard covers stopped states; the integrity message names real paths). Both shipped.

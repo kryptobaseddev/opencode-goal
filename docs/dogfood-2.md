@@ -20,7 +20,13 @@ Round 1's verifier child died without calling `goal_verdict` (dogfood-1 §1). v0
 
 Proven on a real host in `test/host/verifier-reliability.test.ts` (two scenarios): the prose child yields `C3 pass by:"verifier-fallback"` with the quote re-read from `done.txt`, the transcript lands on disk with the child's assistant prose, and the tool path remains primary (`by:"verifier"`, no fallback event). The goal_verdict payload shape both paths share: `{"verdicts":[{"id":"C3","verdict":"proven","reason":"…","evidence":[{"path":"done.txt","quote":"status: ok - proven via fallback"}]}]}`.
 
-**This run's own verification round(s):** quoted below as they land, per the fail-closed loop — the first claim's HOST VERDICT (if any) and the completing verdict are part of the evidence.
+**This run's own verification round(s):** the turn-0 claim (2026-10-03) returned a HOST VERDICT with two failures — verbatim from `ledger.jsonl`:
+
+```json
+{"type":"verdict","passed":false,"lines":["C13 FAILED [host] design.md … lacks /(?=.*start-time rehearsal)(?=.*supersedes)(?=.*descriptive slug)/","C18 FAILED [verifier] … verifier failed: verifier did not call goal_verdict"]}
+```
+
+Two findings in that round, both instructive. **C13**: the contract's three-lookahead regex runs without dot-all, so all three phrases must appear on ONE line — an authoring lesson now folded into the same colon/class family (fixed with a one-line council decision record in `design.md`). **C18**: the live verifier child was silent again — and the diagnosis proves **it was running the v0.1.0-alpha.1 engine**: no `verifier-transcript` file exists under `evidence/10388d06d001/` (the transcript persistence is v0.2.0 code), and the error string is alpha.1's exact wording. The owner's OpenCode runs the *installed tag* (HANDOFF §1); v0.2.0's hardened prompt, fenced-json fallback and transcripts were never in this session's verification path because reinstalling the plugin is owner-only (a contract non-goal). The fix is the documented iteration loop itself: `opencode plugin remove …#v0.1.0-alpha.1` → `opencode plugin add …#v0.2.0` → `opencode reload` (the goal pauses by design) → `/goal resume` → re-claim, and the v0.2.0 verifier judges C18 with the fallback armed. This is the sharpest dogfood observation of the run: **the tool that verifies goals must itself be versioned into the host that runs it — an engine fix cannot verify the goal that shipped it.**
 
 ## 3 · Cost and prompt-cache observations
 
