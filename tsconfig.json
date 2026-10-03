@@ -11,5 +11,5 @@
     "allowImportingTsExtensions": true,
     "types": ["bun"]
   },
-  "include": ["src/**/*", "test/**/*", "spikes/**/*"]
+  "include": ["*.ts", "*.tsx", "src/**/*", "test/**/*", "spikes/**/*"]
 }

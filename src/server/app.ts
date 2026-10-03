@@ -748,10 +748,9 @@ export class GoalApp {
     const [head = "", ...rest] = text.split(/\s+/)
     const arg = rest.join(" ").trim()
     const sub = head.toLowerCase()
-    const say = async (message: string, level: "info" | "success" | "warning" | "error" = "info", record = false) => {
-      this.notice(sessionID, message, level)
-      if (record) await this.transcript(sessionID, `◎ ${message}`)
-    }
+    // Results go to the TUI as notices, never into the transcript: a synthetic
+    // message here would land inside the turn the command just started.
+    const say = async (message: string, level: "info" | "success" | "warning" | "error" = "info") => this.notice(sessionID, message, level)
     switch (sub) {
       case "":
       case "status": {
@@ -771,7 +770,7 @@ export class GoalApp {
       case "start": {
         if (!arg) return say(`Usage: /goal start <slug>. Goals here: ${this.store.slugs().join(", ") || "none"}`, "warning")
         const message = await this.startGoal(sessionID, arg.split(/\s+/)[0]!, "command")
-        return say(message, message.startsWith("Goal \"") ? "success" : "error", message.startsWith("Goal \""))
+        return say(message, message.startsWith("Goal \"") ? "success" : "error")
       }
       case "validate": {
         const slug = arg.split(/\s+/)[0]
@@ -786,7 +785,7 @@ export class GoalApp {
       case "approve":
       case "reject": {
         const result = await this.ownerAct(sessionID, sub as any, arg)
-        return say(result.message, result.ok ? "success" : "error", result.ok && sub !== "verify")
+        return say(result.message, result.ok ? "success" : "error")
       }
       case "help":
         return say("/goal new <words> · /goal start <slug> · /goal status · pause · resume · verify · abort · approve <C#> · reject <C#> <why> · validate <slug> · list")

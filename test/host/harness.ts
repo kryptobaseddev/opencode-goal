@@ -113,14 +113,16 @@ export async function startHost(options: HostOptions) {
     HOME: join(root, "home"),
     XDG_DATA_HOME: join(root, "data"),
     XDG_CONFIG_HOME: join(root, "config"),
-    XDG_CACHE_HOME: join(root, "cache"),
+    // Shared package cache: hosts stay isolated but the fixture provider's npm
+    // package is downloaded once, not once per test.
+    XDG_CACHE_HOME: process.env.OCGOAL_HOST_CACHE ?? join(import.meta.dir, "..", "..", ".tmp", "host-cache"),
     XDG_STATE_HOME: join(root, "state"),
     OPENCODE_SERVER_PASSWORD: PASSWORD,
     OPENCODE_DISABLE_MODELS_FETCH: "1",
     OPENCODE_DISABLE_AUTOUPDATE: "1",
   }
   delete env.BUN_BE_BUN
-  const child = Bun.spawn([OPENCODE_BINARY, "serve", "--hostname", "127.0.0.1", "--port", String(port)], {
+  const child = Bun.spawn([OPENCODE_BINARY, "serve", "--hostname", "127.0.0.1", "--port", String(port), "--print-logs", "--log-level", process.env.OPENCODE_LOG_LEVEL ?? "warn"], {
     cwd: project,
     env,
     stdout: "pipe",

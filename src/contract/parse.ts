@@ -173,7 +173,7 @@ export function parseContract(text: string, options: { slug?: string } = {}): Pa
   try {
     raw = (Bun as any).YAML.parse(text)
   } catch (error) {
-    issues.push({ level: "error", path: "", message: `not valid YAML: ${error instanceof Error ? error.message : String(error)}` })
+    issues.push({ level: "error", path: "", message: `not valid YAML: ${error instanceof Error ? error.message : String(error)}${yamlHint(text)}` })
     return { issues, lock }
   }
   if (!isRecord(raw)) {
@@ -325,6 +325,16 @@ function hasCycle(plan: Step[]): boolean {
     return false
   }
   return plan.some((s) => visit(s.id))
+}
+
+/** Bun's YAML errors carry no position; point at the likeliest culprit. */
+function yamlHint(text: string): string {
+  const lines = text.split("\n")
+  for (let i = 0; i < lines.length; i++) {
+    const value = /^\s*(?:- )?[A-Za-z_][\w-]*:\s+([^'"\[{|>#].*)$/.exec(lines[i]!)?.[1]
+    if (value && /:\s/.test(value)) return ` (line ${i + 1} has an unquoted value containing ": " — wrap the value in single quotes)`
+  }
+  return ""
 }
 
 export const formatIssues = (issues: Issue[]) =>

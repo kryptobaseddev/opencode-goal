@@ -104,3 +104,10 @@ describe("goal/v1 contract", () => {
     expect(note).toContain("turns 3/40")
   })
 })
+
+describe("yaml errors", () => {
+  test("point at an unquoted value that contains a colon", () => {
+    const text = `schema: goal/v1\nid: x\ncriteria:\n  - id: C1\n    statement: file SHALL contain "status: ok"\n`
+    expect(errors(text).join("\n")).toMatch(/line 5 has an unquoted value containing ": "/)
+  })
+})
