@@ -43,6 +43,16 @@ The mechanics are host-proven end to end (`test/host/amend.test.ts`, `test/host/
 - **Host-harness gap (upstream, owner-acknowledged):** provider-error *injection* is impossible through the protected harness (no failure capability; a throwing script escapes as an unhandled rejection). `paths.test.ts` pins the observable contract (the run degrades to a clean stop, never a zombie); a fixture failure-injection capability needs an owner-approved harness change (I3-protected file).
 - **Upstream CLEO reports from this run:** #1804 (`test-run` schema undocumented; the error does not name the expected jest-style counters), #1805 (`.opencode/**` runtime state classifies changes workspace-wide, forcing full-suite evidence), #1833 (retraction + thanks — critical gates resisting owner-override notes is correct design and caught my misdiagnosis).
 
+## 6 · Live recovery (unrehearsed)
+
+Mid-run (turn 2), the server restarted. The ledger records the designed behavior verbatim — `{"type":"admit","kind":"continue","turn":2}` then `{"type":"recovered","status":"paused"}`, with `run.json` showing `paused · host restarted; resume when ready` — and the resumed continuation picked up the run state intact (criteria board, blocker count and turn counter preserved). First live-restart data point for the recovery path that until now existed only in the host suite. Also: the verdict-feedback turn (turn 1) executed **381 tool calls** in a single execution — the largest turn of the run — a concrete measure of how much work one "fix the findings" turn absorbs under the loop.
+
+## 7 · The engine-version lesson (for every future goal that ships its own verifier)
+
+A goal that builds a new version of the very plugin that verifies goals must plan the reinstall into its release step: the final verifier round runs the **installed** engine, not the working tree. v0.2.0 shipped the verifier fallback on 2026-10-03, but this session's C18 round was still judged by v0.1.0-alpha.1 (installed tag `bb40a36`) — silent child, no transcript, by construction. The write-goal skill now carries this rule: at recon time, if the goal's scope includes the goal plugin itself, the release plan must end with the owner's reinstall + reload + resume before the final claim.
+
 ## 6 · What shipped
+
+## 8 · What shipped
 
 v0.2.0 (commit `06d9bfc`, tag pushed 2026-10-03): verifier reliability, live counters, rehearsal, amendment, supersession, archive, registry, admission probe, `/goal help`, CLEO link, synthetic notices, path coverage — 82 tests green (31 of them host scenarios on a real `opencode serve`), the tag installs from git in an isolated OpenCode (`git-install` test, 1 pass), and the full transcript of this run is `ledger.jsonl`.

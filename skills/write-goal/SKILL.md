@@ -28,7 +28,7 @@ Turn a rough intention into a **goal contract**: a structured `goal.yaml` that s
 Capture the owner's words exactly. Pick a slug (kebab-case, ≤64 chars). Everything goes in `.opencode/goals/<slug>/`.
 
 ### 1 · Recon (no questions yet)
-Inspect the project: package scripts, Makefile, CI config, test/lint/typecheck/bench commands, the files the intention touches, `git status`. Run the likely checks once to capture a **baseline** (a bug-fix goal should start red). Write the facts to `.opencode/goals/<slug>/context.md` — facts only, no decisions.
+Inspect the project: package scripts, Makefile, CI config, test/lint/typecheck/bench commands, the files the intention touches, `git status`. Run the likely checks once to capture a **baseline** (a bug-fix goal should start red). Write the facts to `.opencode/goals/<slug>/context.md` — facts only, no decisions. **If the goal ships a new version of the tooling that will verify it** (a plugin, a harness, the goal engine itself), plan the reinstall of that new version into the release step — the completing verifier round runs the *installed* engine, not the one just built.
 
 ### 2 · Classify
 bugfix · feature · refactor · migration · perf · research · ops · docs. The class suggests criteria:
