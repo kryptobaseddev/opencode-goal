@@ -61,6 +61,13 @@ export function script(worker: (req: ChatRequest, turn: ReturnType<typeof turnOf
 export async function goalHost(worker: Script, files: Record<string, string> = {}) {
   // T026: never let host tests write the machine's real goal registry
   process.env.OCGOAL_REGISTRY = join(await mkdtemp(join(tmpdir(), "ocgoal-registry-")), "registry.json")
+  // Test isolation: a CLEO session id in the spawned server's environment
+  // makes the generated .opencode/plugins/cleo-heavy-command.js poison plugin
+  // loading ("Command not found: goal") — scrub the CLEO context so hosts
+  // load plugins exactly as they would outside an agent session.
+  delete process.env.CLEO_SESSION_ID
+  delete process.env.CLEO_AGENT_ID
+  process.env.CLEO_HEAVY_COMMAND_HOOK = "off"
   return startHost({
     plugins: [PLUGIN],
     git: true,
