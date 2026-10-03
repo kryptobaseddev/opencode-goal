@@ -113,6 +113,13 @@ function parseCheck(raw: unknown, path: string, issues: Issue[]): Check | undefi
         ...(raw.runs !== undefined ? { runs: Math.max(1, Math.min(10, Number(raw.runs) || 1)) } : {}),
         ...(raw.live === true ? { live: true } : {}),
       }
+      // T021: a newline in a command check is usually a YAML folded-scalar
+      // accident (>- keeps literal newlines before more-indented lines), which
+      // made run 0ffe5ac6e001 C3 unrunnable — the host shell executed the
+      // skill directory as a command. Intentional multi-line shell is legal,
+      // so warn, and always rehearse the exact stored command before claiming.
+      if (typeof out.run === "string" && out.run.includes("\n"))
+        issues.push({ level: "warning", path: `${path}.run`, message: "command check spans lines: YAML folded scalars (>-) keep literal newlines before more-indented lines, and the host shell will execute each line separately — keep the command on one line unless the newlines are intentional, and rehearse the stored command before claiming" })
       if (out.expect && out.expect.exit === undefined && !out.expect.stdout_contains && !out.expect.stdout_regex) out.expect.exit = 0
       if (out.expect?.stdout_regex) {
         try {

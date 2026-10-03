@@ -111,3 +111,47 @@ describe("yaml errors", () => {
     expect(errors(text).join("\n")).toMatch(/line 5 has an unquoted value containing ": "/)
   })
 })
+
+describe("multi-line command checks (T021)", () => {
+  // The exact defect class from run 0ffe5ac6e001 C3: a YAML folded scalar (>-)
+  // whose more-indented for-body kept literal newlines, so the host shell
+  // executed the skill directory as a command. Pinned verbatim.
+  const MANGLED = `schema: goal/v1
+id: multi-line-command
+title: t
+intent:
+  verbatim: v
+outcome: o
+non_goals: [x]
+criteria:
+  - id: C1
+    statement: s
+    check:
+      kind: command
+      run: >-
+        echo one;
+        for s in a b; do
+          echo "$s/x.py"
+          /tmp || exit 1;
+        done
+      expect: {exit: 0}
+`
+  test("warns when a command check spans lines", () => {
+    const { issues } = parseContract(MANGLED, { slug: "multi-line-command" })
+    const warning = issues.find((i) => i.level === "warning" && i.path.includes("run") && i.message.includes("spans lines"))
+    expect(warning).toBeDefined()
+    expect(warning!.message).toContain("folded scalars")
+  })
+
+  test("no warning for a one-line command", () => {
+    const { contract, issues } = parseContract(valid)
+    expect(contract).toBeDefined()
+    expect(issues.some((i) => i.message.includes("spans lines"))).toBe(false)
+  })
+
+  test("the warning is not an error: the contract still parses", () => {
+    const { contract } = parseContract(MANGLED, { slug: "multi-line-command" })
+    expect(contract).toBeDefined()
+    expect(contract!.criteria[0]!.check.kind).toBe("command")
+  })
+})
