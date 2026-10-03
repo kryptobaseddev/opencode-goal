@@ -181,3 +181,7 @@ Anti-patterns: completing without running tests · `cleo verify --all` without `
 > Auto-generated at 2026-10-02T23:22:33
 > Do not edit manually. Regenerate with `cleo refresh-memory`.
 <!-- CAAMP:END -->
+
+# opencode-goal
+
+The project guide lives in AGENTS.md (below the CLEO block). Start with docs/HANDOFF.md.

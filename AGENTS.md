@@ -181,3 +181,47 @@ Anti-patterns: completing without running tests · `cleo verify --all` without `
 > Auto-generated at 2026-10-02T23:22:33
 > Do not edit manually. Regenerate with `cleo refresh-memory`.
 <!-- CAAMP:END -->
+
+# opencode-goal — project guide
+
+Persistent, host-verified goal mode for **OpenCode 2** (2.0.22+), shipped as a plugin installed from git tags, with a bundled `write-goal` skill. Start every session with [docs/HANDOFF.md](docs/HANDOFF.md) — it has the current state, the owner's decisions, and the next steps. Design: [docs/design.md](docs/design.md). Research: [docs/research/](docs/research/README.md). Observed OpenCode behaviour: [docs/spikes.md](docs/spikes.md) (trust it over any doc).
+
+## Commands
+
+| | |
+|---|---|
+| Install deps | `bun install` (dev only — the plugin has **no runtime dependencies**) |
+| All tests | `bun test` (~30 s; unit + harness + end-to-end against `~/.opencode/bin/opencode` 2.0.22; override with `OPENCODE_BINARY`) |
+| Unit only | `bun test test/unit` |
+| One host scenario | `bun test test/host/goal.test.ts -t "<name>"` · keep the temp host with `KEEP_HOST=1` · server logs with `OPENCODE_LOG_LEVEL=info` |
+| Typecheck | `bun run typecheck` |
+| Install from a git tag (isolated) | `OCGOAL_GIT_INSTALL=1 OCGOAL_GIT_SPEC="github:kryptobaseddev/opencode-goal#<tag>" bun test test/host/git-install.test.ts` |
+| Real TUI check | `bun scripts/tui-smoke.ts &` then `python3 spikes/tui-capture.py 12` (writes `.tmp/spikes/tui-raw.txt`) |
+| Re-run the OpenCode probes | `bun spikes/run.ts` |
+
+## Layout
+
+- `server.ts`, `tui.tsx`, `rpc.ts` — root entries. OpenCode resolves `<dir>/server|tui|rpc` for local plugin directories and the package `exports` for installed packages; both point here. Do not move them.
+- `src/contract/` — goal/v1 types, parser/validator (`Bun.YAML`), prompt renderers.
+- `src/engine/` — run state + permission rules, goal-folder store.
+- `src/server/app.ts` — the engine (events, admission, guards, verification, tools, `/goal`, hooks, RPC). `src/server/index.ts` — plugin definition.
+- `src/verify/pipeline.ts` — host checks, verifier quote re-read, verdicts.
+- `src/tui/` — TUI plugin (`format.ts` is pure and unit tested).
+- `skills/write-goal/` — the bundled skill (registered by the plugin at setup).
+- `test/host/harness.ts` — isolated `opencode serve` (temp HOME/XDG; shared package cache in `.tmp/host-cache`) + scripted OpenAI-compatible fixture provider.
+
+## Rules for changing the code
+
+- **OpenCode 2 only.** Plain-object default export `{ id, setup }`; import `@opencode/*` **as types only** so a git install with zero dependencies loads.
+- Filter every event by `event.location.directory` (other projects' events arrive too) and by sessions this plugin owns; ignore child sessions.
+- The turn signal is `session.execution.succeeded|failed|interrupted`; `session.idle` never fires.
+- Tools the model calls by name need `options: { namespace: "goal", codemode: false }` (they appear as `goal_<name>`).
+- Keep the system block byte-stable within a run; put anything that changes per turn in the tail note (`render.ts`). Add a unit test when you touch either.
+- `setup` can run more than once per location: everything registered must be disposed in `stop()`.
+- The worker must never be able to: edit the contract or `.opencode/goals/**`, edit `protect` globs, call `goal_verdict`, resume/extend/clear a goal. Keep those guarded in code and covered by host tests.
+- Every behaviour change gets a host scenario in `test/host/goal.test.ts` when it involves the loop.
+- Commits: `type(T###): summary` — every commit references a CLEO task (the commit-msg and pre-push hooks enforce it).
+
+## Releasing (the owner's iteration loop)
+
+Bump `package.json` version + `CHANGELOG.md` → commit → `git tag -a vX.Y.Z[-alpha.N]` → `git push origin main --follow-tags` → git-install test against the new tag → `opencode plugin remove "github:kryptobaseddev/opencode-goal#<old>"` → `opencode plugin add "github:kryptobaseddev/opencode-goal#<new>"` → `opencode reload` → `opencode plugin list`. The owner's OpenCode runs the **installed tag**, not this working tree.
