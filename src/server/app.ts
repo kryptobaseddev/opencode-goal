@@ -625,14 +625,33 @@ export class GoalApp {
       lines.push(`  ${state.claim.summary}`)
       for (const [id, note] of Object.entries(state.claim.evidence)) lines.push(`  ${id}: ${note}`)
     }
-    lines.push("Use read, glob and grep to inspect the repository. Then call goal_verdict exactly once with one entry per criterion above: verdict proven, not_proven or contradicted; a one-line reason; and for proven, evidence items with the file path (relative to the project root) and a verbatim quote of at least one full line. Do not answer in prose instead of calling the tool.")
+    lines.push("Use read, glob and grep to inspect the repository. Then call goal_verdict exactly once with one entry per criterion above: verdict proven, not_proven or contradicted; a one-line reason; and for proven, evidence items with the file path (relative to the project root) and a verbatim quote of at least one full line. Do not answer in prose instead of calling the tool. If the tool is unavailable or fails, reply with ONLY a fenced json block as your final message: ```json {\"verdicts\":[{\"id\":\"C1\",\"verdict\":\"proven\",\"reason\":\"...\",\"evidence\":[{\"path\":\"relative/path\",\"quote\":\"verbatim line\"}]}]} ```")
     try {
       await this.ctx.session.prompt({ sessionID: childID, text: lines.join("\n"), resume: true } as any)
       const timeout = new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), this.options.verifierTimeoutMs))
       const done = await Promise.race([this.ctx.session.wait({ sessionID: childID } as any).then(() => "done" as const), timeout])
       if (done === "timeout") await this.ctx.session.interrupt({ sessionID: childID } as any).catch(() => {})
-      const verdicts = this.verifierInbox.get(childID) ?? []
-      return { verdicts, ...(verdicts.length ? {} : { error: done === "timeout" ? "verifier timed out" : "verifier did not call goal_verdict" }) }
+      let verdicts = this.verifierInbox.get(childID) ?? []
+      let by: "verifier" | "verifier-fallback" = "verifier"
+      // T016: persist the child transcript so a silent or prose-answering
+      // verifier is diagnosable from the evidence, never a mystery again.
+      let messages: unknown[] = []
+      try {
+        messages = ((await this.ctx.session.context({ sessionID: childID } as any)) ?? []) as unknown[]
+      } catch {
+        // transcript unavailable on this host; the fallback simply has less to work with
+      }
+      if (!verdicts.length) {
+        const parsed = parseFallbackVerdicts(messages, new Set(criteria.map((c) => c.id)))
+        if (parsed.length) {
+          verdicts = parsed
+          by = "verifier-fallback"
+          this.store.ledger(state.slug, { type: "verifier-fallback", turn: state.turn, count: parsed.length })
+        }
+      }
+      const transcript = this.store.evidence(state.slug, state.runId, `verifier-transcript-turn-${state.turn}-${Date.now()}`, { childID, done, by, messages: compactTranscript(messages) })
+      this.store.ledger(state.slug, { type: "verifier-transcript", turn: state.turn, by, file: transcript })
+      return { verdicts, by, ...(verdicts.length ? {} : { error: done === "timeout" ? "verifier timed out" : "verifier did not call goal_verdict" }) }
     } finally {
       this.verifierInbox.delete(childID)
       await this.ctx.session.remove({ sessionID: childID } as any).catch(() => {})
@@ -1105,6 +1124,63 @@ export class GoalApp {
 }
 
 // ───────────────────────────── helpers
+
+/** Reduce a child session's messages to a storable, human-readable transcript. */
+function compactTranscript(messages: unknown[]): unknown[] {
+  return messages.map((m) => {
+    const message = m as { type?: string; role?: string; parts?: any[]; content?: any }
+    const parts = message.parts ?? (Array.isArray(message.content) ? message.content : [])
+    return {
+      type: message.type,
+      role: message.role,
+      parts: parts.map((p) => ({
+        type: p?.type,
+        ...(p?.text !== undefined ? { text: String(p.text).slice(0, 4000) } : {}),
+        ...(p?.tool !== undefined ? { tool: String(p.tool) } : {}),
+        ...(p?.state !== undefined ? { state: String(p.state) } : {}),
+      })),
+    }
+  })
+}
+
+/**
+ * T016 fallback: when the verifier child ends without calling goal_verdict,
+ * accept a fenced ```json block from its final assistant message as the
+ * verdict. Same shape and normalization as the tool handler; recorded
+ * distinctly as by:"verifier-fallback" so the audit trail never lies about
+ * how the verdict arrived. Guards: only assistant messages (the prompt itself
+ * demonstrates a fenced example), and at least one verdict id must belong to
+ * the criteria this round asked about.
+ */
+function parseFallbackVerdicts(messages: unknown[], ids: Set<string>): VerifierVerdict[] {
+  const valid = new Set(["proven", "not_proven", "contradicted"])
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i] as { type?: string; role?: string; parts?: any[]; content?: any }
+    if (message?.type !== "assistant" && message?.role !== "assistant") continue
+    const parts = message.parts ?? (Array.isArray(message.content) ? message.content : [])
+    const body = parts.map((p) => String(p?.text ?? "")).join("\n")
+    if (body.includes("independent completion verifier")) continue // our own prompt's example fence
+    const fence = [...body.matchAll(/```(?:json)?\s*([\s\S]*?)```/g)].map((m) => m[1]!)
+    for (const block of fence.reverse()) {
+      try {
+        const parsed = JSON.parse(block)
+        const list = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.verdicts) ? parsed.verdicts : []
+        const verdicts = list
+          .filter((v: any) => v && typeof v.id === "string" && valid.has(v.verdict) && ids.has(String(v.id).toUpperCase()))
+          .map((v: any) => ({
+            id: String(v.id).toUpperCase(),
+            verdict: v.verdict as VerifierVerdict["verdict"],
+            ...(v.reason ? { reason: String(v.reason) } : {}),
+            evidence: Array.isArray(v.evidence) ? v.evidence.filter((e: any) => e?.path && e?.quote).map((e: any) => ({ path: String(e.path), quote: String(e.quote) })) : [],
+          }))
+        if (verdicts.length) return verdicts
+      } catch {
+        // not json; try the next fence
+      }
+    }
+  }
+  return []
+}
 
 /** One-line summary of a ledger event for the dashboard's Timeline section. */
 function timelineText(e: Record<string, unknown>): string {

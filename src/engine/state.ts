@@ -22,7 +22,7 @@ export const isTerminal = (s: Status) => TERMINAL.includes(s)
 
 export type CriterionState = {
   status: "unknown" | "pass" | "fail" | "claimed"
-  by?: "host" | "verifier" | "human"
+  by?: "host" | "verifier" | "verifier-fallback" | "human"
   at?: number
   detail?: string
   rejections: number

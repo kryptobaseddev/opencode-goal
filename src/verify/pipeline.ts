@@ -10,10 +10,10 @@ import type { RunState } from "../engine/state"
 import { changedSince, isRepo, matchesAny } from "../util/git"
 import { runShell, tail, type ShellResult } from "../util/shell"
 
-export type CheckResult = { id: string; pass: boolean; by: "host" | "verifier" | "human"; detail: string; raw?: unknown }
+export type CheckResult = { id: string; pass: boolean; by: "host" | "verifier" | "verifier-fallback" | "human"; detail: string; raw?: unknown }
 
 export type VerifierVerdict = { id: string; verdict: "proven" | "not_proven" | "contradicted"; reason?: string; evidence: Array<{ path: string; quote: string }> }
-export type VerifierRun = (input: { contract: Contract; state: RunState; criteria: Criterion[]; host: CheckResult[] }) => Promise<{ verdicts: VerifierVerdict[]; error?: string }>
+export type VerifierRun = (input: { contract: Contract; state: RunState; criteria: Criterion[]; host: CheckResult[] }) => Promise<{ verdicts: VerifierVerdict[]; by?: "verifier" | "verifier-fallback"; error?: string }>
 
 export type VerifyOutcome = {
   passed: boolean
@@ -123,12 +123,12 @@ export async function verifyClaim(contract: Contract, state: RunState, deps: { r
     if (!deps.verifier) {
       for (const c of toVerify) results.push({ id: c.id, pass: false, by: "verifier", detail: "verifier unavailable; failing closed" })
     } else {
-      const run = await deps.verifier({ contract, state, criteria: toVerify, host: results }).catch((error) => ({ verdicts: [] as VerifierVerdict[], error: String(error) }))
+      const run = await deps.verifier({ contract, state, criteria: toVerify, host: results }).catch((error) => ({ verdicts: [] as VerifierVerdict[], by: "verifier" as const, error: String(error) }))
       for (const c of toVerify) {
         const v = run.verdicts.find((x) => x.id === c.id)
         const checked = v ? checkQuotes(root, v) : { ok: false, why: run.error ? `verifier failed: ${run.error}` : "verifier returned no verdict" }
         const prior = results.findIndex((r) => r.id === c.id)
-        const entry: CheckResult = { id: c.id, pass: checked.ok, by: "verifier", detail: checked.ok ? `proven with ${v!.evidence.length} quote(s)` : checked.why ?? "not proven", raw: v }
+        const entry: CheckResult = { id: c.id, pass: checked.ok, by: run.by === "verifier-fallback" ? "verifier-fallback" : "verifier", detail: checked.ok ? `proven with ${v!.evidence.length} quote(s)${run.by === "verifier-fallback" ? " (parsed fallback verdict)" : ""}` : checked.why ?? "not proven", raw: v }
         if (prior >= 0) {
           // strict mode: the verifier must agree with the passing host check
           if (!checked.ok) results[prior] = { ...entry, detail: `host passed but verifier disagrees: ${entry.detail}` }
