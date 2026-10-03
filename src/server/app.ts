@@ -12,6 +12,7 @@ import { isHostCheck } from "../contract/types"
 import { GoalRpc, type GoalSummary, type GoalView } from "../rpc"
 import { account, budgetUse, initialRun, isActive, isTerminal, modelCan, ownerCan, setStatus, type PendingKind, type RunState, type Status } from "../engine/state"
 import { Store } from "../engine/store"
+import { Registry } from "../engine/registry"
 import { ascendingId, runId as newRunId } from "../util/ids"
 import { fingerprint, headCommit } from "../util/git"
 import { runHostCheck, verifyClaim, type VerifierVerdict } from "../verify/pipeline"
@@ -66,6 +67,7 @@ export class GoalApp {
   readonly root: string
   readonly rootReal: string
   readonly store: Store
+  readonly registry: Registry
   readonly options: Options
   private runs = new Map<string, RunState>()
   private loaded = new Map<string, Loaded>()
@@ -83,6 +85,7 @@ export class GoalApp {
     this.root = ctx.location.directory
     this.rootReal = canonical(this.root)
     this.store = new Store(this.root)
+    this.registry = new Registry()
     this.options = { ...DEFAULTS, ...(ctx.options as Partial<Options>) }
   }
 
@@ -165,6 +168,9 @@ export class GoalApp {
   private persist(state: RunState) {
     account(state)
     this.store.writeRun(state)
+    // T026: every persisted transition refreshes the derived machine-level
+    // index (skipped when nothing changed, since usage bursts persist often).
+    this.registry.update(this.rootReal, state.slug, { title: state.title, status: state.status, ...(state.runId ? { runId: state.runId } : {}), ...(state.lock ? { lock: state.lock } : {}), updatedAt: Date.now() })
     this.emitUpdate(state)
   }
 

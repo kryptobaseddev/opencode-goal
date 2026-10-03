@@ -1,4 +1,6 @@
 import { join } from "node:path"
+import { mkdtemp } from "node:fs/promises"
+import { tmpdir } from "node:os"
 import { startHost, until, type ChatRequest, type Reply, type Script } from "./harness"
 
 export const PLUGIN = join(import.meta.dir, "..", "..")
@@ -57,6 +59,8 @@ export function script(worker: (req: ChatRequest, turn: ReturnType<typeof turnOf
 }
 
 export async function goalHost(worker: Script, files: Record<string, string> = {}) {
+  // T026: never let host tests write the machine's real goal registry
+  process.env.OCGOAL_REGISTRY = join(await mkdtemp(join(tmpdir(), "ocgoal-registry-")), "registry.json")
   return startHost({
     plugins: [PLUGIN],
     git: true,
