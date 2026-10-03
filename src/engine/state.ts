@@ -14,9 +14,10 @@ export type Status =
   | "complete"
   | "failed"
   | "aborted"
+  | "superseded"
 
 export const ACTIVE: readonly Status[] = ["running", "waiting", "verifying"]
-export const TERMINAL: readonly Status[] = ["complete", "failed", "aborted"]
+export const TERMINAL: readonly Status[] = ["complete", "failed", "aborted", "superseded"]
 export const isActive = (s: Status) => ACTIVE.includes(s)
 export const isTerminal = (s: Status) => TERMINAL.includes(s)
 

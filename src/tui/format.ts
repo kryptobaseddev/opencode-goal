@@ -17,6 +17,7 @@ export const STATUS: Record<string, { icon: string; label: string; tone: Tone }>
   complete: { icon: "✓", label: "complete", tone: "success" },
   failed: { icon: "✗", label: "failed", tone: "error" },
   aborted: { icon: "■", label: "aborted", tone: "muted" },
+  superseded: { icon: "⇢", label: "superseded", tone: "muted" },
 }
 
 const statusOf = (s: string) => STATUS[s] ?? { icon: "·", label: s, tone: "muted" as Tone }

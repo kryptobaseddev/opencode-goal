@@ -238,7 +238,7 @@ export class GoalApp {
 
   // ───────────────────────────── starting and admitting turns
 
-  async startGoal(sessionID: string, slug: string, source: "command" | "tool"): Promise<string> {
+  async startGoal(sessionID: string, slug: string, source: "command" | "tool", options: { acknowledgeSupersede?: boolean } = {}): Promise<string> {
     return this.serial(async () => {
       const current = this.runs.get(sessionID)
       if (current && !isTerminal(current.status)) return `This session already has goal "${current.slug}" (${current.status}). Abort it first with /goal abort.`
@@ -247,6 +247,36 @@ export class GoalApp {
       const loaded = this.load(slug, true)
       if ("error" in loaded) return loaded.error
       const { contract, lock, text } = loaded
+      // T031: the supersession admission rule — a supersedes pointer must
+      // resolve, match the predecessor's lock, and the predecessor must be
+      // terminal (or the owner explicitly acknowledges superseding mid-flight).
+      if (contract.supersedes) {
+        const [oldSlug, lockPrefix] = contract.supersedes.split("@") as [string, string]
+        const predecessorRun = this.store.readRun(oldSlug)
+        const predecessorArchived = !predecessorRun && this.store.archivedSlugs().includes(oldSlug)
+        if (!predecessorRun && !predecessorArchived) return `Refused: supersedes points at "${oldSlug}", but no such goal exists here (live or archived).`
+        const predecessorLock = predecessorRun?.lock ?? ""
+        if (predecessorRun && !predecessorLock.startsWith(lockPrefix!)) return `Refused: supersedes references ${oldSlug}@${lockPrefix}, but its run lock is ${predecessorLock.slice(0, 12)}… — the predecessor changed since the pointer was written; update the pointer.`
+        if (predecessorRun && !isTerminal(predecessorRun.status) && !options.acknowledgeSupersede)
+          return `Refused: "${oldSlug}" is still ${predecessorRun.status}. Superseding a live predecessor forks the audit trail — abort it first, or start with /goal start ${slug} acknowledge-supersede to record your explicit acknowledgment.`
+        // flip the predecessor terminal, archive it (demote never delete), ledger both sides
+        if (predecessorRun) {
+          const liveState = [...this.runs.values()].find((s) => s.slug === oldSlug)
+          if (liveState) {
+            clearTimeout(this.timers.get(liveState.sessionID))
+            setStatus(liveState, "superseded", `superseded by ${slug}`)
+            this.runs.delete(liveState.sessionID)
+          } else setStatus(predecessorRun, "superseded", `superseded by ${slug}`)
+          const finalState = liveState ?? predecessorRun
+          this.store.writeRun(finalState)
+          this.store.ledger(oldSlug, { type: "superseded-by", by: slug, atLock: lock, acknowledged: !!options.acknowledgeSupersede })
+          this.registry.update(this.rootReal, oldSlug, { title: finalState.title, status: "superseded", ...(finalState.runId ? { runId: finalState.runId } : {}), archived: true, updatedAt: Date.now() })
+          this.store.archive(oldSlug)
+        } else {
+          this.store.ledger(oldSlug, { type: "superseded-by", by: slug, atLock: lock, acknowledged: !!options.acknowledgeSupersede, note: "predecessor was already archived" })
+        }
+        this.store.ledger(slug, { type: "supersession", of: oldSlug, atLock: lockPrefix, acknowledged: !!options.acknowledgeSupersede })
+      }
       // T036: start-time rehearsal — run every command check once BEFORE
       // locking. A check whose text cannot run at all refuses the start; a
       // legitimate red check is recorded as the baseline (a bug-fix goal
@@ -922,10 +952,12 @@ export class GoalApp {
       }
       case "start": {
         if (!arg) return say(`Usage: /goal start <slug>. Goals here: ${this.store.slugs().join(", ") || "none"}`, "warning")
-        const slug0 = arg.split(/\s+/)[0]!
+        const tokens = arg.split(/\s+/)
+        const slug0 = tokens[0]!
+        const acknowledgeSupersede = tokens.includes("acknowledge-supersede")
         if (!this.store.slugs().includes(slug0) && this.store.archivedSlugs().includes(slug0))
           return say(`"${slug0}" exists, archived at .opencode/goals-archive/${slug0}/ (history intact; it WAS a goal here). Move it back or write a superseding goal.`, "warning")
-        const message = await this.startGoal(sessionID, slug0, "command")
+        const message = await this.startGoal(sessionID, slug0, "command", { acknowledgeSupersede })
         return say(message, message.startsWith("Goal \"") ? "success" : "error")
       }
       case "validate": {

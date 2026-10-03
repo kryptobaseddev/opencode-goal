@@ -295,10 +295,17 @@ export function parseContract(text: string, options: { slug?: string } = {}): Pa
   const executionRaw = isRecord(raw.execution) ? raw.execution : {}
 
   if (issues.some((i) => i.level === "error")) return { issues, lock }
+  // T031: supersession pointer — "<slug>@<lock-prefix>", validated but only
+  // enforced at /goal start (existence, lock match, mid-flight admission).
+  const supersedes = str(raw.supersedes)
+  if (supersedes && !/^[a-z0-9][a-z0-9-]{0,63}@[0-9a-f]{8,64}$/.test(supersedes))
+    err("supersedes", "must look like \"<slug>@<lock-prefix>\" (the predecessor slug and the first bytes of its run lock)")
+
   const contract: Contract = {
     schema: SCHEMA,
     id,
     title,
+    ...(supersedes ? { supersedes } : {}),
     intent: { verbatim: intent },
     outcome,
     ...(str(raw.why) ? { why: str(raw.why) } : {}),

@@ -68,6 +68,8 @@ export type Contract = {
   schema: typeof SCHEMA
   id: string
   title: string
+  /** T031: "<slug>@<lock-prefix>" — this goal replaces that one (owner-approved append, never a rewrite). */
+  supersedes?: string
   intent: { verbatim: string }
   outcome: string
   why?: string
