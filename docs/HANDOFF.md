@@ -1,17 +1,17 @@
 # Handoff — opencode-goal
 
-Written 2026-10-02 at the end of the first build session (Claude Code, Opus 5.5), for the next session, which runs **inside OpenCode** in this repository. Read this first, then `AGENTS.md` (project guide below the CLEO block), then [design.md](design.md).
+Written 2026-10-02, refreshed 2026-10-03 after v0.2.0 (the reworked dogfood goal, runs `0ffe5ac6e001` → `10388d06d001`). Read this first, then `AGENTS.md` (project guide below the CLEO block), then [design.md](design.md) (proposal + as-built for v0.1 and v0.2, including both council decision records).
 
 ## 1. Where things stand
 
 | | |
 |---|---|
 | Repo | https://github.com/kryptobaseddev/opencode-goal (public, MIT), local `~/projects/opencode-goal` |
-| Released | `v0.1.0-alpha.1` (commit `bb40a36`) — tag on GitHub, no npm package |
-| Installed | Globally in the owner's OpenCode 2.0.22: `~/.config/opencode/opencode.jsonc` → `"plugins": ["github:kryptobaseddev/opencode-goal#v0.1.0-alpha.1"]` (added with `opencode plugin add`; config backed up first as `opencode.jsonc.bak-20261002-194347-before-opencode-goal`). `opencode plugin list` shows `opencode-goal bb40a36`. |
-| Tests | 40 pass (`bun test`, ~26 s): 31 unit + 1 harness + 8 end-to-end on a real `opencode serve` 2.0.22. Plus `OCGOAL_GIT_INSTALL=1 bun test test/host/git-install.test.ts` (installs the tag from GitHub into an isolated OpenCode) — passes. |
-| Real-model use | **Not done yet.** Every end-to-end test uses a scripted fake provider. The first job of the next session is a real goal with a real model. |
-| CLEO | Project `opencode-goal`; saga T001 › epic T002. T003–T008 and T011 complete with evidence. Open: **T012** (first real-model dogfood run — start here), T009 (TUI panel), T010 (skill pass) — see §9. |
+| Released | `v0.2.0` (commit `06d9bfc`) — tag on GitHub, no npm package |
+| Installed | **Still `v0.1.0-alpha.1` in the owner's OpenCode** — the v0.2.0 reinstall is the pending owner action (§8); the dogfood run `10388d06d001` is one re-claim from completion once v0.2.0 is installed |
+| Tests | 82 pass (`bun test`, ~70 s): unit + 31 host scenarios on a real `opencode serve` 2.0.22, incl. verifier-reliability (fallback), rehearsal, amend, archive, supersede, paths |
+| Docs | [design.md](design.md) (as-built v0.1 + v0.2 with council records) · [dogfood-1.md](dogfood-1.md) · [dogfood-2.md](dogfood-2.md) · [spikes.md](spikes.md) · [opencode-store-probe.md](opencode-store-probe.md) · [cleo-evidence-repro.md](cleo-evidence-repro.md) |
+| CLEO | Saga T001 › epics T002 (v0.1 + defects), T024 (v0.3 identity/surfaces), T035 (integrity model), T039 (hardening/release) — all tasks complete with evidence atoms except the four that close with the run itself (T012, T017/T018, T022). Council transcripts under `.cleo/council-runs/`. |
 
 Important: the installed copy is the **pinned tag**, not this working tree. Editing the repo changes nothing in your OpenCode until you cut a new tag and reinstall it (§8). That is deliberate — the owner asked to install and iterate through versions like a real user.
 
@@ -138,7 +138,10 @@ Ship a new version (the iteration loop the owner asked for):
 bun test                                     # all green, incl. host suite
 # bump package.json "version", add a CHANGELOG entry, commit with a task id
 git tag -a v0.1.0-alpha.2 -m "opencode-goal 0.1.0-alpha.2" && git push origin main --follow-tags
-OCGOAL_GIT_INSTALL=1 OCGOAL_GIT_SPEC="github:kryptobaseddev/opencode-goal#v0.1.0-alpha.2" bun test test/host/git-install.test.ts
+OCGOAL_GIT_INSTALL=1 OCGOAL_GIT_SPEC="github:kryptobaseddev/opencode-goal#<new-tag>" bun test test/host/git-install.test.ts
+# ENGINE-VERSION RULE (dogfood-2 §7): if any goal is running that verifies this
+# plugin itself, reinstall BEFORE its completing claim — the verifier runs the
+# INSTALLED engine, not the tree you just tagged.
 opencode plugin remove "github:kryptobaseddev/opencode-goal#v0.1.0-alpha.1"
 opencode plugin add "github:kryptobaseddev/opencode-goal#v0.1.0-alpha.2"
 opencode reload && opencode plugin list      # expect opencode-goal at the new commit
@@ -146,20 +149,16 @@ opencode reload && opencode plugin list      # expect opencode-goal at the new c
 
 Uninstall: `opencode plugin remove "github:kryptobaseddev/opencode-goal#<tag>"` and `opencode reload`.
 
-## 9. What is left (in priority order)
+## 9. What is left (2026-10-03, post-v0.2.0)
 
-| # | Work | CLEO |
+| # | Work | Where |
 |---|---|---|
-| 1 | **First real-model run.** Start a small real goal in a scratch project with a real provider; watch continuation, the verifier (a real model must call `goal_verdict` with real quotes), cost, and prompt-cache behaviour (S3 proved byte stability, not provider cache hits). Record findings in `docs/dogfood-1.md`. | **T012** |
-| 2 | **write-goal skill pass with `skill-forge` and `skill-creator`** (owner request): sharpen the interview, add `references/examples.md` with four complete goals, run trigger evals, consider also publishing it in awesome-skills. The first session's subagent for this was stopped at a usage limit; v0.1 was written directly. | T010 (open) |
-| 3 | README polish as real use shows gaps (the README now covers install, quick start, contract, commands, tools, storage, options). | T011 done |
-| 4 | **TUI**: `session.panel` "goal" dashboard (contract, per-criterion evidence, ledger timeline, verdicts), keybindings, then complete T009 (its acceptance is met: snapshot test + real TUI capture). | T009 (open) |
-| 5 | Continuation notices: switch continuations to `session.synthetic({id, text, description, resume:true})` so the transcript shows one notice row instead of a user message (research §0.6); keep the id idempotency. | new |
-| 6 | Not built from the design: `goal_amend` (proposals the owner accepts), `/goal edit`, standalone-server lease, relay mode (fresh session per plan step), goal queues, home-screen board, Claude Code / Codex adapters, headless runner with exit codes 0/3/6 and a `goal.summary` line. | new |
-| 7 | Untested paths: budget wrap-up → `budget_limited`, `goal_wait` timer, `diff`/`absent` checks end to end, `human` approval flow, compaction hook, `session.deleted`, provider error mapping, web/desktop clients (no TUI there), `opencode run` headless. | new |
+| 1 | **Install v0.2.0** (`opencode plugin remove …#v0.1.0-alpha.1` → `add …#v0.2.0` → `opencode reload`), then `/goal resume` and let run `10388d06d001` re-claim — it is one verifier round from complete, and the reinstall is the documented fix for its C18 (the installed engine judges the verifier round; see dogfood-2 §7). | owner |
+| 2 | Close the run with the goal: CLEO T012, T017/T018, T022 complete with the final verdict as evidence. | worker, after #1 |
+| 3 | Remaining backlog (small): provider-error *injection* in the harness (needs an owner-approved harness change — protected file); tui-smoke panel probes are in; consider awesome-skills publication of write-goal. | next session |
+| 4 | Not built from the design (unchanged): standalone-server lease, relay mode, goal queues, home-screen board, Claude Code / Codex adapters, headless runner (§9.6 remainder). | backlog |
 
-Known limitations: the worker sees nine `goal_*` tools in every session once installed (small prompt cost); a plugin reload pauses running goals (by design); host checks run in the owner's login shell, so a check command can do anything the owner's shell can — contracts are owner-authored and must be treated as code.
-
+Known limitations unchanged: nine `goal_*` tools in every session's prompt; plugin reload pauses running goals (by design — and the paused recovery is now dogfood-verified); host checks run in the owner's login shell (contracts are owner-authored code).
 ## 10. Picking up in OpenCode
 
 ```bash

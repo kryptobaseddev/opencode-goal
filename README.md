@@ -76,14 +76,17 @@ Check kinds: `command` (exit code / output expectations, timeout, repeated runs,
 
 | Command | Does |
 |---|---|
-| `/goal new <words>` | run the write-goal interview |
-| `/goal start <slug>` | start `.opencode/goals/<slug>/goal.yaml` in this session |
+| `/goal new <words>` | run the write-goal interview (an admission probe surfaces existing/similar goals first) |
+| `/goal start <slug>` [acknowledge-supersede] | rehearse every command check, then lock and run |
 | `/goal` · `/goal status` | full status dialog |
 | `/goal pause` · `/goal resume` | stop / continue the loop (resume resets the stall and failure counters) |
 | `/goal verify` | run the completion checks now |
+| `/goal amend` · `/goal amend confirm` | propose / re-lock an owner-edited contract (generation-bound audit trail) |
+| `/goal archive` | demote a finished goal to `.opencode/goals-archive/` (never deleted; the registry still answers "was this ever a goal?") |
 | `/goal approve C3` · `/goal reject C3 <why>` | sign off on a `human` criterion |
 | `/goal abort` | stop the run for good (ledger and evidence stay) |
-| `/goal validate <slug>` · `/goal list` | check a contract · list goals in this project |
+| `/goal validate <slug>` · `/goal list [all]` | check a contract · list live (+archived) goals; a machine-level registry also lists goals across projects |
+| `/goal help` | the agent-forward guide: commands, tool split, storage, mid-run rules |
 
 The same actions are in the command palette under **Goal**.
 
@@ -95,7 +98,7 @@ While a goal runs the model cannot edit the contract, files under `.opencode/goa
 
 ## Where things are kept
 
-`.opencode/goals/<slug>/`: `goal.yaml` (yours), `context.md` and `decisions.jsonl` (from the interview), `run.json`, `ledger.jsonl` (every transition), `evidence/<run>/` (contract snapshot and every verdict). Consider ignoring `run.json`, `ledger.jsonl` and `evidence/` in git.
+`.opencode/goals/<slug>/`: `goal.yaml` (yours), `context.md` and `decisions.jsonl` (from the interview), `run.json`, `ledger.jsonl` (every transition), `evidence/<run>/` (contract snapshot, rehearsal baseline, every verdict, verifier transcripts, amendment records). Finished goals live on in `.opencode/goals-archive/<slug>/` (demoted, never deleted). A machine-level index at `~/.local/share/opencode/goal-registry.json` (override with `OCGOAL_REGISTRY`) lists goals across projects and survives archiving. Consider ignoring `run.json`, `ledger.jsonl` and `evidence/` in git.
 
 ## Plugin options
 
