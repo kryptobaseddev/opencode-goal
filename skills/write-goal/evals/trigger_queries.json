@@ -1,0 +1,18 @@
+[
+  {"query": "write a goal for getting the checkout tests green and run it until it's done", "should_trigger": true},
+  {"query": "grill me on this goal before you start: migrate auth to the new client", "should_trigger": true},
+  {"query": "/goal new make the build pass on node 24", "should_trigger": true},
+  {"query": "turn this into a goal mode run: remove every legacyClient call", "should_trigger": true},
+  {"query": "set up a goal so the agent keeps working on the perf regression unattended", "should_trigger": true},
+  {"query": "help me write a good /goal objective for fixing the flaky e2e suite", "should_trigger": true},
+  {"query": "draft a goal.yaml for the docs overhaul", "should_trigger": true},
+  {"query": "make this run until it's done: all lint errors fixed", "should_trigger": true},
+  {"query": "fix the failing test in test/auth/login.test.ts", "should_trigger": false},
+  {"query": "what are my goals for this sprint?", "should_trigger": false},
+  {"query": "write a unit test for the parser", "should_trigger": false},
+  {"query": "set a goal in the football game score tracker component", "should_trigger": false},
+  {"query": "refactor the login handler to use async/await", "should_trigger": false},
+  {"query": "explain how the goal plugin verifies completion", "should_trigger": false},
+  {"query": "add a goals table to the database schema", "should_trigger": false},
+  {"query": "loop over the files and rename them", "should_trigger": false}
+]

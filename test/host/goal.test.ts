@@ -170,3 +170,26 @@ describe("goal loop on a real OpenCode 2 host", () => {
     }
   }, 60000)
 })
+
+describe("bundled write-goal skill", () => {
+  test("the plugin registers write-goal and /goal new attaches it", async () => {
+    const host = await goalHost(script(() => ({ text: "Let me look at the repository first." })))
+    try {
+      const skills: any = await until(async () => {
+        const list: any = await host.client.skill.list({ location: host.location } as any)
+        const items = Array.isArray(list) ? list : list?.data ?? []
+        return items.some((s: any) => s.id === "write-goal" || s.name === "write-goal") ? items : undefined
+      }, 20000)
+      const skill = skills.find((s: any) => s.id === "write-goal" || s.name === "write-goal")
+      expect(skill.description).toMatch(/goal contract/)
+      const sessionID = await newSession(host)
+      await host.client.session.command({ sessionID, name: "goal", text: "new make the build pass" } as any)
+      await host.client.session.wait({ sessionID })
+      const worker = host.fixture.requests.filter((r) => r.tools?.length)
+      expect(worker.some((r) => JSON.stringify(r.messages).includes("Ask, don't narrate"))).toBe(true)
+      expect(worker.some((r) => r.messages.some((m) => m.role === "user" && text(m).includes("make the build pass")))).toBe(true)
+    } finally {
+      await host.stop()
+    }
+  }, 60000)
+})

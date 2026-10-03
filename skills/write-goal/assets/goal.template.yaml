@@ -1,0 +1,38 @@
+# goal/v1 contract — fill every field marked REQUIRED; delete optional blocks you do not need.
+# Values that contain ": " must be wrapped in single quotes.
+schema: goal/v1
+id: my-goal                     # REQUIRED: equals the directory name .opencode/goals/my-goal/
+title: One line the owner will recognise   # REQUIRED, ≤80 chars
+intent:
+  verbatim: "the owner's own words, unedited"   # REQUIRED
+outcome: The single end state that is true when this is done   # REQUIRED: not an activity
+why: Why it matters (optional)
+scope:
+  in: [src/area/**]
+  out: [anything outside src/area]
+non_goals:                      # REQUIRED: at least one
+  - Something the loop must not wander into
+constraints:
+  - A non-negotiable that rules options out
+criteria:                       # REQUIRED: at least one essential criterion
+  - id: C1
+    statement: WHEN the target check runs THE result SHALL pass
+    essential: true
+    check: {kind: command, run: "npm test", expect: {exit: 0}, timeout: 600, live: true}
+invariants:
+  - id: I1
+    statement: The existing build SHALL CONTINUE TO succeed
+    check: {kind: command, run: "npm run build"}
+protect:                        # oracles the worker may never edit
+  - "test/**"
+assumptions:
+  - {id: A1, text: A default chosen without asking, rationale: why it is reasonable, reversible: true}
+plan:
+  - {id: S1, title: First concrete step, proves: []}
+  - {id: S2, title: Step that makes C1 true, proves: [C1], depends_on: [S1]}
+stop:
+  when: Every essential criterion is host-verified and invariants hold
+  escalate_when:
+    - The change needs an irreversible or destructive action
+autonomy: {questions: defer, on_user_message: steer, on_interrupt: pause}
+verification: {mode: host+verifier, max_rejections: 3}

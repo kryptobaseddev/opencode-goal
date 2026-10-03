@@ -1,6 +1,6 @@
 {
   "name": "opencode-goal",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.1",
   "description": "Persistent, host-verified goal mode for OpenCode 2 with a structured goal contract and a live TUI.",
   "type": "module",
   "license": "MIT",
@@ -38,5 +38,18 @@
     "README.md",
     "LICENSE",
     "CHANGELOG.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kryptobaseddev/opencode-goal.git"
+  },
+  "homepage": "https://github.com/kryptobaseddev/opencode-goal#readme",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "goal",
+    "goal-mode",
+    "autonomous",
+    "agent"
   ]
 }
