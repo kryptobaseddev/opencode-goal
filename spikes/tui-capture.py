@@ -28,8 +28,21 @@ os.kill(pid, signal.SIGTERM)
 text = buf.decode("utf-8", "replace")
 open(os.path.join(os.path.dirname(__file__), "..", ".tmp", "spikes", "tui-raw.txt"), "w").write(text)
 plain = re.sub(r"\x1b\[[0-9;?<>=]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(\x07|\x1b\\)|\x1b[()][A-Za-z0-9]|\x1b[=>NOMc78]", "", text)
-for marker in ["PROBE-SIDEBAR", "PROBE-PILL", "PONG", "tick="]:
-    print(marker, "FOUND" if marker in plain else "missing")
+# T014: the dashboard panel is the default goal surface at >120 cols (it takes
+# the right pane; the sidebar card is hidden by design). Probe the panel's
+# sections (GOAL header, Criteria board, Plan, Timeline) plus the footer pill.
+for marker in ["PROBE-PANEL-GOAL", "PROBE-PANEL-CRITERIA", "PROBE-PANEL-TIMELINE", "PROBE-PILL", "PONG", "tick="]:
+    if marker == "PROBE-PANEL-GOAL":
+        found = ("GOAL" in plain and "paused" in plain)
+    elif marker == "PROBE-PANEL-CRITERIA":
+        found = "Criteria" in plain
+    elif marker == "PROBE-PANEL-TIMELINE":
+        found = "Timeline" in plain
+    elif marker == "PROBE-PILL":
+        found = bool(re.search(r"◎ .{0,4}\d+/\d+", plain))
+    else:
+        found = marker in plain
+    print(marker, "FOUND" if found else "missing")
 print("bytes:", len(buf))
-m = re.findall(r"PROBE-SIDEBAR tick=\d+|PONG [^\r\n\x1b]{0,40}|PROBE-PILL \d+", plain)
+m = re.findall(r"PONG [^\r\n\x1b]{0,40}|PROBE-PILL \d+|Timeline|Criteria", plain)
 print("samples:", sorted(set(m))[:10])
