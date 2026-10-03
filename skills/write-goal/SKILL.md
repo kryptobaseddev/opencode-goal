@@ -98,7 +98,7 @@ Check kinds: `command` (`run`, `expect: {exit | stdout_contains | stdout_regex}`
 
 Optional blocks: `why`, `scope {in, out}`, `constraints`, `budget {turns, wall: "3h", tokens: "3M", cost_usd}`, `autonomy {questions: defer|allow, on_user_message: steer|pause, on_interrupt: pause|resume-on-message}`, `verification {mode: host|host+verifier|strict, max_rejections}` (default `host+verifier`, 3).
 
-Rules the validator enforces: `schema: goal/v1`; `id` equals the directory; `intent.verbatim`, `outcome`, ≥1 `non_goals` and ≥1 essential criterion are required; ids are `C1…`, `I1…`, `S1…`, `A1…` and unique; every criterion has a check of a known kind with its required fields; invariants are host-checkable; plan references exist and have no cycles; budgets parse. Warnings: an outcome that reads as an activity ("keep improving…"), vague words without a number ("fast", "robust", "clean"), no host-checkable essential criterion. **Quote any value containing `: `** with single quotes.
+Rules the validator enforces: `schema: goal/v1`; `id` equals the directory; `intent.verbatim`, `outcome`, ≥1 `non_goals` and ≥1 essential criterion are required; ids are `C1…`, `I1…`, `S1…`, `A1…` and unique; every criterion has a check of a known kind with its required fields; invariants are host-checkable; plan references exist and have no cycles; budgets parse. Warnings: an outcome that reads as an activity ("keep improving…"), vague words without a number ("fast", "robust", "clean"), no host-checkable essential criterion. **Quote any value containing `: `** with single quotes. Keep every `command` check on a **single line**: YAML folded scalars (`>-`) fold equally-indented lines but keep literal newlines before more-indented ones, so a loop body written on its own line becomes a separate shell command at verify time. Rehearse each command check exactly as stored (extract it from the parsed YAML, run it through the login shell) before claiming.
 
 Full field reference: `references/goal-schema.md`. Question bank and recommendation heuristics: `references/interview.md`. Four complete contracts (bugfix, perf, migration, feature): `references/examples.md`.
 
@@ -118,4 +118,5 @@ Full field reference: `references/goal-schema.md`. Question bank and recommendat
 | A check the worker can edit | Put the oracle under `protect` |
 | No non-goal | At least one, so the loop does not fill the vacuum |
 | Inventing a budget or turn cap | Leave it out unless the owner wants one |
+| A `command` check spread over indented lines | One line — folded scalars keep newlines before indented lines; rehearse the stored command before claiming |
 | Launching before the owner saw the exact contract | Review step, then the `Start goal now` question |

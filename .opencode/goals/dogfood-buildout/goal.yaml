@@ -46,13 +46,7 @@ criteria:
       check_depth.py all exit 0
     check:
       kind: command
-      run: >-
-        [ -x .tmp/venv/bin/python ] || python3 -m venv .tmp/venv;
-        .tmp/venv/bin/pip install -q pyyaml;
-        for s in validate audit_body check_depth; do
-          .tmp/venv/bin/python "$HOME/projects/awesome-skills/skills/skill-validator/scripts/$s.py"
-          /Users/keatonhoskins/projects/opencode-goal/skills/write-goal || exit 1;
-        done
+      run: '[ -x .tmp/venv/bin/python ] || python3 -m venv .tmp/venv; .tmp/venv/bin/pip install -q pyyaml; for s in validate audit_body check_depth; do .tmp/venv/bin/python "$HOME/projects/awesome-skills/skills/skill-validator/scripts/$s.py" /Users/keatonhoskins/projects/opencode-goal/skills/write-goal || exit 1; done'
       expect: { exit: 0 }
       live: true
       timeout: 300
