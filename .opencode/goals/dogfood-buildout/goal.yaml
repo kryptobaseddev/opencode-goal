@@ -1,192 +1,272 @@
 schema: goal/v1
 id: dogfood-buildout
-title: v0.2 dogfood — real-model run, skill-forge pass, TUI dashboard panel
+title: 'v0.2.0: reliable verification, amendable contracts, goal identity at scale'
 intent:
-  verbatim: 'you need to dogfood yourself by building your goal system out and testing it fully in opencode 2 for our project'
+  verbatim: 'you need to rework and replan out the full dogfood-buildout goal and make sure you include EVERYTHING we have discussed and the shape of the full goal to be updated into a new dogfood-buildout goal with all the updates and changes and improvements and findings to include teh full scope'
 why: >-
-  T012 is the first real-model exercise of the whole goal system — this very run is the
-  dogfood. Building T010 and T009 under the loop exercises the plugin on real feature work
-  and ends in a released tag, the way the owner wants to iterate.
+  Everything discussed so far converges here: the dogfood defects (T013-T016), both council
+  verdicts (contract integrity; identity/versioning/lifecycle), the v0.3 epic (registry,
+  help, CLEO link), the untested engine paths, and the single v0.2.0 release — executed and
+  proven under the goal loop itself, with CLEO as the decomposition source of truth.
 outcome: >-
-  opencode-goal v0.1.0-alpha.2 is tagged on GitHub: the engine has survived one real-model
-  goal end to end (this run, with ledger and evidence on disk), the bundled write-goal skill
-  passes all three skill-forge validators with worked examples, and the TUI goal dashboard
-  panel renders in a real TUI capture.
+  opencode-goal v0.2.0 is tagged on GitHub and proven: the verifier always yields a verdict
+  (tool call or parsed fallback), counters stay live during long executions, /goal start
+  refuses to lock unrehearsed broken checks, owners can amend a live contract through an
+  audited re-lock, goals carry registry-backed identity with archive and supersession,
+  admission search blocks duplicate intent, /goal help guides agents, the untested paths
+  are covered by host scenarios, and this run's own verified completion is the final proof.
 non_goals:
-  - 'goal_amend, /goal edit, relay mode, goal queues, home-screen board, Claude Code / Codex adapters (HANDOFF §9.6)'
-  - 'Switching continuations to session.synthetic (HANDOFF §9.5) — keep the deterministic continuation prompt'
-  - 'Any change to the owner''s global OpenCode plugin install — reinstall is manual, after the goal'
-  - 'New runtime dependencies for the plugin'
+  - 'Relay mode, goal queues, home-screen board, Claude Code / Codex adapters, headless runner (HANDOFF §9.6 remainder)'
+  - 'npm publishing — git install only'
+  - 'Any change to the owner''s global OpenCode plugin install during the run; reinstall is manual after'
+  - 'A hard CLEO dependency — the CLEO link stays optional and CLI-only'
+  - 'Staged/intermediate release tags — one v0.2.0 end release (owner decision)'
 criteria:
   - id: C1
     statement: >-
-      The loop ran for real: this goal''s ledger records a start event and at least one
-      admitted worker turn
+      Verifier reliability (T016): a prose-answering verifier child still yields a parsed
+      fallback verdict, the hardened prompt demands exactly one goal_verdict call, and the
+      child transcript is persisted under evidence/
     check:
-      kind: contains
-      path: .opencode/goals/dogfood-buildout/ledger.jsonl
-      regex: '"type":"(start|admit)"'
+      kind: command
+      run: 'bun test test/host/verifier-reliability.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
   - id: C2
     statement: >-
-      docs/dogfood-1.md documents, grounded in this run''s ledger and evidence, the observed
-      continuation behaviour, the verifier flow with real goal_verdict quotes, request/token
-      cost, and prompt-cache behaviour — and every defect found is filed as a CLEO task
+      Live counters (T013): usage and turn state update between usage events instead of
+      freezing at kickoff values, and never render the sentinel 1
     check:
-      kind: verifier
-      ask: >-
-        Read docs/dogfood-1.md, .opencode/goals/dogfood-buildout/ledger.jsonl and
-        .opencode/goals/dogfood-buildout/evidence/. Judge whether the doc records, each
-        grounded in the ledger/evidence: (1) how continuation behaved on a real model,
-        (2) the verifier flow including real goal_verdict quotes, (3) observed request/token
-        cost, (4) prompt-cache behaviour; and whether defects discovered are filed as CLEO
-        tasks (list their ids). List anything missing or unsupported by the artifacts.
+      kind: command
+      run: 'bun test test/host/live-counters.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
   - id: C3
     statement: >-
-      skills/write-goal passes awesome-skills skill-validator: validate.py, audit_body.py and
-      check_depth.py all exit 0
+      parse.ts warns when a command check spans lines (the folded-scalar class that broke
+      run 0ffe5ac6e001 C3) — T021
     check:
       kind: command
-      run: '[ -x .tmp/venv/bin/python ] || python3 -m venv .tmp/venv; .tmp/venv/bin/pip install -q pyyaml; for s in validate audit_body check_depth; do .tmp/venv/bin/python "$HOME/projects/awesome-skills/skills/skill-validator/scripts/$s.py" /Users/keatonhoskins/projects/opencode-goal/skills/write-goal || exit 1; done'
+      run: 'bun test test/unit/contract.test.ts'
       expect: { exit: 0 }
-      live: true
-      timeout: 300
   - id: C4
     statement: >-
-      The skill ships worked examples: skills/write-goal/references/examples.md contains
-      complete goal/v1 contracts
-    check:
-      kind: contains
-      path: skills/write-goal/references/examples.md
-      regex: 'schema: goal/v1'
-  - id: C5
-    statement: >-
-      The released tag installs and registers: the git-install test passes against
-      github:kryptobaseddev/opencode-goal#v0.1.0-alpha.2 (isolated OpenCode, skill list shows
-      write-goal)
+      Start-time rehearsal (T036): /goal start executes each command check once, records
+      the baseline, and refuses to lock a contract whose check text is unrunnable
     check:
       kind: command
-      run: >-
-        OCGOAL_GIT_INSTALL=1
-        OCGOAL_GIT_SPEC="github:kryptobaseddev/opencode-goal#v0.1.0-alpha.2"
-        bun test test/host/git-install.test.ts
+      run: 'bun test test/host/rehearsal.test.ts'
       expect: { exit: 0 }
-      live: true
+      timeout: 600
+  - id: C5
+    statement: >-
+      goal_amend (T037+T038): owner-approved re-lock with generation-bound amendment
+      records, write guard covering stopped states, integrity message naming real paths
+    check:
+      kind: command
+      run: 'bun test test/host/amend.test.ts'
+      expect: { exit: 0 }
       timeout: 600
   - id: C6
     statement: >-
-      The TUI dashboard panel has a snapshot test at test/unit/tui-panel.test.ts rendering the
-      criteria board, per-criterion evidence, the ledger timeline and verdicts
+      Registry (T026): a derived machine-level index updates on transitions, rebuilds by
+      scan to identical content, and lists goals across projects
     check:
       kind: command
-      run: bun test test/unit/tui-panel.test.ts
+      run: 'bun test test/unit/registry.test.ts'
       expect: { exit: 0 }
   - id: C7
     statement: >-
-      A real OpenCode TUI capture shows the panel by default (no key presses): the captured
-      screen contains the panel''s Timeline section
+      Archive tier (T032): /goal archive demotes without deleting; existence still answers
+      yes from the registry; the live list excludes archived goals
     check:
       kind: command
-      run: >-
-        bun scripts/tui-smoke.ts & SMOKE=$!;
-        sleep 4;
-        python3 spikes/tui-capture.py 15;
-        kill $SMOKE 2>/dev/null; wait $SMOKE 2>/dev/null;
-        grep -q Timeline .tmp/spikes/tui-raw.txt
+      run: 'bun test test/host/archive.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C8
+    statement: >-
+      Supersession (T031): supersedes pointer, terminal predecessor, mid-flight admission
+      rule — approving a successor of a non-terminal predecessor is blocked or explicitly
+      acknowledged
+    check:
+      kind: command
+      run: 'bun test test/host/supersede.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C9
+    statement: >-
+      Admission search (T033): existence and title/intent similarity probes run before a
+      new slug is formed, surfacing similar goals ranked
+    check:
+      kind: command
+      run: 'bun test test/unit/similarity.test.ts'
+      expect: { exit: 0 }
+  - id: C10
+    statement: >-
+      /goal help (T025): an agent-forward guide — commands with arguments, worker/owner
+      tool split, storage layout, mid-run rules — rendered from a pure builder
+    check:
+      kind: command
+      run: 'bun test test/unit/help.test.ts'
+      expect: { exit: 0 }
+  - id: C11
+    statement: >-
+      CLEO link (T027): when .cleo is present the goal records the CLEO project linkage via
+      CLI only; absent CLEO changes nothing
+    check:
+      kind: command
+      run: 'bun test test/unit/cleo-link.test.ts'
+      expect: { exit: 0 }
+  - id: C12
+    statement: >-
+      Untested paths (T040+T041): budget wrap-up, goal_wait timer, diff/absent checks, human
+      approval, compaction hook, session.deleted, provider errors — host scenarios — plus
+      synthetic continuation notices
+    check:
+      kind: command
+      run: 'bun test test/host/paths.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C13
+    statement: >-
+      design.md (T029) records both council decisions — rehearsal + amendment (145323Z) and
+      keep-descriptive-slugs/supersession/archive (162655Z) — in the as-built table
+    check:
+      kind: contains
+      path: docs/design.md
+      regex: '(?=.*start-time rehearsal)(?=.*supersedes)(?=.*descriptive slug)'
+  - id: C14
+    statement: >-
+      The v0.2.0 tag installs from git in an isolated OpenCode (single end release, T043)
+    check:
+      kind: command
+      run: 'OCGOAL_GIT_INSTALL=1 OCGOAL_GIT_SPEC="github:kryptobaseddev/opencode-goal#v0.2.0" bun test test/host/git-install.test.ts'
       expect: { exit: 0 }
       live: true
-      timeout: 120
-  - id: C8
+      timeout: 600
+  - id: C15
     statement: package.json is bumped for the release
     check:
       kind: contains
       path: package.json
-      text: '"version": "0.1.0-alpha.2"'
-  - id: C9
-    statement: CHANGELOG.md has a v0.1.0-alpha.2 entry
+      text: '"version": "0.2.0"'
+  - id: C16
+    statement: CHANGELOG.md has the v0.2.0 entry
     check:
       kind: contains
       path: CHANGELOG.md
-      text: 0.1.0-alpha.2
+      text: 0.2.0
+  - id: C17
+    statement: 'docs/dogfood-2.md exists and quotes a real verifier round (goal_verdict or recorded fallback) — T042'
+    check:
+      kind: contains
+      path: docs/dogfood-2.md
+      regex: 'goal_verdict'
+  - id: C18
+    statement: >-
+      The dogfood-2 findings are grounded: every claim traceable to this run's
+      ledger/evidence, defects filed as CLEO tasks with ids
+    check:
+      kind: verifier
+      ask: >-
+        Read docs/dogfood-2.md and this run's .opencode/goals/dogfood-buildout/ledger.jsonl
+        and evidence/. Judge: does the doc ground its claims in the ledger/evidence
+        (continuation behaviour, a successful verifier round with real quotes or a recorded
+        fallback verdict, cost and prompt-cache observations, amendment/supersession
+        exercised where applicable), and are defects filed as CLEO tasks with their ids
+        listed? List anything missing or unsupported.
 invariants:
   - id: I1
     statement: The full test suite SHALL CONTINUE TO pass
-    check: { kind: command, run: bun test, expect: { exit: 0 }, timeout: 300 }
+    check:
+      kind: command
+      run: 'bun test'
+      expect: { exit: 0 }
+      timeout: 600
   - id: I2
     statement: The typecheck SHALL CONTINUE TO pass
-    check: { kind: command, run: bun run typecheck, expect: { exit: 0 } }
+    check:
+      kind: command
+      run: 'bun run typecheck'
+      expect: { exit: 0 }
   - id: I3
-    statement: The observed-behaviour oracle and the test harness SHALL NOT change
+    statement: >-
+      The observed-behaviour oracle, the test harness and both council audit trails SHALL
+      NOT change
     check:
       kind: diff
-      paths: ['docs/spikes.md', 'test/host/harness.ts']
-protect: ['docs/spikes.md', 'test/host/harness.ts']
+      paths: ['docs/spikes.md', 'test/host/harness.ts', '.cleo/council-runs']
+protect: ['docs/spikes.md', 'test/host/harness.ts', '.cleo/council-runs/**']
 scope:
   in:
-    - 'skills/write-goal: validator fixes, references/examples.md (4 complete goals), trigger evals'
-    - 'src/tui + src/rpc: session.panel goal dashboard (always visible), keybinding to focus, test/unit/tui-panel.test.ts'
-    - 'docs/dogfood-1.md from this run''s ledger/evidence; defect CLEO tasks'
-    - 'Release: version bump, CHANGELOG, commit, tag v0.1.0-alpha.2, push --follow-tags, git-install test'
+    - 'Engine: verifier fallback + transcripts (T016), live counters (T013), parse warning (T021)'
+    - 'Integrity: rehearsal (T036), stopped-state guard + message (T037), goal_amend (T038)'
+    - 'Identity: registry (T026), archive (T032), supersession (T031), admission search (T033)'
+    - 'Surfaces: /goal help (T025), CLEO link (T027), OpenCode DB spike verdict (T028 into T029)'
+    - 'Coverage: untested paths (T040), synthetic notices (T041), tui-smoke probes (T014), trigger-eval command route (T015)'
+    - 'Closeout: design fold-in (T029), release v0.2.0 (T043), dogfood-2 (T042), CLEO completes'
   out:
-    - 'Everything in non_goals; also no .opencode/goals contract or state edits (engine-guarded)'
+    - 'Everything in non_goals'
 constraints:
   - 'OpenCode 2 only; plain-object default export; @opencode/* imports are types only'
   - 'Keep the system block byte-stable within a run; volatile status goes in the per-turn tail note'
-  - 'Every behaviour change to the loop gets a host scenario in test/host/goal.test.ts'
+  - 'Every behaviour change to the loop gets a host scenario'
   - 'Commits: type(T###): summary — every commit references a CLEO task (hooks enforce)'
   - 'setup can run twice per location; everything registered must be disposed in stop()'
+  - 'Every command check stays on a single line and is rehearsed before any claim (lesson from run 0ffe5ac6e001)'
 plan:
-  - id: S1
-    title: 'Skill pass: run the three validators (venv + pyyaml), fix findings, add references/examples.md, run trigger evals'
-    proves: [C3, C4]
-  - id: S2
-    title: 'TUI session.panel goal dashboard, always visible: contract, per-criterion evidence, ledger timeline, verdicts + keybinding + snapshot test'
-    proves: [C6, C7]
-    depends_on: [S1]
-  - id: S3
-    title: 'Write docs/dogfood-1.md from this run''s ledger/evidence (continuation, verifier quotes, cost, cache); file defects as CLEO tasks'
-    proves: [C1, C2]
-    depends_on: [S2]
-  - id: S4
-    title: 'Release v0.1.0-alpha.2: bump, CHANGELOG, commit, tag, push --follow-tags, git-install test'
-    proves: [C5, C8, C9]
-    depends_on: [S3]
-  - id: S5
-    title: 'CLEO: cleo verify + cleo complete T010, T009, T012 with evidence atoms'
-    proves: []
-    depends_on: [S4]
+  - {id: S1, title: 'Verifier reliability: harden, fenced-JSON fallback, persist transcripts (T016)', proves: [C1]}
+  - {id: S2, title: 'Live counters between usage events (T013)', proves: [C2]}
+  - {id: S3, title: 'parse.ts multi-line command warning + unit test (T021)', proves: [C3]}
+  - {id: S4, title: 'Start-time rehearsal at /goal start + baseline capture (T036)', proves: [C4], depends_on: [S3]}
+  - {id: S5, title: 'Write guard across stopped states + integrity message fix (T037)', proves: [C5]}
+  - {id: S6, title: 'goal_amend: owner-approved re-lock, generation records (T038)', proves: [C5], depends_on: [S5]}
+  - {id: S7, title: 'Registry: derived index, rebuild parity, cross-project list (T026)', proves: [C6]}
+  - {id: S8, title: 'Archive tier: demote never delete, existence survives (T032)', proves: [C7], depends_on: [S7]}
+  - {id: S9, title: 'Supersession: pointer, terminal predecessor, mid-flight rule (T031)', proves: [C8], depends_on: [S6, S7]}
+  - {id: S10, title: 'Admission-time existence + fuzzy similarity (T033)', proves: [C9], depends_on: [S7]}
+  - {id: S11, title: '/goal help agent-forward builder (T025)', proves: [C10]}
+  - {id: S12, title: 'CLEO optional link via CLI (T027); T028 spike verdict recorded', proves: [C11]}
+  - {id: S13, title: 'Untested paths scenarios (T040) + synthetic continuation notices (T041)', proves: [C12], depends_on: [S1]}
+  - {id: S14, title: 'Design fold-in (T029); close T014 tui-smoke probes and T015 trigger eval', proves: [C13], depends_on: [S4, S5, S6, S7, S8, S9]}
+  - {id: S15, title: 'Release v0.2.0: bump, changelog, tag, push, git-install test (T043)', proves: [C14, C15, C16], depends_on: [S14]}
+  - {id: S16, title: 'dogfood-2.md from this run (T042); CLEO completes T012/T017/T018/T022', proves: [C17, C18], depends_on: [S15]}
 assumptions:
   - id: A1
     text: >-
-      The worker and verifier for this run use this session''s real provider
-      (GLM via zai-coding-plan), which satisfies T012''s "real provider"
-    rationale: the goal executes inside this OpenCode session; the provider cannot be swapped mid-run
+      The old run 0ffe5ac6e001 (needs_review) is aborted by the owner before this contract
+      starts; its ledger and evidence remain on disk as history this contract appends to
+    rationale: the engine refuses a second non-terminal goal in one session; only the owner aborts
     reversible: false
   - id: A2
-    text: PyYAML for the skill validators is installed into .tmp/venv (project-local, gitignored), not the global Python env
-    rationale: keeps the owner''s environment untouched; .tmp/ is already ignored
+    text: 'Single end release: exactly one tag (v0.2.0) when all criteria are green; no staged tags'
+    rationale: owner decision 2026-10-03
     reversible: true
   - id: A3
     text: >-
-      Goal runtime artifacts (.opencode/goals/*/run.json, ledger.jsonl, evidence/) are added
-      to .gitignore per HANDOFF §8.4, while docs/dogfood-1.md is committed
-    rationale: runtime state should not be versioned; the findings doc is the durable record
+      A fenced-JSON verdict from the verifier child is accepted as equivalent to a
+      goal_verdict call and recorded distinctly (by: verifier-fallback)
+    rationale: owner decision — the fallback exists so a silent child cannot kill a round
     reversible: true
   - id: A4
-    text: The dogfood findings doc is finalized in S3, after S1/S2, so cost and cache observations span real work
-    rationale: cost/cache evidence accumulates over the run
-    reversible: true
+    text: >-
+      CLEO stays the decomposition source of truth: each plan step completes its mapped task
+      with evidence atoms before the step is done; the correlation table lives in context.md
+    rationale: owner directive 2026-10-03
+    reversible: false
   - id: A5
     text: >-
-      T012/T010/T009 are completed in CLEO during the run via cleo verify + cleo complete with
-      programmatic evidence atoms (ADR-051)
-    rationale: the project''s own completion discipline applies to the loop as well
+      OpenCode''s internal DB stays read-only and spike-gated; the registry stores its own
+      file regardless of the T028 verdict
+    rationale: schema is internal to OpenCode; re-invention limited to the derived index
     reversible: true
 stop:
   escalate_when:
-    - 'A real-model finding needs an engine redesign rather than a small fix — file the defect as a CLEO task and stop for review'
-    - 'The TUI panel needs OpenTUI APIs not covered by docs/research/opencode2-plugin-api.md or docs/spikes.md — spike first, then stop and ask'
-    - 'The skill validators still cannot run after the venv/PyYAML fix, or git push is rejected'
-    - 'The git-install test fails against the pushed tag'
+    - 'An amendment or supersession semantic cannot be settled from the council conditions — stop with the design question'
+    - 'The verifier is still unreliable on the real provider after the fallback — file the defect and stop'
+    - 'git push or the tag is rejected, or the git-install test fails against the pushed v0.2.0'
+    - 'An OpenCode update changes the internal DB schema the read-only probe depends on'
 verification:
   mode: host+verifier
   max_rejections: 3

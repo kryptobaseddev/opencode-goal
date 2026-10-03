@@ -32,3 +32,52 @@ bump version + CHANGELOG → commit → `git tag -a vX.Y.Z` → `git push origin
 - `.gitignore` currently lacks the goal runtime artifacts (HANDOFF §8.4 recommends `.opencode/goals/*/run.json`, `ledger.jsonl`, `evidence/`).
 - No budget is active anywhere; budgets are opt-in.
 - Verification default per owner decision 2026-10-02: host checks + read-only verifier (`verification.mode: host+verifier`).
+
+---
+
+# Replan — 2026-10-03 (round 2, full scope)
+
+Owner words: "rework and replan out the full dogfood-buildout goal ... include EVERYTHING we have discussed ... the full scope."
+
+## Inventory of everything discussed (facts)
+
+Done and green (HEAD 2a90353, 46 tests, typecheck clean):
+- v0.2-alpha work shipped as v0.1.0-alpha.2 (panel, timeline rpc, skill pass, examples, trigger evals 15/16, dogfood-1.md, defects T013-T016 filed).
+- Council run 20261003T145323Z-a46b2ff9 (validated, high confidence): start-time rehearsal + owner-approved amendment; feasibility proven by test/unit/check-signature.test.ts (shell-stderr signature distinguishes unrunnable checks).
+- Council run 20261003T162655Z-800c52ca (validated, high confidence): keep descriptive slugs; supersession as append (supersedes pointer, terminal predecessor, mid-flight admission rule); demote-never-delete archive with existence surviving; admission-time existence + fuzzy search; registry justified for list/status (scale-bench: slugs 13.8ms / exists 12.2ms / list 157.6ms @5k, spikes/scale-bench.ts).
+- Provenance: docs/opencode-store-probe.md (16 projects, project_directory join). CLEO upstream issues #1804/#1805 filed with docs/cleo-evidence-repro.md.
+- CLEO bookkeeping fixed this round: T020 (skill lesson) completed with correct evidence; T021 (parse.ts multi-line warning) REOPENED — never implemented.
+
+Open (the reworked scope):
+- T012/T017/T018/T022: the dogfood run itself (old run 0ffe5ac6e001 still needs_review; contract file already carries the fixed C3 one-liner).
+- T013 counters stall mid-execution; T014 tui-smoke probes assume sidebar; T015 trigger-eval command route; T016 verifier reliability (owner chose: harden + fenced-JSON fallback + persisted transcripts).
+- T021 parse.ts multi-line command warning.
+- Council 1 build: start-time rehearsal at /goal start; write-guard across stopped states; goal_amend (owner-approved re-lock, generation-bound records); fix stale "/goal edit" integrity message.
+- Council 2 build: registry (T026), archive tier (T032), supersession (T031), admission-time existence+fuzzy search (T033).
+- Surfaces: /goal help LLM-forward (T025); CLEO optional CLI-only link (T027); OpenCode DB spike verdict recorded (T028); design fold-in (T029, acceptance extended with both council decisions + naming verdict).
+- HANDOFF §9.5 synthetic continuation notices; §9.7 untested paths (budget wrap-up, goal_wait timer, diff/absent e2e, human approval, compaction hook, session.deleted, provider errors).
+
+Owner decisions (this round): single end release v0.2.0 · build all three mechanisms · verifier harden+fallback+transcripts · no budget.
+
+## CLEO ↔ goal-step correlation (single source of truth for decomposition)
+
+| Goal step | CLEO task | Epic |
+|---|---|---|
+| S1 verifier reliability | T016 | T002 |
+| S2 live counters | T013 | T002 |
+| S3 parse multi-line warning | T021 | T002 |
+| S4 start-time rehearsal | T036 | T035 |
+| S5 write-guard + message fix | T037 | T035 |
+| S6 goal_amend | T038 | T035 |
+| S7 registry | T026 | T024 |
+| S8 archive tier | T032 | T024 |
+| S9 supersession | T031 | T024 |
+| S10 admission search | T033 | T024 |
+| S11 /goal help | T025 | T024 |
+| S12 CLEO link (+T028 verdict into design) | T027 | T024 |
+| S13 untested paths · S13b synthetic notices | T040 · T041 | T039 |
+| S14 design fold-in (+T014, T015 closeout) | T029 · T014 · T015 | T024/T002 |
+| S15 release v0.2.0 | T043 | T039 |
+| S16 dogfood-2 + CLEO closes (T012, T017/T018, T022) | T042 | T039/T002 |
+
+Saga T001 → epics T002 (v0.1 + dogfood defects), T024 (v0.3 identity/surfaces), T035 (integrity model), T039 (hardening/release).

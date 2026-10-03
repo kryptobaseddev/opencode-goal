@@ -3,3 +3,8 @@
 {"t": "2026-10-03T03:10:00Z", "q": "Ship v0.1.0-alpha.2 including pushing the tag?", "options": ["tag+push+isolated install test, owner reinstalls", "full ship incl owner config", "no release"], "a": "tag+push+isolated install test, owner reinstalls", "by": "owner"}
 {"t": "2026-10-03T03:10:00Z", "q": "Budget?", "options": ["none", "3h wall", "3M tokens"], "a": "none", "by": "owner"}
 {"t": "2026-10-03T03:10:00Z", "q": "TUI dashboard panel visibility?", "options": ["always visible in layout", "keybinding-only"], "a": "always visible in layout", "by": "owner"}
+{"t": "2026-10-03T17:05:00Z", "q": "replan: release cadence for the full scope?", "options": ["staged alpha tags", "single end release", "tag every step"], "a": "single end release (v0.2.0)", "by": "owner"}
+{"t": "2026-10-03T17:05:00Z", "q": "replan: build depth on amendment/supersession/archive?", "options": ["build all three", "amendment+registry only", "design only"], "a": "build all three", "by": "owner"}
+{"t": "2026-10-03T17:05:00Z", "q": "replan: verifier fix shape (T016)?", "options": ["harden+fallback+transcripts", "harden+transcripts only", "harden+one retry"], "a": "harden + fenced-JSON fallback + persisted child transcripts", "by": "owner"}
+{"t": "2026-10-03T17:05:00Z", "q": "replan: budget?", "options": ["none", "6h wall", "100 turns"], "a": "none", "by": "owner"}
+{"t": "2026-10-03T17:05:00Z", "q": "replan: scope", "options": ["everything discussed"], "a": "everything: engine fixes (T013-T016), integrity model (council 145323Z), identity/lifecycle (council 162655Z), surfaces (T025-T029), untested paths (HANDOFF 9.7), single v0.2.0 release", "by": "owner"}
