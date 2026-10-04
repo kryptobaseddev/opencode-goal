@@ -885,10 +885,59 @@ export class GoalApp {
 
   // ───────────────────────────── owner actions (command, RPC)
 
-  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend" | "archive", arg?: string): Promise<{ ok: boolean; message: string }> {
+  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend" | "archive" | "attach", arg?: string): Promise<{ ok: boolean; message: string }> {
     return this.serial(async () => {
-      const state = this.runs.get(sessionID)
-      if (!state) return { ok: false, message: "No goal in this session. Start one with /goal start <slug> or write one with /goal new <what you want>." }
+      // T049: attach pulls a live goal into THIS session so every surface
+      // (palette, card, panel, /goal commands) works here. The run keeps its
+      // ledger, evidence and progress; only the owning session moves.
+      if (action === "attach") {
+        const currentHere = this.runs.get(sessionID)
+        if (currentHere && !isTerminal(currentHere.status)) return { ok: false, message: `This session already has goal "${currentHere.slug}" (${currentHere.status}). Abort it first with /goal abort.` }
+        const slug = (arg ?? "").trim().split(/\s+/)[0]
+        if (!slug) {
+          const attachable = this.list().filter((g) => g.attachable)
+          return { ok: false, message: attachable.length ? `Which goal? ${attachable.map((g) => `${g.slug} (${g.status})`).join(", ")} — /goal attach <slug>` : "No attachable goal: none is live in .opencode/goals/." }
+        }
+        const target = [...this.runs.values()].find((r) => r.slug === slug && !isTerminal(r.status))
+        if (!target) return { ok: false, message: `No live goal "${slug}" here. /goal list shows what exists.` }
+        if (isActive(target.status)) return { ok: false, message: `"${slug}" is ${target.status} mid-turn; wait for the turn to end (or pause it from the goal's session), then attach.` }
+        const from = target.sessionID
+        this.runs.delete(from)
+        const timer = this.timers.get(from)
+        if (timer) {
+          this.timers.delete(from)
+          this.timers.set(sessionID, timer)
+        }
+        const note = this.notes.get(from)
+        if (note) {
+          this.notes.delete(from)
+          this.notes.set(sessionID, note)
+        }
+        target.sessionID = sessionID
+        this.runs.set(sessionID, target)
+        this.store.ledger(target.slug, { type: "attached", from, to: sessionID, by: "owner" })
+        this.notice(sessionID, `Goal attached here: ${target.title} (${target.status}). Every /goal command and palette action now acts on it from this session.`, "success")
+        this.persist(target)
+        this.emitUpdate(target)
+        return { ok: true, message: `Goal "${target.slug}" attached to this session (${target.status}).` }
+      }
+      let state = this.runs.get(sessionID)
+      if (!state) {
+        // T049: goals escape their session. With no goal here, act on the
+        // project's unique non-terminal goal, or the slug the owner names
+        // (… <slug> for most actions, /goal approve <C#> <slug> for verdicts).
+        const tokens = (arg ?? "").trim().split(/\s+/).filter(Boolean)
+        const slugHint = action === "approve" || action === "reject" ? tokens[1] : tokens[0]
+        const live = [...this.runs.values()].filter((r) => !isTerminal(r.status))
+        const named = slugHint ? live.find((r) => r.slug === slugHint) : undefined
+        if (named) state = named
+        else if (slugHint)
+          return { ok: false, message: `No live goal "${slugHint}". Live goal(s): ${live.map((r) => r.slug).join(", ") || "none"}.` }
+        else if (live.length === 1) state = live[0]!
+        else if (live.length > 1)
+          return { ok: false, message: `Several live goals: ${live.map((r) => `${r.slug} (${r.status})`).join(", ")}. Name one — /goal ${action} <slug>${action === "approve" || action === "reject" ? " <C#>" : ""} — or /goal attach <slug> to work on it here.` }
+        else return { ok: false, message: "No goal in this session. Start one with /goal start <slug> or write one with /goal new <what you want>." }
+      }
       const why = ownerCan(state, action)
       if (why) return { ok: false, message: why }
       const contract = this.contractOf(state)
@@ -1090,7 +1139,8 @@ export class GoalApp {
       case "approve":
       case "reject":
       case "amend":
-      case "archive": {
+      case "archive":
+      case "attach": {
         const result = await this.ownerAct(sessionID, sub as any, arg)
         return say(result.message, result.ok ? "success" : "error")
       }
@@ -1120,7 +1170,12 @@ export class GoalApp {
     return this.store.slugs().map((slug) => {
       const run = bySlug.get(slug) ?? this.store.readRun(slug)
       const states = run ? Object.values(run.criteria) : []
-      return { slug, title: run?.title ?? slug, status: run?.status ?? "draft", ...(run ? { sessionID: run.sessionID } : {}), proven: states.filter((s) => s.status === "pass").length, total: states.length }
+      const status = run?.status ?? "draft"
+      const terminal = run ? isTerminal(run.status) : false
+      // T049: attachable = started, not terminal, not mid-turn (attaching a
+      // running goal would strand its in-flight turn's events).
+      const attachable = Boolean(run && !terminal && !isActive(run.status))
+      return { slug, title: run?.title ?? slug, status, ...(run ? { sessionID: run.sessionID } : {}), proven: states.filter((s) => s.status === "pass").length, total: states.length, ...(terminal || attachable ? { terminal, attachable } : {}) }
     })
   }
 
@@ -1520,6 +1575,8 @@ function timelineText(e: Record<string, unknown>): string {
       return `blocked: ${str(e.reason, 60)}`
     case "steer":
       return `owner steered: ${str(e.text, 60)}`
+    case "attached":
+      return `goal attached to another session by the owner (from ${str(e.from, 24)})`
     case "verifier-model":
       return `verifier model resolved: ${str(e.model, 40)}`
     case "verifier-empty":

@@ -194,12 +194,45 @@ export default {
       const id = currentSession()
       return !!(id && views[id])
     }
+    // T049: goals are reachable from any session. When this session has no
+    // goal, the palette still lists the project's goals so the owner can
+    // attach one here instead of hunting for the session that started it.
+    const attachables = async (): Promise<Array<{ slug: string; title: string; status: string }>> => {
+      const sessionID = currentSession()
+      if (!sessionID) return []
+      const location = locationOf(sessionID)
+      const listed = await rpc.list({}, location ? { location } : undefined)
+      return ((listed?.goals ?? []) as Array<{ slug: string; title: string; status: string; attachable?: boolean }>).filter((g) => g.attachable)
+    }
     disposers.push(
       context.ui.slot({
         append: "app",
         render: () => {
           context.keymap.layer(() => ({
             commands: [
+              {
+                id: "goal.attach",
+                title: "Goal: attach/switch to a goal",
+                group: "Goal",
+                palette: true,
+                enabled: () => true,
+                run: async () => {
+                  try {
+                    const goals = await attachables()
+                    if (!goals.length) {
+                      context.ui.toast.show({ title: "Goal", message: "No attachable goal in this project (none is live and stopped). /goal list shows everything.", variant: "info" })
+                      return
+                    }
+                    const pick = await context.ui.dialog.select({
+                      title: "Attach which goal to this session?",
+                      options: goals.map((g) => ({ title: `${g.slug} — ${g.title}`, value: g.slug, description: g.status })),
+                    })
+                    if (pick) await act("attach", pick)
+                  } catch (error) {
+                    context.ui.toast.show({ title: "Goal", message: `Goal plugin unavailable: ${String(error)}`, variant: "error" })
+                  }
+                },
+              },
               {
                 id: "goal.panel",
                 title: "Goal: focus dashboard",

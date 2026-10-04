@@ -18,7 +18,7 @@ export const GoalRpc = {
         type: "object",
         properties: {
           sessionID: { type: "string", minLength: 1, maxLength: 256 },
-          action: { type: "string", enum: ["pause", "resume", "abort", "verify", "approve", "reject", "amend", "archive"] },
+          action: { type: "string", enum: ["pause", "resume", "abort", "verify", "approve", "reject", "amend", "archive", "attach"] },
           arg: { type: "string", maxLength: 2000 },
         },
         required: ["sessionID", "action"],
@@ -73,4 +73,4 @@ export type GoalView = {
   updatedAt: number
 }
 
-export type GoalSummary = { slug: string; title: string; status: string; sessionID?: string; proven: number; total: number }
+export type GoalSummary = { slug: string; title: string; status: string; sessionID?: string; proven: number; total: number; terminal?: boolean; attachable?: boolean }
