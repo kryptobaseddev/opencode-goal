@@ -150,7 +150,7 @@ criteria:
     check:
       kind: contains
       path: package.json
-      text: '"version": "0.2.0"'
+      text: '"version": "0.2.2"'
   - id: C16
     statement: CHANGELOG.md has the v0.2.0 entry
     check:
