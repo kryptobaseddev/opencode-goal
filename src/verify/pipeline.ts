@@ -113,8 +113,16 @@ export async function verifyClaim(contract: Contract, state: RunState, deps: { r
   }
 
   const results: CheckResult[] = []
+  // T057: an owner-approved criterion is final against HOST re-checks too —
+  // a stale check (the live C15 needle case) must never stomp an explicit
+  // sign-off. The owner outranks every automated re-verification.
+  const ownerFinal = (id: string) => state.criteria[id]?.status === "pass" && state.criteria[id]?.by === "human"
   for (const c of [...contract.criteria, ...contract.invariants]) {
     if (!isHostCheck(c.check)) continue
+    if (ownerFinal(c.id)) {
+      results.push({ id: c.id, pass: true, by: "human", detail: "approved by the owner (final)" })
+      continue
+    }
     const r = await runHostCheck(c.check, root, state.base.commit, deps.shell)
     results.push({ id: c.id, pass: r.pass, by: "host", detail: r.detail, raw: r.raw })
   }
@@ -124,11 +132,9 @@ export async function verifyClaim(contract: Contract, state: RunState, deps: { r
   // T051: an owner-approved criterion (pass by:human) is final — the owner
   // outranks the verifier, so re-verification must respect it permanently
   // instead of re-running a child that can stomp an explicit sign-off.
-  const toVerify = (contract.verification.mode === "host" ? [] : [...semantic, ...strictExtra]).filter(
-    (c) => !(state.criteria[c.id]?.status === "pass" && state.criteria[c.id]?.by === "human"),
-  )
+  const toVerify = (contract.verification.mode === "host" ? [] : [...semantic, ...strictExtra]).filter((c) => !ownerFinal(c.id))
   for (const c of [...semantic, ...strictExtra]) {
-    if (state.criteria[c.id]?.status === "pass" && state.criteria[c.id]?.by === "human")
+    if (ownerFinal(c.id) && !results.some((r) => r.id === c.id))
       results.push({ id: c.id, pass: true, by: "human", detail: "approved by the owner (final)" })
   }
   if (toVerify.length) {
