@@ -764,9 +764,16 @@ export class GoalApp {
   /** S7: a hidden read-only agent in a child session; its only extra tool is goal_verdict. */
   private async runVerifier(input: { contract: Contract; state: RunState; criteria: Contract["criteria"]; host: Array<{ id: string; pass: boolean; detail: string; by: string }> }) {
     const { contract, state, criteria, host } = input
-    const child: any = await this.ctx.session.create({ parentID: state.sessionID, agent: this.options.verifierAgent, title: `goal verify · ${contract.id}` } as any)
+    // T044: the child request carries an explicitly resolved model. On the
+    // owner's main host the hidden agent's implicit resolution produced four
+    // entirely empty exchanges (no text, no tool call) with GLM via zai;
+    // an explicit model rides on every child create so the request can never
+    // depend on the agent's own (possibly absent) resolution.
+    const model = await this.resolveVerifierModel(state.sessionID)
+    const child: any = await this.ctx.session.create({ parentID: state.sessionID, agent: this.options.verifierAgent, title: `goal verify · ${contract.id}`, ...(model ? { model: model.ref } : {}) } as any)
     const childID: string = child?.id ?? child?.data?.id
     this.verifierInbox.delete(childID)
+    this.store.ledger(state.slug, { type: "verifier-model", turn: state.turn, model: model?.label ?? null })
     const lines: string[] = []
     lines.push("You are an independent completion verifier. You did not do this work and you gain nothing if it passes. Fail closed: a criterion is proven only if you can quote file text that proves it.")
     lines.push(`Goal outcome: ${contract.outcome}`)
@@ -781,19 +788,46 @@ export class GoalApp {
     }
     lines.push("Use read, glob and grep to inspect the repository. Then call goal_verdict exactly once with one entry per criterion above: verdict proven, not_proven or contradicted; a one-line reason; and for proven, evidence items with the file path (relative to the project root) and a verbatim quote of at least one full line. Do not answer in prose instead of calling the tool. If the tool is unavailable or fails, reply with ONLY a fenced json block as your final message: ```json {\"verdicts\":[{\"id\":\"C1\",\"verdict\":\"proven\",\"reason\":\"...\",\"evidence\":[{\"path\":\"relative/path\",\"quote\":\"verbatim line\"}]}]} ```")
     try {
-      await this.ctx.session.prompt({ sessionID: childID, text: lines.join("\n"), resume: true } as any)
-      const timeout = new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), this.options.verifierTimeoutMs))
-      const done = await Promise.race([this.ctx.session.wait({ sessionID: childID } as any).then(() => "done" as const), timeout])
-      if (done === "timeout") await this.ctx.session.interrupt({ sessionID: childID } as any).catch(() => {})
-      let verdicts = this.verifierInbox.get(childID) ?? []
+      // T044: empty exchanges are retried once and always recorded — a silent
+      // empty round is never accepted as an answer. Two rounds share the
+      // total verifier budget.
+      const perRoundMs = Math.max(60_000, Math.floor(this.options.verifierTimeoutMs / 2))
+      let round = 0
+      let verdicts: VerifierVerdict[] = []
       let by: "verifier" | "verifier-fallback" = "verifier"
       // T016: persist the child transcript so a silent or prose-answering
       // verifier is diagnosable from the evidence, never a mystery again.
       let messages: unknown[] = []
-      try {
-        messages = ((await this.ctx.session.context({ sessionID: childID } as any)) ?? []) as unknown[]
-      } catch {
-        // transcript unavailable on this host; the fallback simply has less to work with
+      let outcome: "done" | "timeout" = "done"
+      let retried = false
+      while (round < 2) {
+        round++
+        const text =
+          round === 1
+            ? lines.join("\n")
+            : "Your previous reply was empty — no text and no tool call came back. Answer now. Call goal_verdict exactly once with one entry per criterion from the original request (verdict proven, not_proven or contradicted; a one-line reason; for proven, evidence items with the file path relative to the project root and a verbatim quote of at least one full line). If the tool is unavailable or fails, reply with ONLY a fenced json block in the sanctioned shape. Another empty reply is a failure."
+        await this.ctx.session.prompt({ sessionID: childID, text, resume: true } as any)
+        const timeout = new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), perRoundMs))
+        outcome = await Promise.race([this.ctx.session.wait({ sessionID: childID } as any).then(() => "done" as const), timeout])
+        if (outcome === "timeout") {
+          await this.ctx.session.interrupt({ sessionID: childID } as any).catch(() => {})
+          break
+        }
+        verdicts = this.verifierInbox.get(childID) ?? []
+        try {
+          messages = ((await this.ctx.session.context({ sessionID: childID } as any)) ?? []) as unknown[]
+        } catch {
+          // transcript unavailable on this host; the fallback simply has less to work with
+        }
+        if (verdicts.length) break
+        if (exchangeEmpty(messages)) {
+          this.store.ledger(state.slug, { type: "verifier-empty", turn: state.turn, round })
+          if (round === 1) {
+            retried = true
+            continue
+          }
+        }
+        break
       }
       if (!verdicts.length) {
         const parsed = parseFallbackVerdicts(messages, new Set(criteria.map((c) => c.id)))
@@ -803,13 +837,50 @@ export class GoalApp {
           this.store.ledger(state.slug, { type: "verifier-fallback", turn: state.turn, count: parsed.length })
         }
       }
-      const transcript = this.store.evidence(state.slug, state.runId, `verifier-transcript-turn-${state.turn}-${Date.now()}`, { childID, done, by, messages: compactTranscript(messages) })
-      this.store.ledger(state.slug, { type: "verifier-transcript", turn: state.turn, by, file: transcript })
-      return { verdicts, by, ...(verdicts.length ? {} : { error: done === "timeout" ? "verifier timed out" : "verifier did not call goal_verdict" }) }
+      const transcript = this.store.evidence(state.slug, state.runId, `verifier-transcript-turn-${state.turn}-${Date.now()}`, { childID, done: outcome, by, rounds: round, retried, model: model?.label ?? null, messages: compactTranscript(messages) })
+      this.store.ledger(state.slug, { type: "verifier-transcript", turn: state.turn, by, rounds: round, retried, model: model?.label ?? null, file: transcript })
+      const error = verdicts.length
+        ? undefined
+        : outcome === "timeout"
+          ? "verifier timed out"
+          : exchangeEmpty(messages)
+            ? `verifier exchange was empty after ${round} round(s); recorded under evidence/ — never silent`
+            : "verifier did not call goal_verdict"
+      return { verdicts, by, ...(verdicts.length ? {} : { error: error! }) }
     } finally {
       this.verifierInbox.delete(childID)
       await this.ctx.session.remove({ sessionID: childID } as any).catch(() => {})
     }
+  }
+
+  /**
+   * T044: resolve the model the verifier child runs on, explicitly. Prefers
+   * the parent session's live model (it is answering the worker's turns, so
+   * it works on this host), then the location default. Returns the ref for
+   * session.create plus a human-readable label for the ledger.
+   */
+  private async resolveVerifierModel(sessionID: string): Promise<{ ref: { providerID: string; id: string; variant?: string }; label: string } | undefined> {
+    const of = (m: unknown) => {
+      const model = m as { providerID?: string; id?: string; variant?: string } | null | undefined
+      if (!model?.providerID || !model?.id) return undefined
+      const variant = model.variant ? { variant: String(model.variant) } : {}
+      return { ref: { providerID: String(model.providerID), id: String(model.id), ...variant }, label: `${model.providerID}/${model.id}${model.variant ? `#${model.variant}` : ""}` }
+    }
+    try {
+      const info: any = await this.ctx.session.get({ sessionID } as any)
+      const resolved = of(info?.model ?? info?.data?.model)
+      if (resolved) return resolved
+    } catch {
+      // parent session info unavailable; try the location default
+    }
+    try {
+      const picked: any = await this.ctx.model.default()
+      const resolved = of(picked?.data ?? picked)
+      if (resolved) return resolved
+    } catch {
+      // no default resolvable either; create falls back to the host's implicit resolution
+    }
+    return undefined
   }
 
   // ───────────────────────────── owner actions (command, RPC)
@@ -1358,6 +1429,33 @@ function compactTranscript(messages: unknown[]): unknown[] {
 }
 
 /**
+ * T044: an exchange is empty when the child's turn ended without any
+ * assistant text or tool call after the last user message — the silent
+ * GLM/zai failure mode observed on the main host (four rounds, no parts,
+ * no tools, no text). Empty exchanges are retried once and always recorded.
+ */
+function exchangeEmpty(messages: unknown[]): boolean {
+  let lastUser = messages.length
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i] as { role?: string; type?: string }
+    if (m?.role === "user" || m?.type === "user") {
+      lastUser = i
+      break
+    }
+  }
+  return !messages.slice(lastUser + 1).some((raw) => {
+    const m = raw as { role?: string; type?: string; parts?: any[]; content?: any }
+    if (m?.role !== "assistant" && m?.type !== "assistant") return false
+    const parts = m.parts ?? (Array.isArray(m.content) ? m.content : [])
+    return parts.some((p) => {
+      const text = typeof p?.text === "string" ? p.text.trim() : ""
+      const toolish = p?.tool !== undefined || p?.call !== undefined || p?.toolCallId !== undefined
+      return Boolean(text) || toolish
+    })
+  })
+}
+
+/**
  * T016 fallback: when the verifier child ends without calling goal_verdict,
  * accept a fenced ```json block from its final assistant message as the
  * verdict. Same shape and normalization as the tool handler; recorded
@@ -1422,6 +1520,12 @@ function timelineText(e: Record<string, unknown>): string {
       return `blocked: ${str(e.reason, 60)}`
     case "steer":
       return `owner steered: ${str(e.text, 60)}`
+    case "verifier-model":
+      return `verifier model resolved: ${str(e.model, 40)}`
+    case "verifier-empty":
+      return `verifier round ${str(e.round, 4)} was empty — retrying`
+    case "verifier-fallback":
+      return `verifier answered in prose; ${str(e.count, 4)} verdict(s) parsed from it`
     default: {
       const extra = e.reason ?? e.error ?? e.note ?? e.text ?? ""
       return `${str(e.type, 24)}${extra ? `: ${str(extra, 60)}` : ""}`
