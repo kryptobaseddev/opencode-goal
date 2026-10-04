@@ -1,9 +1,8 @@
 // Installs the plugin the way a user does: from a GitHub tag via OpenCode's
 // own package installer. Set OCGOAL_GIT_SPEC to test another ref.
 import { describe, expect, test } from "bun:test"
-import { existsSync, readdirSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import { join } from "node:path"
-import { homedir } from "node:os"
 import { startHost, until } from "./harness"
 
 const SPEC = process.env.OCGOAL_GIT_SPEC ?? "github:kryptobaseddev/opencode-goal#v0.1.0-alpha.1"
@@ -25,14 +24,14 @@ describe.skipIf(!process.env.OCGOAL_GIT_INSTALL)("install from git", () => {
       // @opentui/solid lived in devDependencies once, so git installs (which
       // ship production deps only) silently broke the whole TUI side: no
       // palette commands, no sidebar, no panel, while the server side worked.
-      const cacheRoot = join(homedir(), ".cache", "opencode", "npm")
+      // Installs land in the harness's shared package cache (XDG_CACHE_HOME).
+      const cacheRoot = join(import.meta.dir, "..", "..", ".tmp", "host-cache", "opencode", "npm")
       const dirs = readdirSync(cacheRoot).filter((d) => d.startsWith("git-opencode-goal-"))
-      const newest = dirs.map((d) => {
-        const base = join(cacheRoot, d)
-        return readdirSync(base).map((ts) => join(base, ts)).filter((p) => p.includes("node_modules") === false)
-      }).flat().sort().at(-1)
-      const installed = join(newest!, "node_modules", "@opentui", "solid")
-      expect(existsSync(installed)).toBe(true)
+      const stamps = dirs.flatMap((d) => readdirSync(join(cacheRoot, d)).map((ts) => join(cacheRoot, d, ts)))
+      const newest = stamps.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs).at(0)!
+      expect(existsSync(join(newest, "node_modules", "@opentui", "solid"))).toBe(true)
+      const manifest = JSON.parse(readFileSync(join(newest, "node_modules", "opencode-goal", "package.json"), "utf8"))
+      expect(manifest.dependencies?.["@opentui/solid"]).toBeDefined()
     } finally {
       await host.stop()
     }
