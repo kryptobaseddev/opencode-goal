@@ -60,6 +60,18 @@ export default {
       if (data.attention)
         void context.attention.notify({ title: "Goal", message: String(data.text ?? ""), notification: { when: "blurred" }, sound: { name: data.attention, when: "blurred" } })
     })
+    // T045: the post-goal summary lands as a dialog for the owner (headline
+    // as the toast, full text — provenance caveats, scope audit, follow-ups —
+    // in the dialog), only for the session the goal belongs to.
+    const offSummary = rpc.events.on("summary", (event: any) => {
+      const data = event.data ?? {}
+      const current = context.ui.router.current()
+      if (current.type !== "session" || current.sessionID !== data.sessionID) {
+        context.ui.toast.show({ title: "Goal summary", message: String(data.headline ?? data.text ?? ""), variant: "info", ...(data.sessionID ? { sessionID: data.sessionID } : {}) })
+        return
+      }
+      void context.ui.dialog.alert({ title: `Goal summary — ${data.status ?? ""}`, message: String(data.text ?? data.headline ?? "") })
+    })
     const offData = context.data.listen(({ details }: any) => {
       if (details?.type === "server.connected") for (const id of requested) void fetchView(id)
     })
@@ -296,6 +308,7 @@ export default {
       clearInterval(timer)
       offUpdated?.()
       offNotice?.()
+      offSummary?.()
       offData?.()
       for (const dispose of disposers.splice(0)) dispose()
     }

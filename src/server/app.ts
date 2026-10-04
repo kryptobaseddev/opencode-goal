@@ -16,6 +16,8 @@ import { Registry } from "../engine/registry"
 import { admissionNote } from "../engine/similarity"
 import { goalHelp } from "./help"
 import { cleoFacts, cleoLinkEvent, type Runner } from "../engine/cleo-link"
+import { buildPostGoalSummary } from "../summary/build"
+import { completionAudit } from "../summary/audit"
 
 /** Spawn the cleo CLI with a hard timeout; all failures resolve safely. */
 const defaultRunner: Runner = (command, args, timeoutMs = 2500) =>
@@ -240,6 +242,32 @@ export class GoalApp {
   private emitUpdate(state: RunState) {
     const view = this.view(state)
     void this.rpc?.events.emit("updated", { sessionID: state.sessionID, view: view ?? null }).catch(() => {})
+  }
+
+  /**
+   * T045: the post-goal summary, emitted on every complete / needs_review /
+   * budget_limited transition. Built from data the run already has, shown to
+   * the owner (rpc event → TUI dialog) and the agent (one-line transcript
+   * notice), and persisted under evidence/ with a ledger event.
+   */
+  private async summarize(state: RunState, contract: Contract) {
+    try {
+      const summary = buildPostGoalSummary({
+        contract,
+        state,
+        ledgerEvents: this.store.recent(state.slug, 200) as unknown as Array<Record<string, unknown>>,
+        cleo: await cleoFacts(this.root, defaultRunner),
+        scopeAudit: completionAudit(contract, state),
+      })
+      const file = this.store.evidence(state.slug, state.runId, `summary-turn-${state.turn}-${Date.now()}`, summary)
+      this.store.ledger(state.slug, { type: "summary", turn: state.turn, status: state.status, headline: summary.headline, file })
+      void this.rpc?.events.emit("summary", { sessionID: state.sessionID, slug: state.slug, status: state.status, headline: summary.headline, text: summary.text }).catch(() => {})
+      this.notice(state.sessionID, `goal.summary — ${summary.headline}${summary.caveats.length || summary.scopeAudit.length ? " (caveats below)" : ""}`, state.status === "complete" ? "success" : "warning")
+      await this.transcript(state.sessionID, `◎ goal.summary (${state.status}) — ${summary.headline}. ${summary.followUps[0] ?? ""}`)
+    } catch {
+      // the summary is a reporting layer; a failure here never changes the run
+    }
+    this.persist(state)
   }
 
   private notice(sessionID: string | undefined, text: string, level: "info" | "success" | "warning" | "error" = "info", attention?: "done" | "question" | "error") {
@@ -600,6 +628,7 @@ export class GoalApp {
       setStatus(state, "budget_limited", "budget used; wrap-up turn done")
       this.store.ledger(state.slug, { type: "budget_limited" })
       this.notice(state.sessionID, `Goal stopped at its budget: ${contract.title}`, "warning", "question")
+      await this.summarize(state, contract)
       return this.persist(state)
     }
 
@@ -630,6 +659,7 @@ export class GoalApp {
       }
       setStatus(state, "budget_limited", backstop ? `backstop of ${this.options.backstopTurns} turns reached` : "budget used")
       this.notice(state.sessionID, `Goal stopped at its budget: ${contract.title}`, "warning", "question")
+      await this.summarize(state, contract)
       return this.persist(state)
     }
 
@@ -734,18 +764,21 @@ export class GoalApp {
       this.store.ledger(state.slug, { type: "complete", turn: state.turn })
       this.notice(state.sessionID, `Goal complete: ${contract.title}`, "success", "done")
       await this.transcript(state.sessionID, `◎ Goal complete — "${contract.title}". Every required criterion was verified by the host${contract.verification.mode !== "host" ? " and the independent verifier" : ""}.`)
-      return this.persist(state)
+      await this.summarize(state, contract)
+      return
     }
     const onlyHuman = outcome.integrity.length === 0 && outcome.results.every((r) => r.pass || r.by === "human" || !this.required(contract).has(r.id))
     if (onlyHuman && outcome.needsHuman.length) {
       setStatus(state, "needs_review", `owner sign-off needed: ${outcome.needsHuman.join(", ")}`)
       this.notice(state.sessionID, `Goal needs your sign-off on ${outcome.needsHuman.join(", ")} (/goal approve <id>)`, "warning", "question")
+      await this.summarize(state, contract)
       return this.persist(state)
     }
     const stuck = Object.entries(state.criteria).filter(([, s]) => s.rejections >= contract.verification.max_rejections).map(([id]) => id)
     if (stuck.length) {
       setStatus(state, "needs_review", `${stuck.join(", ")} rejected ${contract.verification.max_rejections} times`)
       this.notice(state.sessionID, `Goal needs review: ${state.reason}`, "warning", "question")
+      await this.summarize(state, contract)
       return this.persist(state)
     }
     if (source === "owner") {
