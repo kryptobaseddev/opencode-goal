@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 — 2026-10-04
+
+- **Fixed: an owner-approved criterion is final.** Re-verification no longer re-runs the verifier child on a criterion the owner explicitly approved (`pass · by: human`) — previously a broken verifier could stomp the owner's sign-off, which is exactly what blocked the dogfood run's completion. The owner outranks the verifier.
+- Filed from live dogfooding: T049 (goals are session-pinned — owner actions and palette commands dead outside the goal's session), T050 (human-in-the-loop dialogs at every decision point), and the palette/keymap investigation notes.
+
+
 ## 0.2.1 — 2026-10-04
 
 - **Fixed: the TUI entry never loaded from git installs** (all versions). `@opentui/solid` and `solid-js` lived in devDependencies, and OpenCode's git installer ships production dependencies only — so the installed TUI entry crashed at load ("Cannot find package '@opentui/solid'"), killing the palette commands, the sidebar card, the dashboard panel and the footer pill while the server side kept working. Both are now regular dependencies; the server entry remains zero-dependency (types-only imports, unchanged). The git-install test now asserts the TUI runtime resolves in the installed cache. Found live by the owner after v0.2.0: dead palette and dead `/goal` dispatch (T047/T048).
