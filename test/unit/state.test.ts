@@ -68,3 +68,42 @@ describe("store", () => {
     expect(store.readLedger("checkout-latency").map((e) => e.type)).toEqual(["start", "turn"])
   })
 })
+
+// T051 — owner approval is final
+describe("owner-approved criteria survive re-verification (T051)", () => {
+  test("a verifier-kind criterion passed by the owner is skipped by the verifier and recorded as final", async () => {
+    const { verifyClaim } = await import("../../src/verify/pipeline")
+    const base = `schema: goal/v1
+id: t051
+title: probe
+intent:
+  verbatim: v
+outcome: o
+non_goals: [x]
+criteria:
+  - id: C1
+    statement: judged by the verifier
+    check: {kind: verifier, ask: "is it so?"}
+  - id: C2
+    statement: command passes
+    check: {kind: command, run: "exit 0"}
+`
+    const parsed = parseContract(base, { slug: "t051" })
+    if (!parsed.contract) throw new Error("fixture invalid: " + JSON.stringify(parsed.issues))
+    const st = initialRun(parsed.contract, { sessionID: "ses_x", runId: "r1", lock: "l", now: 0 })
+    st.criteria.C1 = { status: "pass", by: "human", rejections: 0 }
+    const calls: string[] = []
+    const outcome = await verifyClaim(parsed.contract, st, {
+      root: process.cwd(),
+      contractText: base,
+      verifier: async (input) => {
+        calls.push(...input.criteria.map((c) => c.id))
+        return { verdicts: [], by: "verifier", error: "verifier did not call goal_verdict" }
+      },
+    })
+    expect(calls).not.toContain("C1") // the verifier never sees the owner-approved criterion
+    const c1 = outcome.results.find((r) => r.id === "C1")!
+    expect(c1).toMatchObject({ pass: true, by: "human" })
+    expect(c1.detail).toContain("final")
+  })
+})

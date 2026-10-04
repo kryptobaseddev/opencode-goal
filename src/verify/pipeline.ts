@@ -121,7 +121,16 @@ export async function verifyClaim(contract: Contract, state: RunState, deps: { r
 
   const semantic = contract.criteria.filter((c) => c.check.kind === "verifier")
   const strictExtra = contract.verification.mode === "strict" ? contract.criteria.filter((c) => isHostCheck(c.check) && results.find((r) => r.id === c.id)?.pass) : []
-  const toVerify = contract.verification.mode === "host" ? [] : [...semantic, ...strictExtra]
+  // T051: an owner-approved criterion (pass by:human) is final — the owner
+  // outranks the verifier, so re-verification must respect it permanently
+  // instead of re-running a child that can stomp an explicit sign-off.
+  const toVerify = (contract.verification.mode === "host" ? [] : [...semantic, ...strictExtra]).filter(
+    (c) => !(state.criteria[c.id]?.status === "pass" && state.criteria[c.id]?.by === "human"),
+  )
+  for (const c of [...semantic, ...strictExtra]) {
+    if (state.criteria[c.id]?.status === "pass" && state.criteria[c.id]?.by === "human")
+      results.push({ id: c.id, pass: true, by: "human", detail: "approved by the owner (final)" })
+  }
   if (toVerify.length) {
     if (!deps.verifier) {
       for (const c of toVerify) results.push({ id: c.id, pass: false, by: "verifier", detail: "verifier unavailable; failing closed" })

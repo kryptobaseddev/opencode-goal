@@ -3,7 +3,7 @@
 // a banner when the owner is needed, notices as toasts and desktop attention,
 // and palette commands. Fed only by the server's GoalRpc (S6), never by files.
 import type { Plugin } from "@opencode/plugin/tui"
-import { createSignal, For, onCleanup, Show } from "solid-js"
+import { createEffect, createRoot, createSignal, For, onCleanup, Show } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
 import { GoalRpc, type GoalView } from "../rpc"
 import { bannerText, cardLines, panelLines, pillText, statusText, type Tone } from "./format"
@@ -170,7 +170,11 @@ export default {
       } as any),
     )
 
-    // Palette commands live in a keymap layer owned by an `app` slot claim.
+    // Palette commands live in a keymap layer. T050: the layer is "owned by
+    // the calling component" — registering it from inside a slot render that
+    // returns null leaves it with no live owner, so the palette never listed
+    // our commands. createRoot gives the layer a stable owner we dispose at
+    // teardown instead.
     const currentSession = () => {
       const route = context.ui.router.current()
       return route.type === "session" ? route.sessionID : undefined
@@ -194,7 +198,6 @@ export default {
       context.ui.slot({
         append: "app",
         render: () => {
-          if (currentSession()) maybeOpen(currentSession())
           context.keymap.layer(() => ({
             commands: [
               {
