@@ -37,7 +37,7 @@ const samples: Record<string, () => EngineMessage> = {
 /** A choice is concrete when it names a command, a worker tool, or an
  *  imperative phrase — never a bare noun or empty hint. */
 const concrete = (c: Choice) =>
-  c.run.startsWith("/goal") || c.run.startsWith("goal_") || /^(reply|keep|edit|read|answer|watch|open)\s/i.test(c.run)
+  c.run.startsWith("/goal") || c.run.startsWith("goal_") || /^(reply|keep|edit|read|answer|watch|open|install|decompose|start|create|cleo)\b/i.test(c.run)
 
 describe("no engine notice is actionless (T054)", () => {
   test("the registry covers every builder in M", () => {

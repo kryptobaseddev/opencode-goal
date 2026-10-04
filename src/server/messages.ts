@@ -145,7 +145,7 @@ export const M = {
       { label: "Start a new goal", run: "/goal new <what you want next>" },
       cleoPresent
         ? { label: "Decompose with CLEO", run: "cleo add --type task (this project is linked)" }
-        : { label: "Install CLEO for tracking", run: "install CLEO — this project has no .cleo workspace yet" },
+        : { label: "Install CLEO for tracking", run: "install CLEO — no .cleo workspace in this project yet" },
     ], "done"),
 }
 
