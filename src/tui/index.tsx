@@ -206,6 +206,34 @@ export default {
       const id = currentSession()
       return !!(id && views[id])
     }
+    // T050: decision dialogs. Every engine decision payload renders as a
+    // selectable dialog wired to rpc.act — the owner picks instead of typing
+    // commands. Choices without an act (guidance-only) fall back to an alert.
+    const offDecision = rpc.events.on("decision", (event: any) => {
+      const data = event.data ?? {}
+      const current = context.ui.router.current()
+      const here = current.type === "session" && current.sessionID === data.sessionID
+      const choices = (data.choices ?? []) as Array<{ label: string; act?: string; arg?: string; run?: string }>
+      if (!here) {
+        context.ui.toast.show({ title: "Goal decision", message: `${String(data.message ?? "").slice(0, 160)} (${choices.map((c) => c.run ?? c.label).slice(0, 3).join(" · ")})`, variant: "warning", ...(data.sessionID ? { sessionID: data.sessionID } : {}) })
+        return
+      }
+      void (async () => {
+        const actionable = choices.filter((c) => c.act)
+        if (!actionable.length) {
+          await context.ui.dialog.alert({ title: `Goal — ${data.kind ?? "decision"}`, message: `${data.message ?? ""}\n\n${choices.map((c) => `• ${c.run ?? c.label}`).join("\n")}` })
+          return
+        }
+        const pick = await context.ui.dialog.select({
+          title: `Goal — ${data.kind ?? "decision"}`,
+          options: actionable.map((c, i) => ({ title: c.label, value: String(i), description: c.run ?? "" })),
+        })
+        if (pick === undefined || pick === null) return
+        const chosen = actionable[Number(pick)]
+        if (chosen?.act) await act(chosen.act, chosen.arg)
+      })()
+    })
+
     // T049: goals are reachable from any session. When this session has no
     // goal, the palette still lists the project's goals so the owner can
     // attach one here instead of hunting for the session that started it.
@@ -309,6 +337,7 @@ export default {
       offUpdated?.()
       offNotice?.()
       offSummary?.()
+      offDecision?.()
       offData?.()
       for (const dispose of disposers.splice(0)) dispose()
     }

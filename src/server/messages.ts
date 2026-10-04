@@ -123,6 +123,30 @@ export const M = {
       { label: "Show status", run: "/goal status" },
       { label: "Owner: keep steering", run: "reply in the session (it pauses the wait)" },
     ]),
+  amendProposed: (summary: string) =>
+    msg("goal.amend.proposed", "warning", `Amendment proposed: ${summary}. Review the diff; confirming re-locks the contract with a new generation.`, [
+      { label: "Confirm re-lock", run: "/goal amend confirm", act: "amend", arg: "confirm" },
+      { label: "Keep editing goal.yaml", run: "edit goal.yaml further; the proposal waits" },
+    ], "question"),
+  supersedeAck: (slug: string, predecessor: string, status: string) =>
+    msg("goal.supersede.ack", "warning", `Refused to start "${slug}": predecessor "${predecessor}" is still ${status}. Superseding a live predecessor forks the audit trail.`, [
+      { label: "Acknowledge and supersede", run: `/goal start ${slug} acknowledge-supersede` },
+      { label: "Abort predecessor first", run: "/goal abort", act: "abort" },
+    ], "question"),
+  pausedAfterVerdict: (firstLine: string) =>
+    msg("goal.paused.verdict", "warning", `Verification did not pass while the goal is stopped — ${firstLine} Decide with the verdict in hand.`, [
+      resume,
+      { label: "Amend the check", run: "edit goal.yaml, then /goal amend confirm", act: "amend", arg: "confirm" },
+      abort,
+    ], "question"),
+  completeDecision: (title: string, cleoPresent: boolean, unproven: number) =>
+    msg("goal.complete.decision", "success", `Goal complete: ${title}.${unproven ? ` ${unproven} discussed-but-unproven item(s) are flagged in the summary.` : ""} What next?`, [
+      archive,
+      { label: "Start a new goal", run: "/goal new <what you want next>" },
+      cleoPresent
+        ? { label: "Decompose with CLEO", run: "cleo add --type task (this project is linked)" }
+        : { label: "Install CLEO for tracking", run: "install CLEO — this project has no .cleo workspace yet" },
+    ], "done"),
 }
 
 /** Every engine notice comes from M — the unit suite pins none is actionless. */

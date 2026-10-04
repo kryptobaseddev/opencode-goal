@@ -292,6 +292,19 @@ export class GoalApp {
       .catch(() => {})
   }
 
+  /**
+   * T050: every owner decision point emits a DECISION payload — rpc event,
+   * actionable notice with desktop attention — that the TUI renders as a
+   * selectable dialog wired to rpc.act. Slash commands remain the power-user
+   * path; nobody has to type an approval by hand.
+   */
+  private decide(sessionID: string | undefined, slug: string, kind: "needs_review" | "paused-after-verdict" | "blocked" | "budget_limited" | "amend-proposed" | "supersede-ack" | "complete", message: EngineMessage, extra: Record<string, unknown> = {}) {
+    void this.rpc?.events
+      .emit("decision", { ...(sessionID ? { sessionID } : {}), slug, kind, title: message.id, message: renderMessage(message), choices: message.choices, ...extra })
+      .catch(() => {})
+    this.noticeM(sessionID, message)
+  }
+
   private async transcript(sessionID: string, text: string) {
     await this.ctx.session.synthetic({ sessionID, text, resume: false } as any).catch(() => {})
   }
@@ -317,8 +330,11 @@ export class GoalApp {
         if (!predecessorRun && !predecessorArchived) return `Refused: supersedes points at "${oldSlug}", but no such goal exists here (live or archived).`
         const predecessorLock = predecessorRun?.lock ?? ""
         if (predecessorRun && !predecessorLock.startsWith(lockPrefix!)) return `Refused: supersedes references ${oldSlug}@${lockPrefix}, but its run lock is ${predecessorLock.slice(0, 12)}… — the predecessor changed since the pointer was written; update the pointer.`
-        if (predecessorRun && !isTerminal(predecessorRun.status) && !options.acknowledgeSupersede)
+        if (predecessorRun && !isTerminal(predecessorRun.status) && !options.acknowledgeSupersede) {
+          // T050: superseding a live predecessor is an explicit owner decision
+          this.decide(sessionID, slug, "supersede-ack", M.supersedeAck(slug, oldSlug, predecessorRun.status), { predecessor: oldSlug })
           return `Refused: "${oldSlug}" is still ${predecessorRun.status}. Superseding a live predecessor forks the audit trail — abort it first, or start with /goal start ${slug} acknowledge-supersede to record your explicit acknowledgment.`
+        }
         // flip the predecessor terminal, archive it (demote never delete), ledger both sides
         if (predecessorRun) {
           const liveState = [...this.runs.values()].find((s) => s.slug === oldSlug)
@@ -410,6 +426,7 @@ export class GoalApp {
       state.amendments.push({ change: summary, rationale: "proposed; awaiting /goal amend confirm", at: Date.now(), status: "proposed" })
       this.store.ledger(state.slug, { type: "amend-proposed", turn: state.turn, summary })
       this.persist(state)
+      this.decide(state.sessionID, state.slug, "amend-proposed", M.amendProposed(summary))
       return `Proposed amendment: ${summary}\nReview the diff, then run /goal amend confirm to re-lock (generation ${state.amendments.filter((a) => a.status === "accepted").length + 1}).`
     }
 
@@ -645,7 +662,7 @@ export class GoalApp {
     if (kind === "wrapup") {
       setStatus(state, "budget_limited", "budget used; wrap-up turn done")
       this.store.ledger(state.slug, { type: "budget_limited" })
-      this.noticeM(state.sessionID, M.budgetStopped(contract.title))
+      this.decide(state.sessionID, state.slug, "budget_limited", M.budgetStopped(contract.title))
       await this.summarize(state, contract)
       return this.persist(state)
     }
@@ -663,7 +680,7 @@ export class GoalApp {
     if (state.blocker && state.blocker.count >= this.options.blockerRepeats) {
       setStatus(state, "blocked", `${state.blocker.key}: ${state.blocker.reason}`)
       this.store.ledger(state.slug, { type: "blocked", blocker: state.blocker })
-      this.noticeM(state.sessionID, M.blocked(String(state.blocker?.key ?? "blocker"), String(state.blocker?.reason ?? "owner decision needed"), state.blocker?.needs))
+      this.decide(state.sessionID, state.slug, "blocked", M.blocked(String(state.blocker.key), String(state.blocker.reason), state.blocker.needs), { blocker: state.blocker })
       return this.persist(state)
     }
 
@@ -676,7 +693,7 @@ export class GoalApp {
         return this.admit(state, "wrapup")
       }
       setStatus(state, "budget_limited", backstop ? `backstop of ${this.options.backstopTurns} turns reached` : "budget used")
-      this.noticeM(state.sessionID, M.budgetStopped(contract.title))
+      this.decide(state.sessionID, state.slug, "budget_limited", M.budgetStopped(contract.title))
       await this.summarize(state, contract)
       return this.persist(state)
     }
@@ -782,25 +799,29 @@ export class GoalApp {
       this.store.ledger(state.slug, { type: "complete", turn: state.turn })
       const summary = await this.summarize(state, contract)
       this.noticeM(state.sessionID, M.complete(contract.title, summary ? summary.caveats.length + summary.scopeAudit.length : 0))
+      this.decide(state.sessionID, state.slug, "complete", M.completeDecision(contract.title, Boolean(await cleoFacts(this.root, defaultRunner)), summary?.scopeAudit.length ?? 0))
       await this.transcript(state.sessionID, `◎ Goal complete — "${contract.title}". Every required criterion was verified by the host${contract.verification.mode !== "host" ? " and the independent verifier" : ""}.`)
       return
     }
     const onlyHuman = outcome.integrity.length === 0 && outcome.results.every((r) => r.pass || r.by === "human" || !this.required(contract).has(r.id))
     if (onlyHuman && outcome.needsHuman.length) {
       setStatus(state, "needs_review", `owner sign-off needed: ${outcome.needsHuman.join(", ")}`)
-      this.noticeM(state.sessionID, M.needsSignOff(outcome.needsHuman))
+      this.decide(state.sessionID, state.slug, "needs_review", M.needsSignOff(outcome.needsHuman), { criteria: outcome.needsHuman })
       await this.summarize(state, contract)
       return this.persist(state)
     }
     const stuck = Object.entries(state.criteria).filter(([, s]) => s.rejections >= contract.verification.max_rejections).map(([id]) => id)
     if (stuck.length) {
       setStatus(state, "needs_review", `${stuck.join(", ")} rejected ${contract.verification.max_rejections} times`)
-      this.noticeM(state.sessionID, M.needsReview(state.reason ?? "repeated rejections"))
+      this.decide(state.sessionID, state.slug, "needs_review", M.needsReview(state.reason ?? "repeated rejections"), { criteria: stuck })
       await this.summarize(state, contract)
       return this.persist(state)
     }
     if (source === "owner") {
       setStatus(state, "paused", "verification did not pass; resume to keep working")
+      // T050: an owner-requested verify that fails is a decision point —
+      // resume with the verdict in hand, amend the check, or abort.
+      this.decide(state.sessionID, state.slug, "paused-after-verdict", M.pausedAfterVerdict(state.verdict?.lines[0] ?? "see the verdict lines"))
       return this.persist(state)
     }
     setStatus(state, "running")

@@ -31,6 +31,21 @@ export const GoalRpc = {
     updated: { schema: { type: "object", properties: { sessionID: { type: "string" }, view: anyObject }, required: ["sessionID"], additionalProperties: true } },
     notice: { schema: { type: "object", properties: { sessionID: { type: "string" }, level: { type: "string" }, text: { type: "string" }, attention: { type: "string" } }, required: ["text"], additionalProperties: true } },
     summary: { schema: { type: "object", properties: { sessionID: { type: "string" }, slug: { type: "string" }, status: { type: "string" }, headline: { type: "string" }, text: { type: "string" } }, required: ["sessionID", "text"], additionalProperties: true } },
+    decision: {
+      schema: {
+        type: "object",
+        properties: {
+          sessionID: { type: "string" },
+          slug: { type: "string" },
+          kind: { type: "string", enum: ["needs_review", "paused-after-verdict", "blocked", "budget_limited", "amend-proposed", "supersede-ack", "complete"] },
+          title: { type: "string" },
+          message: { type: "string" },
+          choices: { type: "array", items: { type: "object", properties: { label: { type: "string" }, act: { type: "string" }, arg: { type: "string" }, run: { type: "string" } }, required: ["label"], additionalProperties: true } },
+        },
+        required: ["sessionID", "kind", "message", "choices"],
+        additionalProperties: true,
+      },
+    },
   },
 } as const
 
