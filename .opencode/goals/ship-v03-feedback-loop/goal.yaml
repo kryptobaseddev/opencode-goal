@@ -1,0 +1,312 @@
+schema: goal/v1
+id: ship-v03-feedback-loop
+title: 'v0.3.0 feedback loop: every decision persistent, actionable, visible'
+intent:
+  verbatim: 'continue working on the v0.3 work and read @docs/HANDOFF.md and continue by reading your briefing fully complete and release the work and review any past goals needed to create this next goal carried forward'
+  why: >-
+    The owner's consolidated 2026-10-04 directive: every decision point, verdict, block, amendment
+    and completion must render a persistent, actionable, option-based surface in the terminal — never
+    a toast alone; the agent must see owner actions; an activity tracer shows work in flight; the
+    dashboard must be human-designed. Carries forward every lesson from runs 0ffe5ac6e001 and
+    10388d06d001 (engine-version rule, single-line commands, version-prefix needles, the colon class).
+outcome: >-
+  opencode-goal v0.3.0 is tagged on GitHub and installed in the owner's OpenCode before the
+  completing claim: the verifier child reliably yields verdicts on the main host, every engine
+  decision point opens an actionable dialog and leaves a persistent transcript notice the agent
+  sees next turn, an activity tracer shows engine work live at zero model cost, the dashboard is a
+  compact sidebar card plus tabbed panel instead of a raw stream, every notice carries why and
+  choices, completion renders a post-goal summary with provenance caveats and a flagged scope
+  audit, goals are reachable from any session, and owner approval is final against host re-checks
+  too — with this run's own verified completion under the installed v0.3.0 as the live proof.
+non_goals:
+  - 'Relay mode, goal queues, home-screen board, Claude Code / Codex adapters, headless runner (HANDOFF backlog)'
+  - 'npm publishing — git install only'
+  - 'Any change to the owner''s global OpenCode install during the run beyond the single release-step reinstall'
+  - 'A hard CLEO dependency — the CLEO link stays optional and CLI-only'
+  - 'Staged or intermediate release tags — exactly one v0.3.0 end release'
+  - 'Web/desktop surfaces beyond the existing RPC contract'
+criteria:
+  - id: C1
+    statement: >-
+      Verifier child on the real host (T044): the child request carries an explicitly resolved model
+      and empty responses are handled (retried/recorded, never a silent empty exchange) — host
+      scenario with an empty-response fixture; the live main-host proof is this run's own completing
+      verifier round under the reinstalled v0.3.0, quoted in dogfood-3
+    check:
+      kind: command
+      run: 'bun test ./test/host/verifier-empty-response.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C2
+    statement: >-
+      Post-goal summary builder (T045): per-criterion outcomes with by: provenance (owner-approved
+      and fallback-passed labeled as caveats), scope audit, non-goals restated, mid-run findings
+      from the ledger, follow-up prompts including the CLEO-install suggestion when .cleo is absent
+    check:
+      kind: command
+      run: 'bun test ./test/unit/summary.test.ts'
+      expect: { exit: 0 }
+      timeout: 300
+  - id: C3
+    statement: >-
+      The summary renders (T045): on complete/needs_review/budget_limited transitions the engine
+      emits goal.summary and the TUI surfaces it — host scenario
+    check:
+      kind: command
+      run: 'bun test ./test/host/summary.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C4
+    statement: >-
+      Completion scope audit (T046, owner decision — flagged caveat): plan steps with proves:[] and
+      no sibling evidence, and scope.in items mapping to no criterion outcome, are flagged as
+      discussed-but-unproven; completion is not blocked
+    check:
+      kind: command
+      run: 'bun test ./test/unit/completion-audit.test.ts'
+      expect: { exit: 0 }
+      timeout: 300
+  - id: C5
+    statement: >-
+      Goals escape their session (T049): owner actions fall back to the project's unique
+      non-terminal goal from any session, and palette commands list selectable goals when the
+      current session has none — host scenario acting from a second session
+    check:
+      kind: command
+      run: 'bun test ./test/host/session-fallback.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C6
+    statement: >-
+      Decision dialogs at every decision point (T050): needs_review, paused-after-verdict, blocked,
+      budget_limited, amend-proposed, supersede-ack and complete each emit an engine decision
+      payload the TUI renders as a selectable dialog wired to rpc.act — host scenario driving one
+      decision end-to-end
+    check:
+      kind: command
+      run: 'bun test ./test/host/decision-dialogs.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C7
+    statement: >-
+      Persistent terminal feedback (T052): verdicts, owner actions, amendments, blocks and
+      completions land as transcript notice rows the agent sees next turn, and an action-required
+      sidebar state persists until resolved — host scenario including an owner-side action leaving
+      its note
+    check:
+      kind: command
+      run: 'bun test ./test/host/persistent-feedback.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C8
+    statement: >-
+      Live activity tracer (T053): a pure formatter renders engine working state with elapsed time
+      (verifying, verifier child running, waits and cooldown countdowns) for the composer-top slot
+      and panel, snapshot-tested, zero model cost
+    check:
+      kind: command
+      run: 'bun test ./test/unit/activity-tracer.test.ts'
+      expect: { exit: 0 }
+      timeout: 300
+  - id: C9
+    statement: >-
+      Actionable message content (T054): every notice carries the cause plus concrete choices;
+      a unit suite pins that no engine notice is actionless
+    check:
+      kind: command
+      run: 'bun test ./test/unit/actionable-messages.test.ts'
+      expect: { exit: 0 }
+      timeout: 300
+  - id: C10
+    statement: >-
+      Dashboard rework (T056): sidebar card capped ~12 lines, panel reorganized into
+      Now/Progress/Decisions/Goals tabs with plain-language criteria and a C/I/S legend, actionable
+      rows keyboard-selectable, panel opens on demand — snapshot tests
+    check:
+      kind: command
+      run: 'bun test ./test/unit/tui-dashboard.test.ts'
+      expect: { exit: 0 }
+      timeout: 300
+  - id: C11
+    statement: >-
+      Owner-final beats host re-checks (T057): a criterion passed by:human is skipped by host
+      re-verification as well as verifier re-checks and recorded as approved-by-owner — unit test
+      with a host-kind criterion
+    check:
+      kind: command
+      run: 'bun test ./test/unit/owner-final.test.ts'
+      expect: { exit: 0 }
+      timeout: 300
+  - id: C12
+    statement: >-
+      Sidebar and panel refresh across state transitions (T058): the view updates on every goal
+      state change after the fix — host scenario across transitions
+    check:
+      kind: command
+      run: 'bun test ./test/host/refresh.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C13
+    statement: >-
+      Authoring rule in the skill (T055): write-goal SKILL.md forbids exact version-string needles
+      and requires prefix or semantic version checks
+    check:
+      kind: contains
+      path: skills/write-goal/SKILL.md
+      text: 'exact version string'
+  - id: C14
+    statement: >-
+      The pattern is taught by example (T055): references/examples.md shows a version-release
+      criterion using a semantic prefix check, never an exact contains needle
+    check:
+      kind: contains
+      path: skills/write-goal/references/examples.md
+      text: 'startsWith'
+  - id: C15
+    statement: >-
+      package.json is semantically bumped for v0.3 (prefix check — the T055 rule applied to this
+      very contract)
+    check:
+      kind: command
+      run: 'node -e "process.exit(require(''./package.json'').version.startsWith(''0.3.'')?0:1)"'
+      expect: { exit: 0 }
+  - id: C16
+    statement: CHANGELOG.md carries the v0.3.0 entry
+    check:
+      kind: contains
+      path: CHANGELOG.md
+      text: 0.3.0
+  - id: C17
+    statement: The pushed v0.3.0 tag installs from git in an isolated OpenCode
+    check:
+      kind: command
+      run: 'OCGOAL_GIT_INSTALL=1 OCGOAL_GIT_SPEC="github:kryptobaseddev/opencode-goal#v0.3.0" bun test ./test/host/git-install.test.ts'
+      expect: { exit: 0 }
+      live: true
+      timeout: 600
+  - id: C18
+    statement: >-
+      docs/dogfood-3.md exists and quotes this run's own verification evidence (a real child
+      verdict, fallback or transcript artifact)
+    check:
+      kind: contains
+      path: docs/dogfood-3.md
+      regex: 'verifier-fallback|goal_verdict|verifier-transcript'
+  - id: C19
+    statement: >-
+      The dogfood-3 findings are grounded: every claim traceable to this run's ledger/evidence and
+      defects filed with ids — judged by the verifier child on the main host (the T044 live proof)
+    check:
+      kind: verifier
+      ask: >-
+        Read docs/dogfood-3.md and this run's .opencode/goals/ship-v03-feedback-loop/ledger.jsonl
+        and evidence/. Judge: does the doc ground its claims (dialog/notice/tracer behaviour, the
+        reinstall gate, a real verifier verdict from the child on the main host, amendment or
+        approval events where applicable) and list defects with CLEO task ids? List anything
+        missing or unsupported.
+invariants:
+  - id: I1
+    statement: The full test suite SHALL CONTINUE TO pass
+    check:
+      kind: command
+      run: 'bun test'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: I2
+    statement: The typecheck SHALL CONTINUE TO pass
+    check:
+      kind: command
+      run: 'bun run typecheck'
+      expect: { exit: 0 }
+  - id: I3
+    statement: >-
+      The observed-behaviour oracle, the test harness and the council audit trails SHALL NOT change
+    check:
+      kind: diff
+      paths: ['docs/spikes.md', 'test/host/harness.ts', '.cleo/council-runs']
+protect: ['docs/spikes.md', 'test/host/harness.ts', '.cleo/council-runs/**']
+scope:
+  in:
+    - 'Engine: verifier child model resolution + empty-response handling (T044), owner-final vs host re-checks (T057)'
+    - 'Completion: post-goal summary with provenance caveats and follow-up prompts (T045), flagged scope audit (T046)'
+    - 'Reach: goals usable from any session, palette lists goals (T049)'
+    - 'Surfaces: decision dialogs at every decision point (T050), persistent transcript notices + action-required state + agent visibility (T052), live activity tracer (T053), actionable notice content (T054), dashboard tabs+card rework (T056), refresh fix (T058)'
+    - 'Authoring: version-prefix rules in skill + examples (T055)'
+    - 'Closeout: release v0.3.0 with the owner-reinstall gate, dogfood-3, CLEO completes'
+  out:
+    - 'Everything in non_goals'
+constraints:
+  - 'OpenCode 2 only; plain-object default export; @opencode/* imports are types only'
+  - 'Keep the system block byte-stable within a run; volatile status goes in the per-turn tail note'
+  - 'Every behaviour change to the loop gets a host scenario'
+  - 'Commits: type(T###): summary — every commit references a CLEO task (hooks enforce)'
+  - 'setup can run twice per location; everything registered must be disposed in stop()'
+  - 'Every command check stays on a single line and is rehearsed before any claim (lesson from run 0ffe5ac6e001)'
+  - 'Engine-version rule: the release step ends with the owner reinstalling v0.3.0 (plugin remove/add + reload) BEFORE the completing claim; the run blocks externally until confirmed'
+plan:
+  - {id: S1, title: 'Diagnose + fix the verifier child model resolution; empty-response host scenario (T044)', proves: [C1]}
+  - {id: S2, title: 'Owner-final skips host re-checks; unit test with host-kind criterion (T057)', proves: [C11]}
+  - {id: S3, title: 'Session fallback: ownerAct cross-session, palette lists goals (T049)', proves: [C5]}
+  - {id: S4, title: 'Post-goal summary builder + goal.summary render + host scenario (T045)', proves: [C2, C3]}
+  - {id: S5, title: 'Flagged completion scope audit into the summary (T046)', proves: [C4], depends_on: [S4]}
+  - {id: S6, title: 'Actionable message builder — why + choices on every notice (T054)', proves: [C9]}
+  - {id: S7, title: 'Decision payloads + dialogs at every decision point (T050)', proves: [C6], depends_on: [S3, S6]}
+  - {id: S8, title: 'Persistent transcript notices + action-required state + agent visibility (T052)', proves: [C7], depends_on: [S6]}
+  - {id: S9, title: 'Activity tracer formatter + composer-top rendering (T053)', proves: [C8]}
+  - {id: S10, title: 'Reproduce + fix sidebar/panel refresh across transitions (T058)', proves: [C12], depends_on: [S8]}
+  - {id: S11, title: 'Dashboard rework: tabs, compact card, select rows, on-demand panel (T056)', proves: [C10], depends_on: [S7, S8, S9]}
+  - {id: S12, title: 'Version-prefix authoring rules in skill + examples (T055)', proves: [C13, C14]}
+  - {id: S13, title: 'Release v0.3.0: bump, changelog, tag, push, git-install proof, owner reinstall gate (T024 close)', proves: [C15, C16, C17], depends_on: [S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12]}
+  - {id: S14, title: 'dogfood-3.md from this run; CLEO completes T044-T058; final claim under v0.3.0', proves: [C18, C19], depends_on: [S13]}
+assumptions:
+  - id: A1
+    text: >-
+      Baseline at f470f1e: bun test = 82 pass / 1 skip / 0 fail; the twelve new test files start as
+      committed red stubs so every command criterion is an honest red baseline (bun exits 0 on a
+      filter matching no files — a vacuous green). I1 therefore records a red baseline at start by
+      design — the pre-existing 82 tests still pass; the stubs are this goal's scaffolding and the
+      claim-time suite must be fully green
+    rationale: recon 2026-10-04; the engine's own rehearsal philosophy expects red baselines
+    reversible: true
+  - id: A2
+    text: 'Single end release: exactly one tag (v0.3.0) when all criteria are green; no staged tags'
+    rationale: owner decision 2026-10-04 (matches the v0.2.0 precedent)
+    reversible: true
+  - id: A3
+    text: >-
+      T046 ships as flagged caveat: unproven plan steps / scope.in items surface in the post-goal
+      summary as discussed-but-unproven; completion is never blocked by them
+    rationale: owner decision 2026-10-04
+    reversible: true
+  - id: A4
+    text: >-
+      Engine-version hard gate: the release step blocks via an external blocker until the owner
+      confirms plugin remove/add to #v0.3.0 + reload; the completing claim runs only after it
+    rationale: owner decision 2026-10-04; dogfood-2 §7
+    reversible: false
+  - id: A5
+    text: >-
+      CLEO stays the decomposition source of truth: each plan step completes its mapped task with
+      evidence atoms before the step is done; the correlation table lives in context.md
+    rationale: owner directive 2026-10-03
+    reversible: false
+  - id: A6
+    text: >-
+      The v0.2.2 engine this run starts under still carries T057 (host re-check can stomp an owner
+      approval) and T044 (silent verifier child) until the release reinstall; mid-run owner
+      approvals are therefore avoided — decisions defer to the completing round under v0.3.0
+    rationale: the defects being fixed; the completing round runs the fixed engine
+    reversible: false
+stop:
+  escalate_when:
+    - 'The T044 fix needs a change to the protected test harness (e.g. provider failure injection) — stop for the owner-approved harness change'
+    - 'The verifier child is still silent on the main host after the fix and reinstall — file the defect and stop for the owner decision'
+    - 'git push or the tag is rejected, or the git-install test fails against the pushed v0.3.0'
+    - 'An OpenCode TUI API the dashboard rework depends on (TabSelect, composer-top slot, sidebar keybinding) is absent or changed in the installed OpenCode — stop with the design question'
+verification:
+  mode: host+verifier
+  max_rejections: 3
+autonomy:
+  questions: defer
+  on_user_message: steer
+  on_interrupt: pause
