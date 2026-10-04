@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 — 2026-10-04
+
+- **Fixed: the TUI entry never loaded from git installs** (all versions). `@opentui/solid` and `solid-js` lived in devDependencies, and OpenCode's git installer ships production dependencies only — so the installed TUI entry crashed at load ("Cannot find package '@opentui/solid'"), killing the palette commands, the sidebar card, the dashboard panel and the footer pill while the server side kept working. Both are now regular dependencies; the server entry remains zero-dependency (types-only imports, unchanged). The git-install test now asserts the TUI runtime resolves in the installed cache. Found live by the owner after v0.2.0: dead palette and dead `/goal` dispatch (T047/T048).
+
 ## 0.2.0 — 2026-10-03
 
 Built under the goal loop itself, with two council verdicts as decision records (`.cleo/council-runs/20261003T145323Z-a46b2ff9` and `…162655Z-800c52ca`).
