@@ -18,6 +18,7 @@ import { goalHelp } from "./help"
 import { cleoFacts, cleoLinkEvent, type Runner } from "../engine/cleo-link"
 import { buildPostGoalSummary } from "../summary/build"
 import { completionAudit } from "../summary/audit"
+import { M, renderMessage, type EngineMessage } from "./messages"
 
 /** Spawn the cleo CLI with a hard timeout; all failures resolve safely. */
 const defaultRunner: Runner = (command, args, timeoutMs = 2500) =>
@@ -262,16 +263,33 @@ export class GoalApp {
       const file = this.store.evidence(state.slug, state.runId, `summary-turn-${state.turn}-${Date.now()}`, summary)
       this.store.ledger(state.slug, { type: "summary", turn: state.turn, status: state.status, headline: summary.headline, file })
       void this.rpc?.events.emit("summary", { sessionID: state.sessionID, slug: state.slug, status: state.status, headline: summary.headline, text: summary.text }).catch(() => {})
-      this.notice(state.sessionID, `goal.summary — ${summary.headline}${summary.caveats.length || summary.scopeAudit.length ? " (caveats below)" : ""}`, state.status === "complete" ? "success" : "warning")
+      this.noticeM(state.sessionID, M.goalSummary(summary.headline, summary.caveats.length + summary.scopeAudit.length, state.status))
       await this.transcript(state.sessionID, `◎ goal.summary (${state.status}) — ${summary.headline}. ${summary.followUps[0] ?? ""}`)
+      this.persist(state)
+      return summary
     } catch {
       // the summary is a reporting layer; a failure here never changes the run
+      return undefined
     }
-    this.persist(state)
   }
 
   private notice(sessionID: string | undefined, text: string, level: "info" | "success" | "warning" | "error" = "info", attention?: "done" | "question" | "error") {
     void this.rpc?.events.emit("notice", { ...(sessionID ? { sessionID } : {}), level, text, ...(attention ? { attention } : {}) }).catch(() => {})
+  }
+
+  /** T054: every engine notice is an actionable message — cause plus concrete
+   *  choices, rendered inline for toasts and attached as structured choices
+   *  for the T050 decision dialogs (wired to rpc.act). */
+  private noticeM(sessionID: string | undefined, message: EngineMessage) {
+    void this.rpc?.events
+      .emit("notice", {
+        ...(sessionID ? { sessionID } : {}),
+        level: message.level,
+        text: renderMessage(message),
+        choices: message.choices,
+        ...(message.attention ? { attention: message.attention } : {}),
+      })
+      .catch(() => {})
   }
 
   private async transcript(sessionID: string, text: string) {
@@ -354,7 +372,7 @@ export class GoalApp {
       const link = cleoLinkEvent(await cleoFacts(this.root, defaultRunner))
       if (link) this.store.ledger(slug, link)
       this.persist(state)
-      this.notice(sessionID, `Goal started: ${contract.title}`, "success")
+      this.noticeM(sessionID, M.goalStarted(contract.title))
       if (!this.factsOf(sessionID).busy) await this.admit(state, "kickoff")
       return `Goal "${contract.title}" started (run ${state.runId}). The host drives the loop from here: work toward the outcome, record progress with goal_progress, and call goal_claim when every criterion holds.`
     })
@@ -412,7 +430,7 @@ export class GoalApp {
     this.store.ledger(state.slug, { type: "amended", turn: state.turn, generation, oldLock, newLock: nextLock, summary })
     this.persist(state)
     this.emitUpdate(state)
-    this.notice(state.sessionID, `Goal amended (generation ${generation}): ${summary}`, "success")
+    this.noticeM(state.sessionID, M.amended(generation, summary))
     return `Amended ${state.slug} (generation ${generation}): ${summary}. Changed criteria reset to unknown and re-verify on the next claim.`
   }
 
@@ -458,7 +476,7 @@ export class GoalApp {
       this.store.ledger(state.slug, { type: "admit-failed", turn: state.turn, error: String(error) })
       if (state.counters.failures >= this.options.maxPromptFailures) {
         setStatus(state, "paused", `could not send a continuation: ${String(error).slice(0, 200)}`)
-        this.notice(state.sessionID, `Goal paused: ${state.reason}`, "error", "error")
+        this.noticeM(state.sessionID, M.pausedAdmissionError(state.reason ?? "admission failed"))
       } else this.schedule(state, 2000 * 2 ** state.counters.failures, kind)
       this.persist(state)
     }
@@ -514,7 +532,7 @@ export class GoalApp {
         this.factsOf(sid).forms.add(data.form.id)
         const state = this.runs.get(sid)
         if (state && isActive(state.status)) {
-          this.notice(sid, "The goal is waiting for your answer.", "warning", "question")
+          this.noticeM(sid, M.awaitingAnswer(String(data.form?.question ?? "a question from the worker")))
           this.emitUpdate(state)
         }
         return
@@ -599,7 +617,7 @@ export class GoalApp {
       if (contract?.autonomy.on_user_message === "pause") {
         setStatus(state, "paused", "owner sent a message")
         this.store.ledger(state.slug, { type: "paused", reason: "owner message" })
-        this.notice(state.sessionID, "Goal paused because you sent a message. /goal resume to continue.", "info")
+        this.noticeM(state.sessionID, M.pausedUserMessage())
       } else {
         state.steers += 1
         this.store.ledger(state.slug, { type: "steer", text: String(data.item?.payload?.text ?? "").slice(0, 280) })
@@ -627,7 +645,7 @@ export class GoalApp {
     if (kind === "wrapup") {
       setStatus(state, "budget_limited", "budget used; wrap-up turn done")
       this.store.ledger(state.slug, { type: "budget_limited" })
-      this.notice(state.sessionID, `Goal stopped at its budget: ${contract.title}`, "warning", "question")
+      this.noticeM(state.sessionID, M.budgetStopped(contract.title))
       await this.summarize(state, contract)
       return this.persist(state)
     }
@@ -645,7 +663,7 @@ export class GoalApp {
     if (state.blocker && state.blocker.count >= this.options.blockerRepeats) {
       setStatus(state, "blocked", `${state.blocker.key}: ${state.blocker.reason}`)
       this.store.ledger(state.slug, { type: "blocked", blocker: state.blocker })
-      this.notice(state.sessionID, `Goal blocked: ${state.blocker.reason}`, "warning", "question")
+      this.noticeM(state.sessionID, M.blocked(String(state.blocker?.key ?? "blocker"), String(state.blocker?.reason ?? "owner decision needed"), state.blocker?.needs))
       return this.persist(state)
     }
 
@@ -658,7 +676,7 @@ export class GoalApp {
         return this.admit(state, "wrapup")
       }
       setStatus(state, "budget_limited", backstop ? `backstop of ${this.options.backstopTurns} turns reached` : "budget used")
-      this.notice(state.sessionID, `Goal stopped at its budget: ${contract.title}`, "warning", "question")
+      this.noticeM(state.sessionID, M.budgetStopped(contract.title))
       await this.summarize(state, contract)
       return this.persist(state)
     }
@@ -666,7 +684,7 @@ export class GoalApp {
     if (state.counters.noProgress >= this.options.stallTurns) {
       setStatus(state, "paused", `stalled: no change the host could see for ${state.counters.noProgress} turns`)
       this.store.ledger(state.slug, { type: "paused", reason: state.reason })
-      this.notice(state.sessionID, `Goal paused — ${state.reason}`, "warning", "question")
+      this.noticeM(state.sessionID, M.pausedStalled(state.reason ?? "stalled"))
       return this.persist(state)
     }
 
@@ -715,7 +733,7 @@ export class GoalApp {
     }
     setStatus(state, "paused", reason.slice(0, 300))
     this.store.ledger(state.slug, { type: "paused", reason })
-    this.notice(state.sessionID, `Goal paused — ${reason}`, "error", "error")
+    this.noticeM(state.sessionID, M.pausedInterrupted(reason))
     this.persist(state)
   }
 
@@ -735,7 +753,7 @@ export class GoalApp {
     clearTimeout(this.timers.get(state.sessionID))
     setStatus(state, "paused", why)
     this.store.ledger(state.slug, { type: "paused", reason: why })
-    this.notice(state.sessionID, `Goal paused — ${why}. /goal resume to continue.`, "info")
+    this.noticeM(state.sessionID, M.pausedStalled(why))
     this.persist(state)
   }
 
@@ -745,7 +763,7 @@ export class GoalApp {
     setStatus(state, "verifying", source === "claim" ? "checking your claim" : "owner requested verification")
     this.store.ledger(state.slug, { type: "verify-start", source, turn: state.turn })
     this.persist(state)
-    this.notice(state.sessionID, "Verifying the goal…", "info")
+    this.noticeM(state.sessionID, M.verifying())
     const text = existsSync(this.store.contractPath(state.slug)) ? readFileSync(this.store.contractPath(state.slug), "utf8") : ""
     const outcome = await verifyClaim(contract, state, { root: this.root, contractText: text, verifier: (input) => this.runVerifier(input) })
     const now = Date.now()
@@ -762,22 +780,22 @@ export class GoalApp {
     if (outcome.passed) {
       setStatus(state, "complete", "all required criteria verified")
       this.store.ledger(state.slug, { type: "complete", turn: state.turn })
-      this.notice(state.sessionID, `Goal complete: ${contract.title}`, "success", "done")
+      const summary = await this.summarize(state, contract)
+      this.noticeM(state.sessionID, M.complete(contract.title, summary ? summary.caveats.length + summary.scopeAudit.length : 0))
       await this.transcript(state.sessionID, `◎ Goal complete — "${contract.title}". Every required criterion was verified by the host${contract.verification.mode !== "host" ? " and the independent verifier" : ""}.`)
-      await this.summarize(state, contract)
       return
     }
     const onlyHuman = outcome.integrity.length === 0 && outcome.results.every((r) => r.pass || r.by === "human" || !this.required(contract).has(r.id))
     if (onlyHuman && outcome.needsHuman.length) {
       setStatus(state, "needs_review", `owner sign-off needed: ${outcome.needsHuman.join(", ")}`)
-      this.notice(state.sessionID, `Goal needs your sign-off on ${outcome.needsHuman.join(", ")} (/goal approve <id>)`, "warning", "question")
+      this.noticeM(state.sessionID, M.needsSignOff(outcome.needsHuman))
       await this.summarize(state, contract)
       return this.persist(state)
     }
     const stuck = Object.entries(state.criteria).filter(([, s]) => s.rejections >= contract.verification.max_rejections).map(([id]) => id)
     if (stuck.length) {
       setStatus(state, "needs_review", `${stuck.join(", ")} rejected ${contract.verification.max_rejections} times`)
-      this.notice(state.sessionID, `Goal needs review: ${state.reason}`, "warning", "question")
+      this.noticeM(state.sessionID, M.needsReview(state.reason ?? "repeated rejections"))
       await this.summarize(state, contract)
       return this.persist(state)
     }
@@ -786,7 +804,7 @@ export class GoalApp {
       return this.persist(state)
     }
     setStatus(state, "running")
-    this.notice(state.sessionID, "Claim rejected by the host; the verdict goes back to the agent.", "warning")
+    this.noticeM(state.sessionID, M.claimRejected(state.verdict?.lines?.find((l) => !l.startsWith("INTEGRITY"))?.split("\n")[0] ?? "see the HOST VERDICT lines"))
     await this.admit(state, "verdict")
   }
 
@@ -949,7 +967,7 @@ export class GoalApp {
         target.sessionID = sessionID
         this.runs.set(sessionID, target)
         this.store.ledger(target.slug, { type: "attached", from, to: sessionID, by: "owner" })
-        this.notice(sessionID, `Goal attached here: ${target.title} (${target.status}). Every /goal command and palette action now acts on it from this session.`, "success")
+        this.noticeM(sessionID, M.attached(target.title, target.status))
         this.persist(target)
         this.emitUpdate(target)
         return { ok: true, message: `Goal "${target.slug}" attached to this session (${target.status}).` }
@@ -980,7 +998,7 @@ export class GoalApp {
           setStatus(state, "paused", "paused by you")
           this.store.ledger(state.slug, { type: "paused", reason: "owner" })
           this.persist(state)
-          return { ok: true, message: `Goal paused: ${state.title}` }
+          return { ok: true, message: `Goal paused: ${state.title} — /goal resume · /goal abort` }
         case "resume": {
           state.counters = { noProgress: 0, failures: 0 }
           state.blocker = undefined
@@ -991,14 +1009,14 @@ export class GoalApp {
           this.store.ledger(state.slug, { type: "resumed", by: "owner" })
           this.persist(state)
           if (!this.factsOf(sessionID).busy) await this.admit(state, "resume")
-          return { ok: true, message: `Goal resumed: ${state.title}` }
+          return { ok: true, message: `Goal resumed: ${state.title} — /goal status · /goal pause` }
         }
         case "abort":
           clearTimeout(this.timers.get(sessionID))
           setStatus(state, "aborted", "aborted by you")
           this.store.ledger(state.slug, { type: "aborted", reason: "owner" })
           this.persist(state)
-          return { ok: true, message: `Goal aborted: ${state.title}` }
+          return { ok: true, message: `Goal aborted: ${state.title} — /goal archive (history intact) · /goal new <next>` }
         case "amend": {
           if (!contract) return { ok: false, message: "contract unavailable" }
           const confirmed = (arg?.split(/\s+/) ?? []).includes("confirm")
@@ -1015,13 +1033,13 @@ export class GoalApp {
           this.store.archive(state.slug)
           this.loaded.delete(state.slug)
           this.runs.delete(sessionID)
-          this.notice(sessionID, `Goal archived: ${state.title} (history intact under .opencode/goals-archive/${state.slug}/)`, "success")
-          return { ok: true, message: `Goal archived: ${state.title}` }
+          this.noticeM(sessionID, M.archived(state.title, state.slug))
+          return { ok: true, message: `Goal archived: ${state.title} — /goal list all · /goal new <next>` }
         }
         case "verify":
           if (!contract) return { ok: false, message: "contract unavailable" }
           await this.verify(state, contract, "owner")
-          return { ok: true, message: `Verification ${state.status === "complete" ? "passed" : "did not pass"}: ${state.verdict?.lines[0] ?? ""}` }
+          return { ok: true, message: `Verification ${state.status === "complete" ? "passed" : "did not pass"}: ${state.verdict?.lines[0] ?? ""} — /goal approve <C#> · /goal status` }
         case "approve":
         case "reject": {
           const id = (arg ?? "").trim().split(/\s+/)[0]?.toUpperCase()
@@ -1032,10 +1050,10 @@ export class GoalApp {
           if (state.status === "needs_review" && action === "approve" && contract) {
             this.persist(state)
             await this.verify(state, contract, "owner")
-            return { ok: true, message: `${criterion.id} approved; goal is ${state.status}.` }
+            return { ok: true, message: `${criterion.id} approved; goal is ${state.status} — /goal verify · /goal status` }
           }
           this.persist(state)
-          return { ok: true, message: `${criterion.id} ${action === "approve" ? "approved" : "rejected"}.` }
+          return { ok: true, message: `${criterion.id} ${action === "approve" ? "approved" : "rejected"} — /goal verify · /goal status` }
         }
       }
     })
@@ -1409,7 +1427,7 @@ export class GoalApp {
             state.flags.push({ ...(args.criterion ? { criterion: String(args.criterion).toUpperCase() } : {}), kind: String(args.kind), reason: String(args.reason).slice(0, 800), at: Date.now() })
             setStatus(state, "needs_review", `${args.criterion ? `${String(args.criterion).toUpperCase()} ` : ""}flagged ${args.kind}: ${String(args.reason).slice(0, 160)}`)
             this.store.ledger(state.slug, { type: "flag", ...state.flags.at(-1) })
-            this.notice(state.sessionID, `Goal needs review — ${state.reason}`, "warning", "question")
+            this.noticeM(state.sessionID, M.needsReview(state.reason ?? "criterion failed repeatedly"))
             this.persist(state)
             return "Flag recorded; the goal is stopped for the owner's review. End your turn."
           }),
@@ -1431,6 +1449,7 @@ export class GoalApp {
             state.wait = { until: Date.now() + seconds * 1000, reason: String(args.reason).slice(0, 300) }
             this.store.ledger(state.slug, { type: "wait", seconds, reason: state.wait.reason })
             this.persist(state)
+            this.noticeM(state.sessionID, M.goalWait(seconds, state.wait.reason))
             return `The goal will resume in ${seconds}s. End your turn now.`
           }),
       ),
