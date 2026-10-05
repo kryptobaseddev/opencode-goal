@@ -28,14 +28,16 @@ Goal mode + write-goal skill for OpenCode 2, host-verified completion, installed
 | 4 | T061 | Optional `priority` in goal/v1 → registry → `/goal list` → palette → picker; interview asks only when a live goal exists |
 | 5 | T065 | **Summary/decision dialogs overflow off-screen** (live find at needs_review): dialogs get a screen-fit digest; full text lives in the panel/evidence — digest helper landed post-v0.3.0 (see git log), needs a live pty check in v0.3.1 |
 | 6 | T066 | **Decision dialogs never reached the owner as usable options live** — the decide() wiring is host-proven at the rpc boundary, but decisions leave no ledger trace, they stack with the summary dialog at needs_review, and no pty capture has verified the real-TUI rendering. v0.3.1: ledger decisions (kind/choices/resolution), sequence the dialogs (decision first, summary digest after), pty-verify selectability |
-| 7 | housekeeping | T024's 18 AC evidence bindings; consider `verifierTimeoutMs` default (120 s/round hung twice at the provider on the main host — config override or a bump to the default) |
+| 7 | T067 | Complete decision shows only Archive — 'start next goal' needs an rpc act and guidance choices need to render in the dialog |
+| 8 | housekeeping | T024's 18 AC evidence bindings; consider `verifierTimeoutMs` default (120 s/round hung twice at the provider on the main host — config override or a bump to the default) |
 
 Backlog beyond v0.3.1: relay mode, goal queues, home-screen board, Claude Code / Codex adapters, headless runner, npm publishing.
 
 ## 4. Next-session checklist (everything prepped)
 
 1. `cleo briefing`; `cleo session start --scope epic:T002 --name "v0.3.1 launch experience"`.
-2. If `ship-v03-feedback-loop` is still `needs_review`: the owner decides C19 (`/goal approve C19` — owner-final — or reject with why), then `/goal verify` to complete and archive. Do not re-litigate; the evidence chain is in dogfood-3 §6.
+2. `ship-v03-feedback-loop` is **complete** (22/22; C19 owner-approved final) — `/goal archive ship-v03-feedback-loop` when ready (history intact).
+   If instead a future run is `needs_review`: the owner decides C19 (`/goal approve C19` — owner-final — or reject with why), then `/goal verify` to complete and archive. Do not re-litigate; the evidence chain is in dogfood-3 §6.
 3. Write the v0.3.1 contract via `/goal new` over T064+T059+T060+T061 (+ T024 housekeeping). Apply the T055 rule: the release criterion pins `startsWith('0.3.1.')`, never an exact needle. Keep the engine-version rule (single end release + owner reinstall gate) and the single-line command rule.
 4. `bun test` before and after changes; ship through §8. The post-tag commits (d6380c1, 592bf4c, docs) are already on `main` — v0.3.1 includes them by construction.
 
