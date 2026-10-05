@@ -1,52 +1,60 @@
 # Handoff — opencode-goal
 
-Written 2026-10-02, refreshed through **2026-10-05 (v0.3.0)** across four dogfood runs (`0ffe5ac6e001`, `10388d06d001`, `ship-v03-feedback-loop`, plus the T059–T061 triage). Read this first, then `AGENTS.md` (project guide below the CLEO block), then [design.md](design.md) (as-built v0.1 + v0.2 with both council decision records).
+Written 2026-10-02, refreshed through **2026-10-06 (v0.3.1)** across five dogfood runs
+(`0ffe5ac6e001`, `10388d06d001`, `ship-v03-feedback-loop`, `dogfood-buildout`, plus
+`ship-v031-launch-experience` — the v0.3.1 launch-experience run whose completing claim is
+gated on the owner reinstall). Read this first, then `AGENTS.md` (project guide below the CLEO
+block), then [design.md](design.md). Observed OpenCode behaviour: [spikes.md](spikes.md)
+(trust it over any doc).
 
 ## 1. Where things stand
 
 | | |
 |---|---|
 | Repo | https://github.com/kryptobaseddev/opencode-goal (public, MIT), local `~/projects/opencode-goal` |
-| Released | **v0.3.0** (`604b756`, tagged, pushed, git-install-proven, **installed by the owner 2026-10-05T01:13:31Z**). The feedback-loop release: verifier child explicit model + empty/timeout rounds recorded (T044), post-goal summary with provenance caveats (T045), flagged scope audit (T046), owner-final vs host re-checks (T057), goals from any session + attach (T049), decision dialogs at 7 points (T050), actionable notices (T054), persistent transcript rows + action-required state (T052), live activity tracer with per-check progress (T053+T063), dashboard rework (T056), refresh fix (T058), version-prefix authoring rules (T055), direct-call tool hints (T062). Full entry in [CHANGELOG.md](CHANGELOG.md). |
-| Installed | The owner's OpenCode pins `#v0.3.0` (verified via the npm install cache — see §6 detection trick). Post-tag fixes (T062/T063, d6380c1) are on `main` but NOT in a release yet — they ship in v0.3.1. |
-| Dogfood run `ship-v03-feedback-loop` | **21/22 host-proven** (lock `2bff41e4a945`). C19 alone hit its rejection limit: one substantive verifier judgment (turn 4, quoted in dogfood-3 §6 — its two findings were fixed), then two provider-hang timeouts (`done: timeout, messages: 0` — recorded, never silent). Closed at `needs_review` with the owner holding the final decision (`/goal approve C19` is owner-final by T051/T057). Findings: [dogfood-3.md](dogfood-3.md). |
-| Tests | **138 pass / 0 fail / 1 skip** (`bun test`, ~100 s) on `main` (592bf4c+). All twelve contract red-stubs became real suites. |
-| CLEO | T044–T058 + T062/T063 completed with evidence. **T024** (v0.3 epic) has all 10 children done but needs evidence bindings for its own 18 v0.2-era ACs before `cleo complete` — next-session housekeeping. **T059/T060/T061/T064** filed under T002 as the v0.3.1 board. |
-| Docs | [design.md](design.md) · [dogfood-1.md](dogfood-1.md) · [dogfood-2.md](dogfood-2.md) · **[dogfood-3.md](dogfood-3.md)** · [spikes.md](spikes.md) · [opencode-store-probe.md](opencode-store-probe.md) · [cleo-evidence-repro.md](cleo-evidence-repro.md) |
+| Released | **v0.3.1** (`496f8b5`, tagged, pushed, git-install-proven). The launch-experience release: live palette behind a deterministic pty gate (`scripts/tui-smoke.ts --assert`), launch-approval robustness (prefix labels, restart-durable, diagnosable refusals), Start clean, the start picker, low/medium/high priority end-to-end, decision ledger + decision-first/summary-digest sequencing, complete-decision start-next + guidance rows, 240s verifier rounds. Full entry in [CHANGELOG.md](CHANGELOG.md). |
+| Installed | The owner's OpenCode pins `#v0.3.0` as of writing — **the v0.3.1 reinstall is pending** (the engine-version gate; see §4). |
+| Dogfood run `ship-v031-launch-experience` | Run `10a52d01a001`, lock `19fcd8af`. **21/23 criteria host-proven**; C17 (dogfood-4 evidence quote — the doc's §7 now carries the verifier child's verbatim judgment) and C18 (the verifier's fresh groundedness judgment) resolve at the completing claim. Both prior runs (`dogfood-buildout`, `ship-v03-feedback-loop`) archived with history intact. Findings: [dogfood-4.md](dogfood-4.md). |
+| Tests | **150 pass / 0 fail / 1 skip** (`bun test`, ~100 s) at the release commit; typecheck green. All eight v0.3.1 red stubs became real suites. |
+| CLEO | **T024 (v0.3 epic) done** — all 18 child ACs bound to their children's evidence. T059–T068 all complete. **T069** filed (slash commands queue silently behind an active turn — the "I sent it but nothing happened" experience); candidate for v0.3.2. |
+| Docs | [design.md](design.md) · [dogfood-1.md](dogfood-1.md) · [dogfood-2.md](dogfood-2.md) · [dogfood-3.md](dogfood-3.md) · **[dogfood-4.md](dogfood-4.md)** · [spikes.md](spikes.md) (S25 keymap modes, S26 pty input starvation, S27 composer-completions verdict) |
 
-## 2. Owner intent (unchanged + the 2026-10-05 addition)
+## 2. Owner intent
 
-Goal mode + write-goal skill for OpenCode 2, host-verified completion, installed from git tags and iterated like a real user; CLEO as the decomposition source of truth; council reviews for design decisions. **New:** the next stage is a **production/launch-ready v0.3.1** — the owner wants everything 100% ready to push to a launch release, with this session fully wrapped and documented first.
+Goal mode + write-goal skill for OpenCode 2, host-verified completion, installed from git tags
+and iterated like a real user; CLEO as the decomposition source of truth; council reviews for
+design decisions. v0.3.1 was "everything 100% ready to push as a launch release" — shipped.
 
-## 3. The v0.3.1 board (launch experience — filed, none started)
+## 3. What remains for the current run
 
-| # | Task | What |
-|---|---|---|
-| 1 | T064 | **Palette shows no Goal commands on the owner's live TUI** (toasts/dialogs fire, so the plugin loads) — keymap layer from the app slot isn't surfacing; reproduce with `spikes/tui-capture.py` + `palette-probe.py` first |
-| 2 | T059 | Clean start: launch ask offers "start clean — opens a new session owned by the goal" via `session.create` (mechanism proven by the verifier child + T049 attach); no clear-in-place API exists |
-| 3 | T060 | `/goal start` with no argument becomes a startable-goal picker (reuse T050 dialog machinery); composer-completions spike; empty state offers `/goal new` |
-| 4 | T061 | Optional `priority` in goal/v1 → registry → `/goal list` → palette → picker; interview asks only when a live goal exists |
-| 5 | T065 | **Summary/decision dialogs overflow off-screen** (live find at needs_review): dialogs get a screen-fit digest; full text lives in the panel/evidence — digest helper landed post-v0.3.0 (see git log), needs a live pty check in v0.3.1 |
-| 6 | T066 | **Decision dialogs never reached the owner as usable options live** — the decide() wiring is host-proven at the rpc boundary, but decisions leave no ledger trace, they stack with the summary dialog at needs_review, and no pty capture has verified the real-TUI rendering. v0.3.1: ledger decisions (kind/choices/resolution), sequence the dialogs (decision first, summary digest after), pty-verify selectability |
-| 7 | T067 | Complete decision shows only Archive — 'start next goal' needs an rpc act and guidance choices need to render in the dialog |
-| 8 | housekeeping | T024's 18 AC evidence bindings; consider `verifierTimeoutMs` default (120 s/round hung twice at the provider on the main host — config override or a bump to the default) |
+1. The owner reinstalls: `opencode plugin remove "github:kryptobaseddev/opencode-goal#v0.3.0"`
+   → `opencode plugin add "github:kryptobaseddev/opencode-goal#v0.3.1"` → `opencode reload`.
+2. Resume the goal → the completing claim (goal_claim) → C17 re-checks host-green, C18's
+   verifier judges the filled dogfood-4 → complete → `/goal archive ship-v031-launch-experience`
+   when ready.
+3. Next board: T069 (silent command deferral) and whatever the first real v0.3.1 use surfaces.
 
-Backlog beyond v0.3.1: relay mode, goal queues, home-screen board, Claude Code / Codex adapters, headless runner, npm publishing.
+## 4. Lessons from this run (all in dogfood-4)
 
-## 4. Next-session checklist (everything prepped)
+- The palette defect was keymap-layer **mode-scoping**: plugin layers default `mode:"base"` and
+  are unreachable under the palette's `mode:"modal"` layer — `mode:"global"` is the fix (S25),
+  gated ever since by the deterministic pty smoke.
+- OpenCode 2.0.22's TUI **stops draining pty input during event churn** (a 1-byte write blocked
+  ~170 s; S26) — keystroke-driven checks must target an idle engine. The pty gate also needs a
+  real VT screen model: flat-text flattening merges cursor-addressed regions (S27 sibling).
+- The launch of this run WAS the first defect: byte-exact label matching + in-memory approval
+  + generic refusal (T068, fixed). T069 (silent command queueing) remains open.
+- CLEO evidence: workspace-wide change sets reject scoped test-run atoms — bind `tool:test`
+  when the whole suite is green (batch task completions at the end). T024's child-ACs bind
+  with each child's own commit+files atoms.
+- Never discard typecheck output — a `>/dev/null` hid a test-file type error until CLEO's
+  `tool:typecheck` atom caught it.
 
-1. `cleo briefing`; `cleo session start --scope epic:T002 --name "v0.3.1 launch experience"`.
-2. `ship-v03-feedback-loop` is **complete** (22/22; C19 owner-approved final) — `/goal archive ship-v03-feedback-loop` when ready (history intact).
-   If instead a future run is `needs_review`: the owner decides C19 (`/goal approve C19` — owner-final — or reject with why), then `/goal verify` to complete and archive. Do not re-litigate; the evidence chain is in dogfood-3 §6.
-3. Write the v0.3.1 contract via `/goal new` over T064+T059+T060+T061 (+ T024 housekeeping). Apply the T055 rule: the release criterion pins `startsWith('0.3.1.')`, never an exact needle. Keep the engine-version rule (single end release + owner reinstall gate) and the single-line command rule.
-4. `bun test` before and after changes; ship through §8. The post-tag commits (d6380c1, 592bf4c, docs) are already on `main` — v0.3.1 includes them by construction.
+## 5. Releasing (the owner's iteration loop — unchanged)
 
-## 5. Lessons from this run (all in dogfood-3)
-
-- The engine-version gate worked exactly as designed: three blocker reports with independent work between them; reinstall detected via the npm cache without asking twice.
-- The feedback loop closed itself: the verifier child caught its own evidence gap mid-flight (turn 4), the HOST VERDICT rows landed as persistent transcript notices (T052 live), and needs_review surfaced the decision dialog + summary (T045/T050 live).
-- Provider hangs are real: both C19 timeouts were `messages: 0` at 120 s/round. Recorded, diagnosable, never silent — but consider a bigger verifier budget for slow providers.
-
-## 6. Releasing (the owner's iteration loop — unchanged)
-
-Bump `package.json` + `CHANGELOG.md` → commit `type(T###)` → `git tag -a vX.Y.Z` → `git push origin main --follow-tags` → git-install test against the tag → owner reinstalls (`plugin remove` old, `plugin add` new, `reload`) → verify with `opencode plugin list` or the npm cache (`~/.cache/opencode/npm/git-opencode-goal-<hash>/<epoch>/package.json` pins the spec; newest epoch wins). The owner's OpenCode runs the **installed tag**, not this working tree.
+Bump `package.json` + `CHANGELOG.md` → commit `type(T###)` → `git tag -a vX.Y.Z` →
+`git push origin main --follow-tags` → git-install test against the tag → owner reinstalls
+(`plugin remove` old, `plugin add` new, `reload`) → verify with `opencode plugin list` or the
+npm cache (`~/.cache/opencode/npm/git-opencode-goal-<hash>/<epoch>/package.json` pins the
+spec; newest epoch wins). The owner's OpenCode runs the **installed tag**, not this working
+tree.
