@@ -24,7 +24,15 @@ export default {
     const requested = new Set<string>()
 
     const locationOf = (sessionID: string) => (context.data.session.get(sessionID) as any)?.location
+    // T058: events are the fast path, not the only path. A subscription that
+    // attaches before the plugin registers, a dropped stream, or a reconnect
+    // must never freeze the dashboard at its first snapshot (the live defect:
+    // stuck on S1, 0/N criteria for a whole run). Renders and a periodic
+    // ticker re-fetch snapshots that went stale, so the view converges.
+    const STALE_MS = 4000
+    const fetchedAt = new Map<string, number>()
     const fetchView = async (sessionID: string) => {
+      fetchedAt.set(sessionID, Date.now())
       try {
         const location = locationOf(sessionID)
         const result = await rpc.snapshot({ sessionID }, location ? { location } : undefined)
@@ -75,6 +83,17 @@ export default {
     const offData = context.data.listen(({ details }: any) => {
       if (details?.type === "server.connected") for (const id of requested) void fetchView(id)
     })
+    const refreshIfStale = (sessionID: string) => {
+      if (Date.now() - (fetchedAt.get(sessionID) ?? 0) <= STALE_MS) return
+      fetchedAt.set(sessionID, Date.now())
+      void fetchView(sessionID)
+    }
+    const ticker = setInterval(() => {
+      for (const id of Object.keys(views)) {
+        const view = views[id]
+        if (view && !["complete", "failed", "aborted", "superseded"].includes(view.status)) refreshIfStale(id)
+      }
+    }, STALE_MS)
 
     // The dashboard panel is visible by default: open it once per run whenever
     // this session has a goal. An owner-closed panel stays closed for the rest
@@ -103,6 +122,7 @@ export default {
         append: "sidebar.content",
         render: (input: { sessionID: string }) => {
           ensure(input.sessionID)
+          refreshIfStale(input.sessionID) // T058: focus renders refresh a stale card
           return (
             <Show when={views[input.sessionID]}>
               {(view) => (
@@ -334,6 +354,7 @@ export default {
 
     return () => {
       clearInterval(timer)
+      clearInterval(ticker)
       offUpdated?.()
       offNotice?.()
       offSummary?.()
