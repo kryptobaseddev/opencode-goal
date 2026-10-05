@@ -3,7 +3,7 @@
 // a banner when the owner is needed, notices as toasts and desktop attention,
 // and palette commands. Fed only by the server's GoalRpc (S6), never by files.
 import type { Plugin } from "@opencode/plugin/tui"
-import { createEffect, createRoot, createSignal, For, onCleanup, Show } from "solid-js"
+import { createEffect, createSignal, For, onCleanup, Show } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
 import { GoalRpc, type GoalView } from "../rpc"
 import { bannerText, pillText, statusText, type Tone } from "./format"
@@ -245,11 +245,15 @@ export default {
       } as any),
     )
 
-    // Palette commands live in a keymap layer. T050: the layer is "owned by
-    // the calling component" — registering it from inside a slot render that
-    // returns null leaves it with no live owner, so the palette never listed
-    // our commands. createRoot gives the layer a stable owner we dispose at
-    // teardown instead.
+    // Palette commands live in a keymap layer owned by the app slot's render
+    // component (createComponent gives it a stable owner; T050). T064: the
+    // layer MUST be mode:"global" — a layer without a mode defaults to
+    // "base", and base-mode layers are unreachable whenever a modal is open
+    // (the command palette itself registers mode:"modal",
+    // packages/tui/src/ui/dialog-select.tsx), so the palette listed zero
+    // Goal commands live. Proven by pty A/B: mode:"global" lists all 8,
+    // mode-less lists none. Matches the host's own palette layer (app.tsx
+    // Keymap.createLayer(() => ({ mode: "global", ... }))).
     const currentSession = () => {
       const route = context.ui.router.current()
       return route.type === "session" ? route.sessionID : undefined
@@ -312,6 +316,7 @@ export default {
         append: "app",
         render: () => {
           context.keymap.layer(() => ({
+            mode: "global" as const,
             commands: [
               {
                 id: "goal.attach",
