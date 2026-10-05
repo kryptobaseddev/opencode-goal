@@ -7,3 +7,4 @@ node_modules/
 .opencode/goals/*/run.json
 .opencode/goals/*/ledger.jsonl
 .opencode/goals/*/evidence/
+.opencode/goals/.launch-approvals.json
