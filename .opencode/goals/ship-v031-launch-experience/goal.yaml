@@ -20,8 +20,9 @@ outcome: >-
   points leave a ledger trail and render as sequenced screen-fit dialogs with selectable
   choices (decision first, summary digest after), completion offers start-next-goal and
   guidance rows beside Archive, the verifier timeout defaults to 240s and stays configurable,
-  T024 closes with its 18 ACs evidence-bound and both finished dogfood runs sit in the archive
-  tier — with this run's own verified completion under the installed v0.3.1 as the live proof.
+  a legitimately approved launch survives label variants and restarts (T068), T024 closes with
+  its 18 ACs evidence-bound and both finished dogfood runs sit in the archive tier — with this
+  run's own verified completion under the installed v0.3.1 as the live proof.
 non_goals:
   - 'Relay mode, goal queues, home-screen board, Claude Code / Codex adapters, headless runner (HANDOFF backlog)'
   - 'npm publishing — git install only'
@@ -199,6 +200,20 @@ criteria:
         clean-start and picker behaviour, the reinstall gate, a real verifier verdict from the
         child on the main host) and list defects with CLEO task ids? List anything missing or
         unsupported.
+  - id: C19
+    statement: >-
+      Launch-approval robustness (T068, live defect starting this very goal): goal_start accepts
+      an owner answer whose label starts with "Start goal now" (the skill's own "(Recommended)"
+      suffix no longer breaks the engine), an approval survives a plugin/server restart inside
+      the 10-minute window (persisted, not in-memory), and a refusal names what was observed
+      (no approval seen vs label mismatch vs expired) with the slash-command fallback — host
+      scenario covering label-variant, restart-durability and message; the write-goal skill's
+      rule 1 and rule 6 are reconciled in the same step
+    check:
+      kind: command
+      run: 'bun test ./test/host/launch-approval.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
 invariants:
   - id: I1
     statement: The full test suite SHALL CONTINUE TO pass
@@ -228,7 +243,7 @@ scope:
     - 'Launch: clean start in a fresh goal-owned session + skill ask copy (T059), no-arg start picker + empty state + composer-completions spike verdict (T060)'
     - 'Ordering: low/medium/high priority through contract, registry, /goal list, palette, picker, interview (T061)'
     - 'Decisions: ledger trail + decision-first/summary-digest sequencing (T066), complete-decision start-next-goal act + guidance rows + verify-copy (T067)'
-    - 'Engine: verifier timeout default 240s + verifierTimeoutMs override (housekeeping row 8)'
+    - 'Engine: verifier timeout default 240s + verifierTimeoutMs override (housekeeping row 8); launch-approval robustness — tolerant label match, restart-durable approval, diagnosable refusal (T068)'
     - 'Wrap-up: T024 18-AC evidence bindings + complete, archive dogfood-buildout, commit the ship-v03 archive move'
     - 'Closeout: release v0.3.1 with the owner-reinstall gate, dogfood-4, CLEO completes'
   out:
@@ -243,20 +258,21 @@ constraints:
   - 'Engine-version rule: the release step ends with the owner reinstalling v0.3.1 (plugin remove/add + reload) BEFORE the completing claim; the run blocks externally until confirmed'
 plan:
   - {id: S1, title: 'Diagnose + fix the palette on the real TUI; harden scripts/tui-smoke.ts --assert into the deterministic pty gate (T064, T065 live check)', proves: [C1]}
-  - {id: S2, title: 'Clean start: engine fresh-session start + run pinning + kickoff prompt; skill ask third option (T059)', proves: [C2, C3]}
-  - {id: S3, title: 'Start picker: no-arg /goal start dialog + empty state; composer-completions spike verdict into spikes.md (T060)', proves: [C4, C5]}
-  - {id: S4, title: 'Priority: low/medium/high through validator, registry, list/palette/picker sorting, interview question (T061)', proves: [C6, C7, C8], depends_on: [S3]}
-  - {id: S5, title: 'Decision ledger trail + decision-first/summary-digest sequencing at transitions (T066)', proves: [C9, C1], depends_on: [S1]}
-  - {id: S6, title: 'Complete decision: start-next-goal rpc act, guidance rows, approve-triggers-verify copy (T067)', proves: [C10, C1], depends_on: [S5]}
-  - {id: S7, title: 'Verifier timeout: 240s default + verifierTimeoutMs override, unit-pinned (housekeeping)', proves: [C11]}
-  - {id: S8, title: 'Wrap-up: T024 evidence bindings + complete; archive dogfood-buildout; commit the ship-v03 archive move (T024)', proves: [C12, C13]}
-  - {id: S9, title: 'Release v0.3.1: bump, changelog, tag, push, git-install proof, owner reinstall gate', proves: [C14, C15, C16], depends_on: [S1, S2, S3, S4, S5, S6, S7, S8]}
-  - {id: S10, title: 'dogfood-4 from this run; CLEO completes T059-T067; final claim under installed v0.3.1', proves: [C17, C18], depends_on: [S9]}
+  - {id: S2, title: 'Launch-approval robustness: tolerant label match, restart-durable approval, diagnosable refusal, skill rules reconciled (T068)', proves: [C19]}
+  - {id: S3, title: 'Clean start: engine fresh-session start + run pinning + kickoff prompt; skill ask third option (T059)', proves: [C2, C3]}
+  - {id: S4, title: 'Start picker: no-arg /goal start dialog + empty state; composer-completions spike verdict into spikes.md (T060)', proves: [C4, C5]}
+  - {id: S5, title: 'Priority: low/medium/high through validator, registry, list/palette/picker sorting, interview question (T061)', proves: [C6, C7, C8], depends_on: [S4]}
+  - {id: S6, title: 'Decision ledger trail + decision-first/summary-digest sequencing at transitions (T066)', proves: [C9, C1], depends_on: [S1]}
+  - {id: S7, title: 'Complete decision: start-next-goal rpc act, guidance rows, approve-triggers-verify copy (T067)', proves: [C10, C1], depends_on: [S6]}
+  - {id: S8, title: 'Verifier timeout: 240s default + verifierTimeoutMs override, unit-pinned (housekeeping)', proves: [C11]}
+  - {id: S9, title: 'Wrap-up: T024 evidence bindings + complete; archive dogfood-buildout; commit the ship-v03 archive move (T024)', proves: [C12, C13]}
+  - {id: S10, title: 'Release v0.3.1: bump, changelog, tag, push, git-install proof, owner reinstall gate', proves: [C14, C15, C16], depends_on: [S1, S2, S3, S4, S5, S6, S7, S8, S9]}
+  - {id: S11, title: 'dogfood-4 from this run; CLEO completes T059-T068; final claim under installed v0.3.1', proves: [C17, C18], depends_on: [S10]}
 assumptions:
   - id: A1
     text: >-
       Every new command-check target starts as a committed red stub before /goal start: the
-      seven new test files fail honestly, and scripts/tui-smoke.ts --assert exits 1 until the
+      eight new test files fail honestly, and scripts/tui-smoke.ts --assert exits 1 until the
       gate is real (bun exits 0 on a filter matching no files — the vacuous-green lesson)
     rationale: recon 2026-10-05; v0.3.0 A1 precedent
     reversible: true

@@ -51,12 +51,13 @@ Pending: **T064** (palette dead on live TUI, medium), **T066** (decision dialogs
 | Step | Task(s) |
 |---|---|
 | S1 palette + pty gate | T064 (+T065 live check) |
-| S2 clean start | T059 |
-| S3 start picker | T060 |
-| S4 priority | T061 |
-| S5 decision ledger + sequencing | T066 |
-| S6 complete-decision choices | T067 |
-| S7 verifier timeout | housekeeping row 8 |
-| S8 T024 bindings + archives | T024 (+ archive housekeeping) |
-| S9 release | T024 release ACs |
-| S10 dogfood-4 + closes | T059–T067 completes |
+| S2 launch-approval robustness | T068 (live defect 2026-10-05: exact-label match, in-memory approval, generic refusal) |
+| S3 clean start | T059 |
+| S4 start picker | T060 |
+| S5 priority | T061 |
+| S6 decision ledger + sequencing | T066 |
+| S7 complete-decision choices | T067 |
+| S8 verifier timeout | housekeeping row 8 |
+| S9 T024 bindings + archives | T024 (+ archive housekeeping) |
+| S10 release | T024 release ACs |
+| S11 dogfood-4 + closes | T059–T068 completes |
