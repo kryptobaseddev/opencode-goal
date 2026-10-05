@@ -1,0 +1,168 @@
+// T056 — the dashboard rework. The v0.2 panel streamed raw ledger actions:
+// a wall of text, programmatic, not designed for human use — and the sidebar
+// was completely overtaken. Everything here is PURE: the compact card is
+// capped at 12 lines, the panel is organized into Now / Progress / Decisions
+// / Goals tabs with plain-language criteria and a C/I/S legend footer, and
+// actionable rows become keyboard-selectable models the TUI renders as
+// native Select components. The raw ledger timeline is gone from the UI (it
+// stays in the file).
+import type { GoalSummary, GoalView, TimelineEntry } from "../rpc"
+import { bar, fit, fmtTokens, type Line, type Tone } from "./format"
+import { tracerLines } from "./tracer"
+
+
+export type DashboardTab = "now" | "progress" | "decisions" | "goals"
+export const DASHBOARD_TABS: DashboardTab[] = ["now", "progress", "decisions", "goals"]
+
+const STATUS: Record<string, { icon: string; label: string; tone: Tone }> = {
+  running: { icon: "▶", label: "running", tone: "success" },
+  waiting: { icon: "◷", label: "waiting", tone: "info" },
+  verifying: { icon: "◐", label: "verifying", tone: "info" },
+  paused: { icon: "⏸", label: "paused", tone: "warning" },
+  blocked: { icon: "⛔", label: "blocked", tone: "error" },
+  needs_review: { icon: "⚑", label: "needs review", tone: "warning" },
+  budget_limited: { icon: "⊘", label: "budget used", tone: "warning" },
+  complete: { icon: "✓", label: "complete", tone: "success" },
+  failed: { icon: "✗", label: "failed", tone: "error" },
+  aborted: { icon: "■", label: "aborted", tone: "muted" },
+  superseded: { icon: "⇢", label: "superseded", tone: "muted" },
+}
+const statusOf = (s: string) => STATUS[s] ?? { icon: "·", label: s, tone: "muted" as Tone }
+
+const provenCount = (view: GoalView) => view.criteria.filter((c) => c.status === "pass").length
+
+/** (A) The sidebar card: hard-capped at 12 lines. Status, one progress bar,
+ *  the current step, the next action, ONE action-required line — never a
+ *  timeline. */
+export function cardCompactLines(view: GoalView, now: number, width = 40): Line[] {
+  const st = statusOf(view.status)
+  const lines: Line[] = []
+  const head = "◎ Goal"
+  const right = `${st.icon} ${st.label}`
+  lines.push({ text: `${head}${" ".repeat(Math.max(1, width - head.length - right.length))}${right}`, tone: st.tone, bold: true })
+  if (view.actionRequired) lines.push({ text: fit(`⚑ ${view.actionRequired}`, width), tone: "error", bold: true })
+  lines.push({ text: fit(view.title, width), tone: "base", bold: true })
+  const total = view.criteria.length
+  lines.push({ text: `criteria ${bar(provenCount(view), total)} ${provenCount(view)}/${total}`, tone: provenCount(view) === total && total ? "success" : "muted" })
+  // the three criteria that need eyes: failing first, then unproven, then proven
+  const focus = [...view.criteria].sort((a, b) => (a.status === "fail" ? -1 : b.status === "fail" ? 1 : a.status === "pass" ? 1 : b.status === "pass" ? -1 : 0)).slice(0, 3)
+  for (const c of focus) {
+    const mark = c.status === "pass" ? "✓" : c.status === "fail" ? "✗" : "·"
+    const tone: Tone = c.status === "pass" ? "success" : c.status === "fail" ? "error" : "muted"
+    lines.push({ text: fit(`${mark} ${c.id} ${c.statement}`, width), tone })
+  }
+  if (view.steps.length) {
+    const current = view.steps.find((s) => s.status === "active") ?? view.steps.find((s) => s.status !== "done")
+    if (current) lines.push({ text: fit(`▸ ${current.id} ${current.title}`, width), tone: "base" })
+  }
+  const tokens = view.usage.tokens ? ` · ${fmtTokens(view.usage.tokens)} tok` : ""
+  lines.push({ text: fit(`turn ${view.turn}${tokens}`, width), tone: view.budgetRatio >= 0.8 ? "warning" : "muted" })
+  if (view.progress) lines.push({ text: fit(`↻ ${view.progress.note}`, width), tone: "muted" })
+  return lines.slice(0, 12)
+}
+
+const TAB_LABEL: Record<DashboardTab, string> = { now: "Now", progress: "Progress", decisions: "Decisions", goals: "Goals" }
+
+const humanKinds = new Set(["verdict", "approve", "reject", "amend-proposed", "amended", "blocked", "complete", "summary", "flag", "attached", "paused", "resumed", "aborted", "budget_limited", "superseded-by", "approve ", "reject "])
+
+/** (E) only human-relevant events surface in the UI — raw turn/admit noise stays in the ledger file. */
+export const humanizedEvents = (view: GoalView, n: number): TimelineEntry[] => {
+  const relevant = view.timeline.filter((e) => humanKinds.has(e.kind) || /^(owner|verdict|goal complete|summary|blocked|amended|flag)/i.test(e.text))
+  return relevant.slice(-n).reverse()
+}
+
+/** (C) actionable rows: keyboard-selectable models dispatching rpc.act. */
+export type ActionRow = { label: string; description: string; act?: string; arg?: string }
+
+export function decisionRows(view: GoalView): ActionRow[] {
+  const rows: ActionRow[] = []
+  if (view.actionRequired) {
+    if (view.status === "needs_review") {
+      const unproven = view.criteria.filter((c) => !c.invariant && c.status !== "pass")
+      for (const c of unproven) rows.push({ label: `Approve ${c.id} (final)`, description: c.statement, act: "approve", arg: c.id })
+      rows.push({ label: "Reject a criterion", description: "/goal reject <C#> <why>", act: "reject" })
+    } else if (view.status === "blocked") {
+      rows.push({ label: "Resolved — resume", description: view.blocker?.reason ?? "the blocker is fixed", act: "resume" })
+      rows.push({ label: "Abort the goal", description: "stop for good; history stays", act: "abort" })
+    } else if (view.status === "budget_limited") {
+      rows.push({ label: "Raise budget and amend", description: "edit goal.yaml, then confirm" })
+      rows.push({ label: "Abort the goal", description: "stop at the budget", act: "abort" })
+    }
+  }
+  if (view.status === "paused") rows.push({ label: "Resume the goal", description: view.reason ?? "", act: "resume" })
+  if (view.status === "complete") rows.push({ label: "Archive the goal", description: "demote to goals-archive/ (history intact)", act: "archive" })
+  if (view.amendments) rows.push({ label: "Confirm proposed amendment", description: "/goal amend confirm", act: "amend", arg: "confirm" })
+  return rows
+}
+
+/** (B) the tabbed panel body. Pure; snapshot-tested. */
+export function dashboardLines(view: GoalView, tab: DashboardTab, now: number, width = 46, goals: GoalSummary[] = []): Line[] {
+  const st = statusOf(view.status)
+  const lines: Line[] = []
+  const tabsHeader = DASHBOARD_TABS.map((t) => (t === tab ? `▸${TAB_LABEL[t]}` : ` ${TAB_LABEL[t]} `)).join("│")
+  lines.push({ text: fit(`◎ GOAL ${st.icon} ${st.label}`, width), tone: st.tone, bold: true })
+  lines.push({ text: fit(tabsHeader, width), tone: "base" })
+  lines.push({ text: "", tone: "base" })
+
+  if (tab === "now") {
+    lines.push({ text: fit(view.title, width), tone: "base", bold: true })
+    lines.push({ text: fit(view.outcome, width), tone: "muted" })
+    lines.push(...tracerLines(view, now, width))
+    const current = view.steps.find((s) => s.status === "active") ?? view.steps.find((s) => s.status !== "done")
+    if (current) lines.push({ text: fit(`▸ step ${current.id} ${current.title}`, width), tone: "base" })
+    if (view.progress?.next) lines.push({ text: fit(`next: ${view.progress.next}`, width), tone: "muted" })
+    if (view.actionRequired) lines.push({ text: fit(`⚑ ${view.actionRequired}`, width), tone: "error", bold: true })
+    else if (["running", "waiting", "verifying"].includes(view.status)) lines.push({ text: fit("✓ nothing needed from you — the loop is working", width), tone: "success" })
+    const events = humanizedEvents(view, 3)
+    if (events.length) {
+      lines.push({ text: "recent", tone: "base", bold: true })
+      for (const e of events) lines.push({ text: fit(`· ${e.text}`, width), tone: "muted" })
+    }
+  } else if (tab === "progress") {
+    const groups: Array<[string, typeof view.criteria, Tone]> = [
+      ["Failed", view.criteria.filter((c) => c.status === "fail"), "error"],
+      ["In progress", view.criteria.filter((c) => c.status !== "pass" && c.status !== "fail"), "muted"],
+      ["Proven", view.criteria.filter((c) => c.status === "pass"), "success"],
+    ]
+    lines.push({ text: fit(`criteria ${bar(provenCount(view), view.criteria.length)} ${provenCount(view)}/${view.criteria.length}`, width), tone: "base", bold: true })
+    for (const [label, items, tone] of groups) {
+      if (!items.length) continue
+      lines.push({ text: label, tone, bold: true })
+      for (const c of items) lines.push({ text: fit(`${c.invariant ? "I" : "C"} ${c.id} — ${c.statement}${c.by ? ` (${c.by})` : ""}`, width), tone })
+    }
+    if (view.steps.length) {
+      lines.push({ text: "plan", tone: "base", bold: true })
+      for (const s of view.steps) lines.push({ text: fit(`S ${s.id} ${s.status === "done" ? "✓" : s.status === "active" ? "▸" : "·"} ${s.title}`, width), tone: s.status === "active" ? "info" : s.status === "done" ? "success" : "muted" })
+    }
+    if (view.verdict) {
+      lines.push({ text: `last verdict — ${view.verdict.passed ? "passed" : "failed"}`, tone: view.verdict.passed ? "success" : "warning", bold: true })
+      for (const l of view.verdict.lines.slice(0, 3)) lines.push({ text: fit(l.split("\n")[0]!, width), tone: view.verdict.passed ? "success" : "warning" })
+    }
+  } else if (tab === "decisions") {
+    const rows = decisionRows(view)
+    if (rows.length) {
+      lines.push({ text: "act on a row (↑↓ · enter)", tone: "base", bold: true })
+      for (const r of rows) lines.push({ text: fit(`▸ ${r.label}${r.description ? ` — ${r.description}` : ""}`, width), tone: r.act ? "info" : "muted" })
+    } else lines.push({ text: "no open decisions", tone: "success" })
+    const events = humanizedEvents(view, 8)
+    if (events.length) {
+      lines.push({ text: "history", tone: "base", bold: true })
+      for (const e of events) lines.push({ text: fit(`· ${e.text}`, width), tone: "muted" })
+    }
+  } else {
+    const others = goals.filter((g) => g.slug !== view.slug)
+    lines.push({ text: fit(`this goal: ${view.title} (${st.label})`, width), tone: "base", bold: true })
+    if (others.length) {
+      lines.push({ text: "other goals", tone: "base", bold: true })
+      for (const g of others) lines.push({ text: fit(`· ${g.slug} — ${g.title} (${g.status})${g.attachable ? " · attachable" : ""}`, width), tone: g.terminal ? "muted" : "info" })
+    } else lines.push({ text: "no other goals in this project", tone: "muted" })
+    if (view.steps.length) {
+      lines.push({ text: "upcoming steps", tone: "base", bold: true })
+      for (const s of view.steps.filter((s) => s.status !== "done")) lines.push({ text: fit(`S ${s.id} · ${s.title}`, width), tone: "muted" })
+    }
+  }
+
+  lines.push({ text: "", tone: "base" })
+  lines.push({ text: fit("C criterion · I invariant · S plan step · ↑↓/tab/enter to act", width), tone: "muted" })
+  return lines
+}

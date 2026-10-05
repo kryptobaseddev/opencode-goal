@@ -1,0 +1,21 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`activity tracer (T053) snapshot: the tracer wording is pinned 1`] = `
+[
+  [
+    "success|⠦ turn 7 in progress — 45s · continue",
+  ],
+  [
+    "info|⠦ verifying the claim — 8s (host checks, then the verifier …",
+  ],
+  [
+    "info|⠦ verifier child running — 23s · fixture/test#default",
+  ],
+  [
+    "info|◷ waiting — 2m 10s left · build running",
+  ],
+  [
+    "muted|· cooldown — next turn in 2s",
+  ],
+]
+`;

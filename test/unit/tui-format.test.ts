@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { GoalView } from "../../src/rpc"
-import { bannerText, bar, cardLines, fmtDuration, panelLines, pillText, statusText } from "../../src/tui/format"
+import { bannerText, bar, fmtDuration, pillText, statusText } from "../../src/tui/format"
 
 const view: GoalView = {
   slug: "checkout-latency",
@@ -43,19 +43,6 @@ const view: GoalView = {
 }
 
 describe("tui formatting", () => {
-  test("the sidebar card renders status, criteria board, step, budgets and the last verdict", () => {
-    const lines = cardLines(view, 0, 40).map((l) => l.text)
-    expect(lines).toMatchSnapshot()
-    expect(lines.every((l) => l.length <= 40)).toBe(true)
-    expect(lines[0]).toMatch(/^◎ Goal .*▶ running$/)
-    expect(lines).toContain("criteria ■■■□□□□□□□ 1/4")
-    expect(lines.some((l) => l.startsWith("step 2/3 S2 Remove N+1"))).toBe(true)
-    expect(lines).toContain("turn 7/40 · 42m/3h")
-    expect(lines).toContain("1.2M/3.0M tok · $4.10/$15")
-    expect(lines.find((l) => l.includes("C1"))).toMatch(/^✓ C1 checkout tests green\s+host$/)
-    expect(lines.some((l) => l.startsWith("⚠ C2 FAILED"))).toBe(true)
-  })
-
   test("the pill and banner", () => {
     expect(pillText(view, 0)).toBe("◎ ▶ 1/4 · t7 · 42m")
     expect(bannerText(view)).toBeUndefined()

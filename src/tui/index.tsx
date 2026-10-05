@@ -6,8 +6,9 @@ import type { Plugin } from "@opencode/plugin/tui"
 import { createEffect, createRoot, createSignal, For, onCleanup, Show } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
 import { GoalRpc, type GoalView } from "../rpc"
-import { bannerText, cardLines, panelLines, pillText, statusText, type Tone } from "./format"
+import { bannerText, pillText, statusText, type Tone } from "./format"
 import { tracerLines } from "./tracer"
+import { cardCompactLines, dashboardLines, decisionRows, DASHBOARD_TABS, type DashboardTab } from "./dashboard"
 
 type Context = Plugin.Context
 
@@ -38,7 +39,6 @@ export default {
         const location = locationOf(sessionID)
         const result = await rpc.snapshot({ sessionID }, location ? { location } : undefined)
         setViews(sessionID, reconcile((result?.view ?? null) as GoalView | null))
-        maybeOpen(sessionID)
       } catch {
         // the server plugin may not be loaded for this location; show nothing
       }
@@ -53,7 +53,6 @@ export default {
       const { sessionID, view } = event.data ?? {}
       if (typeof sessionID === "string") {
         setViews(sessionID, reconcile((view ?? null) as GoalView | null))
-        maybeOpen(sessionID)
       }
     })
     const offNotice = rpc.events.on("notice", (event: any) => {
@@ -96,17 +95,32 @@ export default {
       }
     }, STALE_MS)
 
-    // The dashboard panel is visible by default: open it once per run whenever
-    // this session has a goal. An owner-closed panel stays closed for the rest
-    // of the run; the palette command reopens and focuses it.
-    const openedFor = new Set<string>()
-    let lastPanelInput: { focus: () => void } | undefined
-    const maybeOpen = (sessionID: string | undefined) => {
-      const view = sessionID ? views[sessionID] : undefined
-      if (!view || openedFor.has(view.runId)) return
-      if (context.ui.router.current().type !== "session") return
-      openedFor.add(view.runId)
+    // T056: the panel opens ON DEMAND (the v0.2 auto-open displaced the
+    // sidebar); the toggle command is keybindable beside OpenCode's
+    // session.sidebar toggle.
+    let panelOpen = false
+    const openPanel = () => {
+      panelOpen = true
       context.ui.panel.open(PANEL_NAME)
+    }
+    const togglePanel = () => {
+      if (panelOpen || context.ui.panel.current()?.name === PANEL_NAME) {
+        panelOpen = false
+        context.ui.panel.close()
+      } else openPanel()
+    }
+    const [tab, setTab] = createSignal<DashboardTab>("now")
+    const [goalsList, setGoalsList] = createSignal<Array<{ slug: string; title: string; status: string; terminal?: boolean; attachable?: boolean }>>([])
+    let goalsFetchedAt = 0
+    const ensureGoals = async () => {
+      if (Date.now() - goalsFetchedAt < 5000) return
+      goalsFetchedAt = Date.now()
+      try {
+        const listed = await rpc.list({})
+        setGoalsList((listed?.goals ?? []) as any)
+      } catch {
+        // list is optional decoration for the Goals tab
+      }
     }
 
     const color = (tone: Tone) => {
@@ -128,7 +142,7 @@ export default {
             <Show when={views[input.sessionID]}>
               {(view) => (
                 <box flexDirection="column" marginTop={1}>
-                  <For each={cardLines(view(), now(), SIDEBAR_WIDTH)}>
+                  <For each={cardCompactLines(view(), now(), SIDEBAR_WIDTH)}>
                     {(line) => (
                       <text fg={color(line.tone)} wrapMode="none" truncate>
                         {line.bold ? <b>{line.text}</b> : line.text}
@@ -191,19 +205,33 @@ export default {
         append: "session.panel",
         render: (input: any) => {
           ensure(input.sessionID)
-          lastPanelInput = input
           const view = input.name === PANEL_NAME ? views[input.sessionID] : undefined
+          const width = typeof input.width === "number" ? input.width : 46
+          const rows = view && tab() === "decisions" ? decisionRows(view) : []
+          if (tab() === "goals") void ensureGoals()
           return (
             <Show when={view}>
               {(v) => (
                 <box flexDirection="column" paddingLeft={1} paddingRight={1}>
-                  <For each={panelLines(v(), now(), typeof input.width === "number" ? input.width : 46)}>
+                  <For each={dashboardLines(v(), tab(), now(), width, goalsList() as any)}>
                     {(line) => (
                       <text fg={color(line.tone)} wrapMode="none" truncate>
                         {line.bold ? <b>{line.text}</b> : line.text}
                       </text>
                     )}
                   </For>
+                  <Show when={rows.length}>
+                    <select
+                      options={rows.map((r) => ({ name: r.label, description: r.description, value: r }))}
+                      showDescription
+                      focused
+                      onSelect={(_index: number, option: any) => {
+                        const row = option?.value as { act?: string; arg?: string; label: string; description?: string } | undefined
+                        if (row?.act) void act(row.act, row.arg)
+                        else context.ui.toast.show({ title: "Goal", message: `Run: ${row?.description ?? row?.label ?? ""}`, variant: "info" })
+                      }}
+                    />
+                  </Show>
                 </box>
               )}
             </Show>
@@ -305,13 +333,25 @@ export default {
               },
               {
                 id: "goal.panel",
-                title: "Goal: focus dashboard",
+                title: "Goal: toggle dashboard",
                 group: "Goal",
                 palette: true,
+                // T056: beside OpenCode's session.sidebar toggle — bindable
+                // and bound by default to leader+g
+                bind: "leader+g",
+                enabled: () => true,
+                run: () => togglePanel(),
+              },
+              {
+                id: "goal.dashboard.tab",
+                title: "Goal: next dashboard tab",
+                group: "Goal",
+                palette: true,
+                bind: "tab",
                 enabled: hasGoal,
                 run: () => {
-                  context.ui.panel.open(PANEL_NAME)
-                  lastPanelInput?.focus()
+                  const order = DASHBOARD_TABS
+                  setTab(order[(order.indexOf(tab()) + 1) % order.length]!)
                 },
               },
               {
