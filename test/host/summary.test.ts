@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { relative } from "node:path"
 import { goalHost, ledger, newSession, run, script, waitStatus } from "./goal.helpers"
+import { until } from "./harness"
 import { GoalRpc } from "../../src/rpc"
 
 // T045 — goal.summary on terminal transitions. On complete, needs_review and
@@ -125,7 +126,7 @@ describe("post-goal summary (T045)", () => {
 
   test("on needs_review (owner sign-off) and budget_limited: the summary fires with the matching status", async () => {
     // needs_review: a human criterion awaits the owner
-    const hostA = await goalHost(script(workerFor({ C1: "wrote done.txt", C4: "the owner should sign off" }, ["goal started", "goal turn"])), {
+    const hostA = await goalHost(script(workerFor({ C1: "wrote done.txt", C4: "the owner should sign off" })), {
       ".opencode/goals/review/goal.yaml": REVIEW_GOAL,
     })
     try {
@@ -135,10 +136,10 @@ describe("post-goal summary (T045)", () => {
       const sessionID = await newSession(hostA)
       await hostA.client.session.command({ sessionID, name: "goal", text: "start review" } as any)
       const done = await waitStatus(hostA, ["needs_review", "complete", "paused", "blocked"], 90000, "review")
-      off?.()
       expect(done.status).toBe("needs_review")
-      const review = summaries.find((s) => s.status === "needs_review")
-      expect(review).toBeDefined()
+      // the status transition writes run.json BEFORE summarize() finishes —
+      // wait for the summary event instead of racing it (T066 widened the gap)
+      const review = await until(() => summaries.find((s) => s.status === "needs_review"), 15000)
       expect(review.text).toContain("awaiting owner sign-off")
       expect(review.followUps ?? review.text).toBeTruthy()
       const events = await ledger(hostA, "review")
@@ -159,10 +160,9 @@ describe("post-goal summary (T045)", () => {
       const sessionID = await newSession(hostB)
       await hostB.client.session.command({ sessionID, name: "goal", text: "start onabudget" } as any)
       const done = await waitStatus(hostB, ["budget_limited", "complete", "paused", "needs_review", "blocked"], 90000, "onabudget")
-      off?.()
       expect(done.status).toBe("budget_limited")
-      const limited = summaries.find((s) => s.status === "budget_limited")
-      expect(limited).toBeDefined()
+      // same race as above: the summary follows the status write
+      const limited = await until(() => summaries.find((s) => s.status === "budget_limited"), 15000)
       expect(limited.headline).toContain("0/1 criteria proven")
       expect(limited.text).toContain("budget")
       const events = await ledger(hostB, "onabudget")
