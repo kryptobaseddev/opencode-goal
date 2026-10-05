@@ -159,7 +159,8 @@ entered_dialog_at: float = 0.0
 card_snapshot: list[str] | None = None         # v0.3.2 phase C: the settled complete card
 card_complete_seen_at: float | None = None     # when the complete-decision dialog appeared
 card_esc_sent = 0
-panel_open_sent_at: float | None = None        # v0.3.2 phase G: leader+g
+panel_open_sent_at: float | None = None        # v0.3.2 phase G: F9 opens the panel
+sidebar_hide_sent_at: float | None = None
 panel_snapshot: list[str] | None = None
 panel_tab_sent_at: float | None = None
 panel_tab_snapshot: list[str] | None = None
@@ -260,20 +261,14 @@ try:
                 card_snapshot = screen.text().splitlines()
                 phase_screens["card-complete"] = card_snapshot
 
-        # --- Phase G (v0.3.2 T074): leader+g (ctrl+x then g) opens the
-        # dashboard panel; the tab key cycles the highlighted tab. The
-        # built-in sidebar paints over the panel region on a 180-col screen,
-        # so it is toggled off (leader+b) for the capture — the panel itself
-        # is what the assertion targets. Only after the card phase closed
-        # every dialog, so the keymap layer is live.
+        # --- Phase G (v0.3.2 T074): F9 opens the dashboard panel (the
+        # shipped default — spike S28: plugin binds cannot join the leader
+        # chord on 2.0.22); the tab key cycles the highlighted tab. The
+        # panel renders beside the built-in sidebar on a 180-col screen (the
+        # earlier sidebar-hide step replaced the whole right pane — the panel
+        # included — so the capture is taken WITH the sidebar visible).
         if card_snapshot is not None and panel_open_sent_at is None and quiet_for(1.5):
-            send_waits.append(send(fd, b"\x18"))       # ctrl+x: the leader key
-            time.sleep(0.15)
-            send_waits.append(send(fd, b"g"))          # g: toggle dashboard
-            time.sleep(0.5)
-            send_waits.append(send(fd, b"\x18"))       # leader again
-            time.sleep(0.15)
-            send_waits.append(send(fd, b"b"))          # b: hide the built-in sidebar
+            send_waits.append(send(fd, b"\x1b[20~"))    # F9: toggle dashboard
             panel_open_sent_at = time.time()
         if panel_open_sent_at is not None and panel_snapshot is None and now - panel_open_sent_at > 3.0:
             panel_snapshot = screen.text().splitlines()
@@ -284,10 +279,6 @@ try:
             panel_tab_snapshot = screen.text().splitlines()
             phase_screens["panel-tab"] = panel_tab_snapshot
             send_waits.append(send(fd, b"\x1b"))       # close the panel before the palette phase
-            time.sleep(0.3)
-            send_waits.append(send(fd, b"\x18"))
-            time.sleep(0.15)
-            send_waits.append(send(fd, b"b"))          # restore the built-in sidebar
             time.sleep(0.8)
 
         # --- Phase P (palette, T064): after the panel walkthrough the TUI is

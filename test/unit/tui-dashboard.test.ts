@@ -172,7 +172,7 @@ describe("the tabbed panel (T056 B/E)", () => {
     expect(lines.length).toBeLessThanOrEqual(16) // title + 14 + pointer
     expect(lines[0]).toBe("goal complete — 21/22")
     expect(lines.at(-1)).toMatch(/\+36 more lines/)
-    expect(digest).toContain("leader+g")
+    expect(digest).toContain("F9")
     // short texts pass through whole, with no truncation pointer
     const short = dialogDigest("title", "one line")
     expect(short.split("\n")).toEqual(["title", "one line"])

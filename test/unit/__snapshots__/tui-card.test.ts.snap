@@ -53,7 +53,7 @@ exports[`card readability (T073) compact and expanded rendering are snapshot-tes
     "tone": "muted",
   },
   {
-    "text": "↳ leader+g → Decisions (+1)",
+    "text": "↳ F9 → Decisions (+1)",
     "tone": "info",
   },
 ]
@@ -112,7 +112,7 @@ exports[`card readability (T073) compact and expanded rendering are snapshot-tes
     "tone": "muted",
   },
   {
-    "text": "↳ leader+g → Progress",
+    "text": "↳ F9 → Progress",
     "tone": "info",
   },
 ]

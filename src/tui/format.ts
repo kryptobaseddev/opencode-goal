@@ -79,9 +79,9 @@ const RESUME = "/goal resume"
 export function endStateCopy(status: string, slug: string): { text: string; tone: Tone } | undefined {
   switch (status) {
     case "complete":
-      return { text: `◎ ✓ complete — the loop has stopped. Follow-ups: the Goal panel (leader+g) and .opencode/goals/${slug}/`, tone: "success" }
+      return { text: `◎ ✓ complete — the loop has stopped. Follow-ups: the Goal panel (F9) and .opencode/goals/${slug}/`, tone: "success" }
     case "failed":
-      return { text: `◎ ✗ failed — the loop has stopped. What happened: the Goal panel (leader+g) and .opencode/goals/${slug}/`, tone: "error" }
+      return { text: `◎ ✗ failed — the loop has stopped. What happened: the Goal panel (F9) and .opencode/goals/${slug}/`, tone: "error" }
     case "aborted":
       return { text: `◎ ■ aborted — the loop has stopped. History stays in .opencode/goals/${slug}/`, tone: "muted" }
     default:

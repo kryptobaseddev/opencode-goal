@@ -413,17 +413,18 @@ export default {
                 title: "Goal: toggle dashboard",
                 group: "Goal",
                 palette: true,
-                bind: "ctrl+x g",
+                // T056/T074: the documented default was leader+g, but OpenCode
+                // 2.0.22 plugin keymap binds cannot join the leader chord
+                // (spike S28: leader+g / ctrl+x g / bare g never dispatch —
+                // the host's which-key table lists only host commands; a
+                // host tui.json bind for a plugin id did not dispatch
+                // either). F9 is the proven direct default (pty A/B); owners
+                // can rebind via their own tui.json on upgrades that fix the
+                // leader table.
+                bind: "f9",
                 enabled: () => true,
                 run: () => togglePanel(),
               },
-              // TEMPORARY bind-spelling diagnostics (T074): identify which
-              // chord syntax dispatches on 2.0.22 — removed after the probe.
-              { id: "diag.a", title: "diag a", group: "Goal", bind: "ctrl+x,g", enabled: () => true, run: () => { context.ui.toast.show({ title: "DIAG", message: "ctrl+x,g fired", variant: "info" }); togglePanel() } },
-              { id: "diag.b", title: "diag b", group: "Goal", bind: "ctrl+x g", enabled: () => true, run: () => { context.ui.toast.show({ title: "DIAG", message: "ctrl+x g fired", variant: "info" }); togglePanel() } },
-              { id: "diag.c", title: "diag c", group: "Goal", bind: "leader+g", enabled: () => true, run: () => { context.ui.toast.show({ title: "DIAG", message: "leader+g fired", variant: "info" }); togglePanel() } },
-              { id: "diag.d", title: "diag d", group: "Goal", bind: "f9", enabled: () => true, run: () => { context.ui.toast.show({ title: "DIAG", message: "f9 fired", variant: "info" }); togglePanel() } },
-              { id: "diag.e", title: "diag e", group: "Goal", bind: "g", enabled: () => true, run: () => { context.ui.toast.show({ title: "DIAG", message: "bare g fired", variant: "info" }); togglePanel() } },
               {
                 id: "goal.dashboard.tab",
                 title: "Goal: next dashboard tab",

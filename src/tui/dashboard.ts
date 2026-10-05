@@ -35,7 +35,7 @@ const provenCount = (view: GoalView) => view.criteria.filter((c) => c.status ===
  *  the current step, the next action, ONE action-required line — never a
  *  timeline. T073: rows that the width truncates carry a `tab` hint naming
  *  the panel tab that holds their full text, and the card always ends with
- *  an explicit expand affordance (leader+g opens it). */
+ *  an explicit expand affordance (F9 opens it). */
 export function cardCompactLines(view: GoalView, now: number, width = 40): Line[] {
   const st = statusOf(view.status)
   const lines: Line[] = []
@@ -71,8 +71,8 @@ export function cardCompactLines(view: GoalView, now: number, width = 40): Line[
   // readable at the narrowest sidebar.
   const tabs = [...new Set(lines.filter((l) => l.tab && l.text.includes("…")).map((l) => l.tab!))]
   const affordance = tabs.length
-    ? `↳ leader+g → ${TAB_LABEL[tabs[0] as DashboardTab]}${tabs.length > 1 ? ` (+${tabs.length - 1})` : ""}`
-    : "↳ full card — leader+g"
+    ? `↳ F9 → ${TAB_LABEL[tabs[0] as DashboardTab]}${tabs.length > 1 ? ` (+${tabs.length - 1})` : ""}`
+    : "↳ full card — F9"
   lines.push({ text: fit(affordance, width), tone: "info" })
   return lines.slice(0, 12)
 }
@@ -148,7 +148,7 @@ const TAB_LABEL: Record<DashboardTab, string> = { now: "Now", progress: "Progres
 /** T073: the panel tab the compact card's expand affordance opens on — the
  *  highest-priority section the sidebar width truncated (decisions first,
  *  then criteria, then step/progress). Undefined when nothing truncated:
- *  leader+g opens the panel where it was. */
+ *  F9 opens the panel where it was. */
 export function cardAffordanceTab(view: GoalView, now: number, width = 40): DashboardTab | undefined {
   const order: DashboardTab[] = ["decisions", "progress", "now"]
   const truncated = new Set(cardCompactLines(view, now, width).filter((l) => l.tab && l.text.includes("…")).map((l) => l.tab!))
@@ -195,7 +195,7 @@ export function dialogDigest(title: string, text: string, maxLines = 14, maxCols
   const lines = text.split("\n").map((l) => (l.length > maxCols ? `${l.slice(0, maxCols - 1)}…` : l))
   const head = lines.slice(0, maxLines)
   const rest = lines.length - head.length
-  return [title, ...head, ...(rest > 0 ? [`… +${rest} more lines — full text: the Goal panel (leader+g) or .opencode/goals/ evidence` ] : [])].join("\n")
+  return [title, ...head, ...(rest > 0 ? [`… +${rest} more lines — full text: the Goal panel (F9) or .opencode/goals/ evidence` ] : [])].join("\n")
 }
 
 /** (B) the tabbed panel body. Pure; snapshot-tested. T073: the panel is the

@@ -70,7 +70,7 @@ describe("card readability (T073)", () => {
       expect(lines.length).toBeLessThanOrEqual(12)
       const affordance = lines.at(-1)!
       expect(affordance.text).toMatch(/^↳ /)
-      expect(affordance.text).toContain("leader+g")
+      expect(affordance.text).toContain("F9")
       for (const l of lines) expect(l.text.length).toBeLessThanOrEqual(width + 1)
     }
   })
