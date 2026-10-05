@@ -14,7 +14,7 @@ const contract = (extra: string) => parseContract(DEMO_GOAL_BASE(extra), { slug:
 
 describe("priority in the contract (T061)", () => {
   test("optional low|medium|high are valid; anything else is an error; absent is valid", () => {
-    for (const priority of ["low", "medium", "high"]) {
+    for (const priority of ["low", "medium", "high"] as const) {
       const read = contract(`priority: ${priority}\n`)
       expect(read.issues.filter((i) => i.level === "error")).toHaveLength(0)
       expect(read.contract?.priority).toBe(priority)
