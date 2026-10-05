@@ -311,20 +311,31 @@ export default {
       }
       void (async () => {
         const actionable = choices.filter((c) => c.act)
+        const guidance = choices.filter((c) => !c.act)
         if (!actionable.length) {
           await context.ui.dialog.alert({ title: `Goal — ${data.kind ?? "decision"}`, message: `${data.message ?? ""}\n\n${choices.map((c) => `• ${c.run ?? c.label}`).join("\n")}` })
           return
         }
         openDecisions.set(data.sessionID, (openDecisions.get(data.sessionID) ?? 0) + 1)
         try {
+          // T067: guidance-only choices render as visible rows (they carry
+          // no act; picking one shows how to run them) instead of being
+          // dropped — the complete dialog once showed Archive alone.
           const pick = await context.ui.dialog.select({
             title: `Goal — ${data.kind ?? "decision"}`,
-            options: actionable.map((c, i) => ({ title: c.label, value: String(i), description: c.run ?? "" })),
+            options: [
+              ...actionable.map((c, i) => ({ title: c.label, value: String(i), description: c.run ?? "" })),
+              ...guidance.map((c, i) => ({ title: `ℹ ${c.label}`, value: `guide:${i}`, description: c.run ?? "" })),
+            ],
           })
-          if (pick !== undefined && pick !== null) {
-            const chosen = actionable[Number(pick)]
-            if (chosen?.act) await act(chosen.act, chosen.arg)
+          if (pick === undefined || pick === null) return
+          if (String(pick).startsWith("guide:")) {
+            const row = guidance[Number(String(pick).slice(6))]
+            context.ui.toast.show({ title: "Goal guidance", message: row?.run ?? row?.label ?? "", variant: "info", duration: 8000 })
+            return
           }
+          const chosen = actionable[Number(pick)]
+          if (chosen?.act) await act(chosen.act, chosen.arg)
         } finally {
           const depth = (openDecisions.get(data.sessionID) ?? 1) - 1
           if (depth <= 0) openDecisions.delete(data.sessionID)

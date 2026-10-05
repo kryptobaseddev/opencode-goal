@@ -108,14 +108,14 @@ export const M = {
       { label: "Start the next goal", run: "/goal new <what you want next>" },
     ], "done"),
   needsSignOff: (ids: string[]) =>
-    msg("goal.needs-review.signoff", "warning", `Goal needs your sign-off on ${ids.join(", ")} — a human criterion only you can prove.`, [
-      { label: "Approve", run: `/goal approve ${ids[0] ?? "<id>"}`, act: "approve", arg: ids[0] },
+    msg("goal.needs-review.signoff", "warning", `Goal needs your sign-off on ${ids.join(", ")} — a human criterion only you can prove. Approve runs verification of everything else immediately (your approval is final and never re-checked).`, [
+      { label: `Approve ${ids[0] ?? "<id>"} (triggers verify)`, run: `/goal approve ${ids[0] ?? "<id>"}`, act: "approve", arg: ids[0] },
       { label: "Reject with a reason", run: `/goal reject ${ids[0] ?? "<id>"} <why>`, act: "reject" },
       status,
     ], "question"),
   needsReview: (reason: string) =>
-    msg("goal.needs-review.rejected", "warning", `Goal needs review: ${reason}. A criterion failed verification repeatedly — decide it, change the work, or change the check.`, [
-      { label: "Approve as-is (final)", run: "/goal approve <C#>", act: "approve" },
+    msg("goal.needs-review.rejected", "warning", `Goal needs review: ${reason}. A criterion failed verification repeatedly — decide it, change the work, or change the check. Approving runs verification of everything else immediately (final, never re-checked).`, [
+      { label: "Approve as-is (final, triggers verify)", run: "/goal approve <C#>", act: "approve" },
       { label: "Amend the check", run: "/goal amend confirm after editing goal.yaml" },
       abort,
     ], "question"),
@@ -157,8 +157,10 @@ export const M = {
     ], "question"),
   completeDecision: (title: string, cleoPresent: boolean, unproven: number) =>
     msg("goal.complete.decision", "success", `Goal complete: ${title}.${unproven ? ` ${unproven} discussed-but-unproven item(s) are flagged in the summary.` : ""} What next?`, [
+      { label: "Start the next goal", run: "start the write-goal interview for the next goal", act: "start-next" },
       archive,
-      { label: "Start a new goal", run: "/goal new <what you want next>" },
+      // guidance rows carry no act — the TUI renders them as visible rows
+      // instead of dropping them (T067: "why was I only offered Archive?")
       cleoPresent
         ? { label: "Decompose with CLEO", run: "cleo add --type task (this project is linked)" }
         : { label: "Install CLEO for tracking", run: "install CLEO — no .cleo workspace in this project yet" },

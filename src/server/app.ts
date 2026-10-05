@@ -1081,7 +1081,7 @@ export class GoalApp {
 
   // ───────────────────────────── owner actions (command, RPC)
 
-  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend" | "archive" | "attach" | "start", arg?: string): Promise<{ ok: boolean; message: string }> {
+  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend" | "archive" | "attach" | "start" | "start-next", arg?: string): Promise<{ ok: boolean; message: string }> {
     return this.serial(async () => {
       // T066: the next owner act resolves the session's pending decision —
       // the ledger carries the pairing (offered → answered).
@@ -1089,6 +1089,13 @@ export class GoalApp {
       if (pending) {
         this.pendingDecisions.delete(sessionID)
         this.store.ledger(pending.slug, { type: "decision-resolved", decision: pending.id, kind: pending.kind, action, ...(arg ? { arg } : {}), ok: true })
+      }
+      // T067: the complete decision's "start the next goal" dispatches the
+      // write-goal interview right here — the owner picks the next goal from
+      // the dialog instead of typing /goal new.
+      if (action === "start-next") {
+        await this.ctx.session.prompt({ sessionID, text: `Start the next goal: interview the owner for what they want done next (the write-goal skill guides the frontier rounds; no draft exists yet).`, skills: [{ id: "write-goal" }] } as any).catch(() => {})
+        return { ok: true, message: "Dispatched the write-goal interview — the next question lands in this session." }
       }
       // T060: the start picker's dialog dispatches act "start" with the slug
       // as arg — the standard start path, in THIS session. startGoalLocked,
