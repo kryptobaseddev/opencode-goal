@@ -49,6 +49,7 @@ export type Options = {
   blockerRepeats: number
   maxPromptFailures: number
   verifierAgent: string
+  /** Verifier round budget in ms (each of the 2 rounds gets this; 240s default; config-overridable). */
   verifierTimeoutMs: number
   liveChecks: boolean
   launchApprovalMs: number
@@ -985,9 +986,12 @@ export class GoalApp {
     lines.push("Use read, glob and grep to inspect the repository. Then call goal_verdict exactly once with one entry per criterion above: verdict proven, not_proven or contradicted; a one-line reason; and for proven, evidence items with the file path (relative to the project root) and a verbatim quote of at least one full line. Do not answer in prose instead of calling the tool. If the tool is unavailable or fails, reply with ONLY a fenced json block as your final message: ```json {\"verdicts\":[{\"id\":\"C1\",\"verdict\":\"proven\",\"reason\":\"...\",\"evidence\":[{\"path\":\"relative/path\",\"quote\":\"verbatim line\"}]}]} ```")
     try {
       // T044: empty exchanges are retried once and always recorded — a silent
-      // empty round is never accepted as an answer. Two rounds share the
-      // total verifier budget.
-      const perRoundMs = Math.max(60_000, Math.floor(this.options.verifierTimeoutMs / 2))
+      // empty round is never accepted as an answer. Housekeeping (v0.3.1):
+      // verifierTimeoutMs is the PER-ROUND budget (240s default — the two
+      // provider hangs of the last run each burned a 120s round and were
+      // retried too late); each of the two rounds gets the full budget, and
+      // plugin/project config overrides it (ctx.options merge in the ctor).
+      const perRoundMs = Math.max(60_000, this.options.verifierTimeoutMs)
       let round = 0
       let verdicts: VerifierVerdict[] = []
       let by: "verifier" | "verifier-fallback" = "verifier"
