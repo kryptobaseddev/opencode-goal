@@ -148,8 +148,27 @@ messages: 0` (provider hang, not an empty parse): the failure mode T044
 made visible and diagnosable instead of silent. C1's live proof remains the
 healthy turn-4 round above.
 
+The third claim's round (turn 6) timed out identically (`done: timeout,
+messages: 0`) and C19 reached its rejection limit — every C19 failure after
+the doc was fixed was provider infrastructure, never a content judgment;
+the one substantive judgment (turn 4) is quoted above and its two findings
+were fixed in 5cc8446. The run closed at `needs_review` with the owner
+holding the designed final decision (owner-approval outranks re-checks —
+T051/T057).
+
+One more live defect surfaced at wrap-up: the owner's command palette lists
+no Goal commands even though the TUI plugin is running (toasts and the
+summary dialog fire) — filed as T064 for v0.3.1 with a pty-capture
+reproduction plan.
+
 ## 7. What the next board should look at
 
-T059–T061 (launch surface, start picker, priority field) plus the standing
-backlog: relay mode, goal queues, home-screen board, Claude Code / Codex
-adapters, headless runner, npm publishing.
+The v0.3.1 launch-experience board (all filed under the T002 saga):
+T059 (clean start in a fresh session), T060 (`/goal start` picker +
+composer-completions spike), T061 (goal priority through contract →
+registry → list → palette → picker), T064 (palette shows no Goal commands
+on the live TUI — the wrap-up find), plus CLEO housekeeping: T024's
+18 v0.2-era acceptance criteria need evidence bindings before the epic can
+complete. Standing backlog beyond that: relay mode, goal queues,
+home-screen board, Claude Code / Codex adapters, headless runner, npm
+publishing.
