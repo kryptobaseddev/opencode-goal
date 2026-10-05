@@ -98,19 +98,13 @@ completed in one round (`done: "done"`, not retried), and its transcript is pers
 `evidence/10a52d01a001/verifier-transcript-turn-3-1791183008032.json`. Judging C18 — the
 groundedness of this very document — it recorded its verdict through `goal_verdict`:
 
-> **Grounded:** The doc's §1–§6, §8–§9 claims trace cleanly to this run's own records — run
-> id/lock/base (`ledger.jsonl:2`), the honest red rehearsal baseline (`rehearsal.json` shows
-> all command checks false), each fix commit (S1 `fdba1bb`, S2 `83bf228`, S3 `5d57a27`,
-> S4 `c7e3a1d`, S5 `4d0f0fd`, S6 `2dd06ca`, S7 `e68f1ff`, S8 `f85a5e9`), the 240s timeout,
-> T024 closure, archive moves, the release, the live host passes for C1/C16 (`run.json`
-> criteria show `by: "host"`), the reinstall gate (two `block` ledger events, npm-cache still
-> `#v0.3.0`), defects with CLEO ids (T068 fixed, T069 filed, spikes S25–S27), and even the
-> 156,299 base-token figure (`run.json` `usage.baseTokens`).
+> All grounding surfaces inspected. Findings for C18:
+> 
+> **Grounded:** The doc's §1–§6, §8–§9 claims trace cleanly to this run's own records — run id/lock/base (`ledger.jsonl:2`), the honest red rehearsal baseline (`rehearsal.json` shows all command checks false), each fix commit (S1 `fdba1bb`, S2 `83bf228`, S3 `5d57a27`, S4 `c7e3a1d`, S5 `4d0f0fd`, S6 `2dd06ca`, S7 `e68f1ff`, S8 `f85a5e9`), the 240s timeout, T024 closure, archive moves, the release, the live host passes for C1/C16 (`run.json` criteria show `by: "host"`), the reinstall gate (two `block` ledger events, npm-cache still `#v0.3.0`), defects with CLEO ids (T068 fixed, T069 filed, spikes S25–S27), and even the 156,299 base-token figure (`run.json` `usage.baseTokens`).
+> 
+> **Not grounded:** the one element the criterion names explicitly — "a real verifier verdict from the child on the main host". Doc §7 ends at an empty placeholder (`<!-- VERIFIER-EVIDENCE: filled from the completing round... -->`), the trusted C17 host check confirms the doc lacks any `/goal_verdict`/`verifier-transcript` content, and this run's `evidence/` directory contains no `verify-turn-*` or `verifier-transcript-*` artifact (unlike both archived runs, which have them). §9 additionally asserts the completing round "were exercised… see §7" — pointing at the empty slot. The doc is honest about the gap, but the required grounding is absent, so the criterion fails closed.
 >
-> **Not grounded:** the one element the criterion names explicitly — "a real verifier verdict
-> from the child on the main host". Doc §7 ends at an empty placeholder.
->
-> Verdict recorded for C18: **not_proven**.
+> Verdict recorded for C18: **not_proven**. The doc grounds nearly every claim in this run's ledger, run.json, rehearsal baseline, and gate results, and files defects with CLEO ids — but the explicitly required real verifier verdict from the child on the main host remains an unfilled §7 placeholder with no verifier artifact in evidence/, which the trusted C17 failure independently confirms.
 
 That rejection was correct and is now resolved by this section: the quote above IS the child's
 verbatim judgment, from the transcript artifact of this run. The verdict round also exercised
