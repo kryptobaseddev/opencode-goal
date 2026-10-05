@@ -63,6 +63,8 @@ export type RunState = {
   compacted: boolean
   /** last wall-clock ms the TUI/rpc was refreshed by a usage.recorded burst (T013) */
   lastUsageEmit?: number
+  /** T053: what the engine is doing right now — feeds the live activity tracer. */
+  activity?: { kind: "turn" | "verifying" | "verifier-child" | "cooldown" | "waiting"; since: number; until?: number; detail?: string }
   flags: Array<{ criterion?: string; kind: string; reason: string; at: number }>
   amendments: Array<{ change: string; rationale: string; at: number; status: "proposed" | "accepted" | "rejected" }>
 }

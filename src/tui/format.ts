@@ -2,6 +2,7 @@
 // dashboard panel show is computed here from a GoalView, so it can be tested
 // without a terminal.
 import type { GoalView } from "../rpc"
+import { tracerLines } from "./tracer"
 
 export type Tone = "base" | "muted" | "success" | "warning" | "error" | "info"
 export type Line = { text: string; tone: Tone; bold?: boolean }
@@ -115,6 +116,9 @@ const budgetCell = (b: { name: string; used: number; limit: number }) => {
 export function panelLines(view: GoalView, now: number, width = 46): Line[] {
   const st = statusOf(view.status)
   const lines: Line[] = []
+  // T053: the panel leads with the live tracer line when the engine reports
+  // an activity (the composer-top slot carries the idle pulse)
+  if (view.activity) lines.push(...tracerLines(view, now, width))
   lines.push({ text: fit(`◎ GOAL ${st.icon} ${st.label}`, width), tone: st.tone, bold: true })
   lines.push({ text: fit(view.title, width), tone: "base", bold: true })
   lines.push({ text: fit(usageLine(view, now), width), tone: view.budgetRatio >= 0.8 ? "warning" : "muted" })

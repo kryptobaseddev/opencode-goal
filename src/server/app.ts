@@ -184,6 +184,7 @@ export class GoalApp {
 
   private persist(state: RunState) {
     account(state)
+    if (!isActive(state.status)) state.activity = undefined // T053: no stale tracer on stopped/terminal states
     this.store.writeRun(state)
     // T026: every persisted transition refreshes the derived machine-level
     // index (skipped when nothing changed, since usage bursts persist often).
@@ -233,6 +234,7 @@ export class GoalApp {
       ...(state.verdict ? { verdict: { passed: state.verdict.passed, lines: state.verdict.lines.slice(0, 6), at: state.verdict.at, turn: state.verdict.turn } } : {}),
       ...(state.blocker ? { blocker: { key: state.blocker.key, count: state.blocker.count, reason: state.blocker.reason, ...(state.blocker.needs ? { needs: state.blocker.needs } : {}) } } : {}),
       ...(state.wait ? { wait: state.wait } : {}),
+      ...(state.activity ? { activity: state.activity } : {}),
       awaitingUser: this.factsOf(state.sessionID).forms.size > 0,
       // T052: derived from the persisted status — the sidebar keeps showing it
       // until the owner resolves the decision, never a transient toast.
@@ -474,6 +476,7 @@ export class GoalApp {
       state.pending = { messageID: ascendingId("msg"), turn: state.turn, at: Date.now(), kind }
     }
     if (state.status !== "running") setStatus(state, "running")
+    state.activity = { kind: "turn", since: Date.now(), detail: kind }
     const note = renderTailNote(state, contract, kind as TailKind)
     this.notes.set(state.sessionID, note)
     state.compacted = false
@@ -512,6 +515,11 @@ export class GoalApp {
   private schedule(state: RunState, delayMs: number, kind: PendingKind) {
     const key = state.sessionID
     clearTimeout(this.timers.get(key))
+    // T053: the tracer counts down the cooldown before the next turn
+    if (isActive(state.status) && state.status !== "waiting") {
+      state.activity = { kind: "cooldown", since: Date.now(), until: Date.now() + delayMs, detail: kind }
+      this.persist(state)
+    }
     this.timers.set(
       key,
       setTimeout(() => {
@@ -720,6 +728,7 @@ export class GoalApp {
 
     if (state.wait && state.wait.until > Date.now()) {
       setStatus(state, "waiting", state.wait.reason)
+      state.activity = { kind: "waiting", since: Date.now(), until: state.wait.until, detail: state.wait.reason }
       this.persist(state)
       return this.schedule(state, state.wait.until - Date.now(), "continue")
     }
@@ -791,6 +800,7 @@ export class GoalApp {
 
   private async verify(state: RunState, contract: Contract, source: "claim" | "owner") {
     setStatus(state, "verifying", source === "claim" ? "checking your claim" : "owner requested verification")
+    state.activity = { kind: "verifying", since: Date.now() }
     this.store.ledger(state.slug, { type: "verify-start", source, turn: state.turn })
     this.persist(state)
     this.noticeM(state.sessionID, M.verifying())
@@ -858,6 +868,9 @@ export class GoalApp {
     // an explicit model rides on every child create so the request can never
     // depend on the agent's own (possibly absent) resolution.
     const model = await this.resolveVerifierModel(state.sessionID)
+    // T053: the tracer shows the child running while it works
+    state.activity = { kind: "verifier-child", since: Date.now(), ...(model ? { detail: model.label } : {}) }
+    this.persist(state)
     const child: any = await this.ctx.session.create({ parentID: state.sessionID, agent: this.options.verifierAgent, title: `goal verify · ${contract.id}`, ...(model ? { model: model.ref } : {}) } as any)
     const childID: string = child?.id ?? child?.data?.id
     this.verifierInbox.delete(childID)
@@ -1495,6 +1508,7 @@ export class GoalApp {
             const state = guard(context, "wait")
             const seconds = Math.max(10, Math.min(3000, Number(args.seconds) || 60))
             state.wait = { until: Date.now() + seconds * 1000, reason: String(args.reason).slice(0, 300) }
+            state.activity = { kind: "waiting", since: Date.now(), until: state.wait.until, detail: state.wait.reason }
             this.store.ledger(state.slug, { type: "wait", seconds, reason: state.wait.reason })
             this.persist(state)
             this.noticeM(state.sessionID, M.goalWait(seconds, state.wait.reason))

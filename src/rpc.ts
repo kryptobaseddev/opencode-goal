@@ -86,6 +86,8 @@ export type GoalView = {
   awaitingUser: boolean
   /** T052: persistent owner-action-required state — stays until the status resolves. */
   actionRequired?: string
+  /** T053: what the engine is doing now — the live activity tracer's feed. */
+  activity?: { kind: "turn" | "verifying" | "verifier-child" | "cooldown" | "waiting"; since: number; until?: number; detail?: string }
   amendments: number
   flags: number
   updatedAt: number

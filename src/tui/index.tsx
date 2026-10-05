@@ -7,6 +7,7 @@ import { createEffect, createRoot, createSignal, For, onCleanup, Show } from "so
 import { createStore, reconcile } from "solid-js/store"
 import { GoalRpc, type GoalView } from "../rpc"
 import { bannerText, cardLines, panelLines, pillText, statusText, type Tone } from "./format"
+import { tracerLines } from "./tracer"
 
 type Context = Plugin.Context
 
@@ -161,16 +162,25 @@ export default {
         append: "session.composer.top",
         render: (input: { sessionID: string }) => {
           ensure(input.sessionID)
+          const view = views[input.sessionID]
+          const tracer = view ? tracerLines(view, now(), 80) : []
+          const banner = view ? bannerText(view) : undefined
+          if (!tracer.length && !banner) return null
           return (
-            <Show when={views[input.sessionID] ? bannerText(views[input.sessionID]!) : undefined}>
-              {(banner) => (
-                <box paddingLeft={1} paddingRight={1}>
-                  <text fg={color(banner().tone)} wrapMode="none" truncate>
-                    {banner().text}
+            <box flexDirection="column" paddingLeft={1} paddingRight={1}>
+              {tracer.map((line) => (
+                <text fg={color(line.tone)} wrapMode="none" truncate>
+                  {line.text}
+                </text>
+              ))}
+              <Show when={banner}>
+                {(b) => (
+                  <text fg={color(b().tone)} wrapMode="none" truncate>
+                    {b().text}
                   </text>
-                </box>
-              )}
-            </Show>
+                )}
+              </Show>
+            </box>
           )
         },
       } as any),
