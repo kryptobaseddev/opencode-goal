@@ -50,6 +50,17 @@ export const M = {
       { label: `Open the goal session`, run: `switch to the session "goal kickoff · ${slug}"` },
       status,
     ]),
+  startPicker: (goals: Array<{ slug: string; title: string; valid: boolean }>) =>
+    msg("goal.start-picker", "info", `Start which goal? ${goals.length} startable in this project:`, goals.map((g) => ({
+      label: `${g.slug} — ${g.title}`,
+      run: `/goal start ${g.slug}`,
+      act: "start",
+      arg: g.slug,
+    }))),
+  startPickerEmpty: (folders: number) =>
+    msg("goal.start-picker.empty", "warning", `No startable goal here (${folders} goal folder${folders === 1 ? "" : "s"} exist${folders ? ", none fresh" : ""}). Write one first.`, [
+      { label: "Write a goal", run: "/goal new <what you want done>" },
+    ]),
   goalSummary: (headline: string, caveats: number, status2: string) =>
     msg(`goal.summary.${status2}`, status2 === "complete" ? "success" : "warning", `goal.summary — ${headline}${caveats ? ` (${caveats} caveat${caveats > 1 ? "s" : ""}: provenance and unproven scope flagged in the dialog/evidence)` : ""}`, [
       { label: "Show status", run: "/goal status" },

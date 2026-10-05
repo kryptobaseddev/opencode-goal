@@ -18,7 +18,7 @@ export const GoalRpc = {
         type: "object",
         properties: {
           sessionID: { type: "string", minLength: 1, maxLength: 256 },
-          action: { type: "string", enum: ["pause", "resume", "abort", "verify", "approve", "reject", "amend", "archive", "attach"] },
+          action: { type: "string", enum: ["pause", "resume", "abort", "verify", "approve", "reject", "amend", "archive", "attach", "start"] },
           arg: { type: "string", maxLength: 2000 },
         },
         required: ["sessionID", "action"],
@@ -37,7 +37,7 @@ export const GoalRpc = {
         properties: {
           sessionID: { type: "string" },
           slug: { type: "string" },
-          kind: { type: "string", enum: ["needs_review", "paused-after-verdict", "blocked", "budget_limited", "amend-proposed", "supersede-ack", "complete"] },
+          kind: { type: "string", enum: ["needs_review", "paused-after-verdict", "blocked", "budget_limited", "amend-proposed", "supersede-ack", "complete", "start-picker"] },
           title: { type: "string" },
           message: { type: "string" },
           choices: { type: "array", items: { type: "object", properties: { label: { type: "string" }, act: { type: "string" }, arg: { type: "string" }, run: { type: "string" } }, required: ["label"], additionalProperties: true } },

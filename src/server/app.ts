@@ -348,7 +348,7 @@ export class GoalApp {
    * selectable dialog wired to rpc.act. Slash commands remain the power-user
    * path; nobody has to type an approval by hand.
    */
-  private decide(sessionID: string | undefined, slug: string, kind: "needs_review" | "paused-after-verdict" | "blocked" | "budget_limited" | "amend-proposed" | "supersede-ack" | "complete", message: EngineMessage, extra: Record<string, unknown> = {}) {
+  private decide(sessionID: string | undefined, slug: string, kind: "needs_review" | "paused-after-verdict" | "blocked" | "budget_limited" | "amend-proposed" | "supersede-ack" | "complete" | "start-picker", message: EngineMessage, extra: Record<string, unknown> = {}) {
     void this.rpc?.events
       .emit("decision", { ...(sessionID ? { sessionID } : {}), slug, kind, title: message.id, message: renderMessage(message), choices: message.choices, ...extra })
       .catch(() => {})
@@ -384,7 +384,13 @@ export class GoalApp {
   }
 
   async startGoal(sessionID: string, slug: string, source: "command" | "tool", options: { acknowledgeSupersede?: boolean } = {}): Promise<string> {
-    return this.serial(async () => {
+    return this.serial(() => this.startGoalLocked(sessionID, slug, source, options))
+  }
+
+  /** The start path without the queue lock — callable from inside ownerAct,
+   *  which already holds it (the queue is not reentrant). */
+  private async startGoalLocked(sessionID: string, slug: string, source: "command" | "tool", options: { acknowledgeSupersede?: boolean } = {}): Promise<string> {
+    {
       const current = this.runs.get(sessionID)
       if (current && !isTerminal(current.status)) return `This session already has goal "${current.slug}" (${current.status}). Abort it first with /goal abort.`
       for (const other of this.runs.values())
@@ -463,7 +469,7 @@ export class GoalApp {
       this.noticeM(sessionID, M.goalStarted(contract.title))
       if (!this.factsOf(sessionID).busy) await this.admit(state, "kickoff")
       return `Goal "${contract.title}" started (run ${state.runId}). The host drives the loop from here: work toward the outcome, record progress with goal_progress, and call goal_claim when every criterion holds.`
-    })
+    }
   }
 
   /**
@@ -1067,8 +1073,17 @@ export class GoalApp {
 
   // ───────────────────────────── owner actions (command, RPC)
 
-  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend" | "archive" | "attach", arg?: string): Promise<{ ok: boolean; message: string }> {
+  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend" | "archive" | "attach" | "start", arg?: string): Promise<{ ok: boolean; message: string }> {
     return this.serial(async () => {
+      // T060: the start picker's dialog dispatches act "start" with the slug
+      // as arg — the standard start path, in THIS session. startGoalLocked,
+      // not startGoal: ownerAct already holds the queue (not reentrant).
+      if (action === "start") {
+        const slug = (arg ?? "").trim().split(/\s+/)[0]
+        if (!slug) return { ok: false, message: "Which goal? /goal start with no argument opens the picker." }
+        const message = await this.startGoalLocked(sessionID, slug, "command")
+        return { ok: message.startsWith('Goal "'), message }
+      }
       // T049: attach pulls a live goal into THIS session so every surface
       // (palette, card, panel, /goal commands) works here. The run keeps its
       // ledger, evidence and progress; only the owning session moves.
@@ -1310,7 +1325,31 @@ export class GoalApp {
         return
       }
       case "start": {
-        if (!arg) return say(`Usage: /goal start <slug>. Goals here: ${this.store.slugs().join(", ") || "none"}`, "warning")
+        if (!arg) {
+          // T060: no-arg /goal start used to be a dead usage line; it now
+          // opens the startable-goal picker — a keyboard-selectable dialog
+          // (the T050 decision machinery) wired to the start path via
+          // act "start". Startable = contract here, not archived, no live
+          // run anywhere (starting a goal another session owns is refused).
+          const startable = this.store.slugs()
+            .filter((slug) => {
+              const live = [...this.runs.values()].some((r) => r.slug === slug && !isTerminal(r.status))
+              if (live) return false
+              const saved = this.store.readRun(slug)
+              return !saved || isTerminal(saved.status)
+            })
+            .map((slug) => {
+              const read = this.store.readContract(slug)
+              const valid = Boolean(read?.contract) && read!.issues.every((i) => i.level !== "error")
+              return { slug, title: read?.contract?.title ?? slug, valid: valid as boolean }
+            })
+          if (!startable.length) {
+            this.decide(sessionID, "(none)", "start-picker", M.startPickerEmpty(this.store.slugs().length))
+            return say(`No startable goal — /goal new <what you want done> writes one.`, "warning")
+          }
+          this.decide(sessionID, "(picker)", "start-picker", M.startPicker(startable))
+          return say(startable.map((g) => `${g.slug} — ${g.title}${g.valid ? "" : " (validation problems)"}`).join("\n"), "info")
+        }
         const tokens = arg.split(/\s+/)
         const slug0 = tokens[0]!
         const acknowledgeSupersede = tokens.includes("acknowledge-supersede")
