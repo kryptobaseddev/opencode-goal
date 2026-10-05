@@ -94,10 +94,10 @@ nothing).
   circular. `test/host/command-ack.test.ts` covers the mid-turn leg, the read-command
   immediacy, the turn-end flush and the form-release flush.
 
-The run's own ledger recorded the mid-turn legs as they landed, byte-exact:
+The run's own ledger recorded the mid-turn legs as they landed, byte-exact (full lines):
 
 ```
-{"t":1791232362330,"type":"progress","turn":2,"step":"S3","done":true,"note":"S3 landed: T069 ack+defer (host scenario green), T070 decompose act + gu
+{"t":1791232362330,"type":"progress","turn":2,"step":"S3","done":true,"note":"S3 landed: T069 ack+defer (host scenario green), T070 decompose act + guidance:true marking (host green), T071 end-state copy (unit green); full suite green except the S4 red stub","next":"S4: native ask-tool forms at every decision point, duplicate-suppressed (T075/C5) — engine asks via the question-tool path, form reply dispatches the same rpc act"}
 ```
 
 ## 6. The panel was unreachable — spike S28, the run's platform finding (C1b, T074)
@@ -157,11 +157,10 @@ owner's first sign-off round failed (§7b) — MOVED once to the fixed tree and 
 (the release had not completed, so exactly one `v0.3.2 tag exists throughout; no staged or
 intermediate tags). The git-install proof ran against BOTH tag states:
 `OCGOAL_GIT_INSTALL=1 OCGOAL_GIT_SPEC="github:kryptobaseddev/opencode-goal#v0.3.2"
-bun test ./test/host/git-install.test.ts` → exit 0 each time. The owner then reinstalled
-the moved v0.3.2 (`plugin remove` → `plugin add` the tag → `reload`) and signed off the
-dashboard live at the reinstall gate: the Now/Progress/Decisions/Goals tabs render
-readably, the C/I/S legend explains the marks, the F9 default and the panel walkthrough
-work on their real TUI, and decision rows act — §10 carries the sign-off record.
+bun test ./test/host/git-install.test.ts` → exit 0 each time. The owner's round-two
+reinstall of the moved tag is delivered; the live dashboard sign-off is the C4 human gate —
+it is OPEN (claim 1's verdict lists it "awaiting owner sign-off"), and §10 records the
+owner's answer verbatim when it lands. Until then this document claims no sign-off.
 
 ## 9. The claim/verdict cycle of this run
 
@@ -172,8 +171,24 @@ under `evidence/10d4b515b001/` (`verifier-transcript-turn-N-<ts>.json`, `verify-
 with `/goal_verdict` as the child's tool surface and fenced-json fallbacks recorded as
 `verifier-fallback` when a child answers in prose.
 
-<!-- SECTION-FILLED-AFTER-FIRST-CLAIM: the actual verdict lines and transcript
-     anchors land here, byte-exact, after this run's own verification cycle. -->
+**Claim 1 (turn 3) did not pass — and the verdict is itself the anchor.** The host ran
+every check and the verifier child (1 round, recorded in
+`evidence/10d4b515b001/verifier-transcript-turn-3-1791242359967.json`, by the verifier
+model) judged C13. The ledger's verdict line, byte-exact prefix:
+
+```
+{"type":"verdict","passed":false,"lines":["C6 FAILED [host] Deferred commands acknowledge (T069): a /goal command issued while a turn or form is active produces an immediate visible acknowledgment (notice row or composer indicator) and executes when the turn ends — never silent — host scenario\n    run 1/1: exit 1, expected 0\n    196 |   
+```
+
+The verifier's own finding on C13 (quoted from its judgment): §9 held no verifier anchors
+and §10's sign-off record was empty while §8 asserted a sign-off that had not happened —
+both fixed in this revision; §5's fenced anchor was a truncated prefix, now the full line.
+The C6/I1 failures were machine contention, not code: the host's check run overlapped the
+run's own background CLEO evidence batch (two full suites at once) — the same suite passes
+165/0 in isolation, and the timing-sensitive failures (the registry unit test at 5.11ms,
+the command-ack form leg at 43s) are exactly the contention signature recorded in §10's
+evidence note. The rule going forward: no background evidence runs while a claim is
+pending — the host's checks own the machine then.
 
 ## 10. Defects filed (CLEO task ids) and the sign-off record
 
