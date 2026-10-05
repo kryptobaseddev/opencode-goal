@@ -5,7 +5,9 @@ import type { GoalView } from "../rpc"
 import { tracerLines } from "./tracer"
 
 export type Tone = "base" | "muted" | "success" | "warning" | "error" | "info"
-export type Line = { text: string; tone: Tone; bold?: boolean }
+/** T073: a row the width truncates names the panel tab holding its full
+ *  text — the compact card's expand affordance is click-through, not a hint. */
+export type Line = { text: string; tone: Tone; bold?: boolean; tab?: "now" | "progress" | "decisions" | "goals" }
 
 export const STATUS: Record<string, { icon: string; label: string; tone: Tone }> = {
   running: { icon: "▶", label: "running", tone: "success" },

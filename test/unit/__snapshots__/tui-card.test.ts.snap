@@ -1,0 +1,313 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`card readability (T073) compact and expanded rendering are snapshot-tested: compact-40 1`] = `
+[
+  {
+    "bold": true,
+    "text": "◎ Goal                    ⚑ needs review",
+    "tone": "warning",
+  },
+  {
+    "bold": true,
+    "tab": "decisions",
+    "text": "⚑ sign-off needed: C2 rejected 3 times …",
+    "tone": "error",
+  },
+  {
+    "bold": true,
+    "tab": "now",
+    "text": "Checkout stays fast under load",
+    "tone": "base",
+  },
+  {
+    "text": "criteria ■■■□□□□□□□ 1/4",
+    "tone": "muted",
+  },
+  {
+    "tab": "progress",
+    "text": "✗ C2 p95 stays under 250ms across 3 soa…",
+    "tone": "error",
+  },
+  {
+    "tab": "progress",
+    "text": "· C3 the fix is explained in plain lang…",
+    "tone": "muted",
+  },
+  {
+    "tab": "progress",
+    "text": "· I1 the full suite still passes",
+    "tone": "muted",
+  },
+  {
+    "tab": "now",
+    "text": "▸ S2 Remove the N+1 in loadCart",
+    "tone": "base",
+  },
+  {
+    "text": "turn 9 · 1.4M tok",
+    "tone": "muted",
+  },
+  {
+    "tab": "now",
+    "text": "↻ ran bench: p95 231ms (-38%)",
+    "tone": "muted",
+  },
+  {
+    "text": "↳ more (2 sections) — leader+g → Decisi…",
+    "tone": "info",
+  },
+]
+`;
+
+exports[`card readability (T073) compact and expanded rendering are snapshot-tested: compact-60 1`] = `
+[
+  {
+    "bold": true,
+    "text": "◎ Goal                                        ⚑ needs review",
+    "tone": "warning",
+  },
+  {
+    "bold": true,
+    "tab": "decisions",
+    "text": "⚑ sign-off needed: C2 rejected 3 times (/goal approve <C#>)",
+    "tone": "error",
+  },
+  {
+    "bold": true,
+    "tab": "now",
+    "text": "Checkout stays fast under load",
+    "tone": "base",
+  },
+  {
+    "text": "criteria ■■■□□□□□□□ 1/4",
+    "tone": "muted",
+  },
+  {
+    "tab": "progress",
+    "text": "✗ C2 p95 stays under 250ms across 3 soak runs of the full c…",
+    "tone": "error",
+  },
+  {
+    "tab": "progress",
+    "text": "· C3 the fix is explained in plain language",
+    "tone": "muted",
+  },
+  {
+    "tab": "progress",
+    "text": "· I1 the full suite still passes",
+    "tone": "muted",
+  },
+  {
+    "tab": "now",
+    "text": "▸ S2 Remove the N+1 in loadCart",
+    "tone": "base",
+  },
+  {
+    "text": "turn 9 · 1.4M tok",
+    "tone": "muted",
+  },
+  {
+    "tab": "now",
+    "text": "↻ ran bench: p95 231ms (-38%)",
+    "tone": "muted",
+  },
+  {
+    "text": "↳ more — leader+g → Progress",
+    "tone": "info",
+  },
+]
+`;
+
+exports[`card readability (T073) compact and expanded rendering are snapshot-tested: expanded-46 1`] = `
+[
+  {
+    "bold": true,
+    "text": "◎ GOAL ⚑ needs review — C2 rejected 3 times",
+    "tone": "warning",
+  },
+  {
+    "bold": true,
+    "tab": "now",
+    "text": "Checkout stays fast under load",
+    "tone": "base",
+  },
+  {
+    "bold": true,
+    "tab": "decisions",
+    "text": "⚑ sign-off needed: C2 rejected 3 times (/goal",
+    "tone": "error",
+  },
+  {
+    "text": "approve <C#>)",
+    "tone": "error",
+  },
+  {
+    "tab": "progress",
+    "text": "criteria ■■■□□□□□□□ 1/4",
+    "tone": "muted",
+  },
+  {
+    "tab": "progress",
+    "text": "✗ C C2 — p95 stays under 250ms across 3 soak",
+    "tone": "error",
+  },
+  {
+    "text": "runs of the full checkout path",
+    "tone": "error",
+  },
+  {
+    "text": "p95 312ms (run 2/3)",
+    "tone": "error",
+  },
+  {
+    "tab": "progress",
+    "text": "✓ C C1 — checkout tests green",
+    "tone": "success",
+  },
+  {
+    "tab": "progress",
+    "text": "· C C3 — the fix is explained in plain",
+    "tone": "muted",
+  },
+  {
+    "text": "language",
+    "tone": "muted",
+  },
+  {
+    "tab": "progress",
+    "text": "· I I1 — the full suite still passes",
+    "tone": "muted",
+  },
+  {
+    "bold": true,
+    "text": "plan",
+    "tone": "base",
+  },
+  {
+    "tab": "now",
+    "text": "S S1 ✓ Profile the slow path",
+    "tone": "success",
+  },
+  {
+    "tab": "now",
+    "text": "S S2 ▸ Remove the N+1 in loadCart",
+    "tone": "info",
+  },
+  {
+    "tab": "now",
+    "text": "S S3 · Document the change",
+    "tone": "muted",
+  },
+  {
+    "text": "turn 9 · 61m · 1.4M tok · $5.25",
+    "tone": "muted",
+  },
+  {
+    "tab": "now",
+    "text": "↻ ran bench: p95 231ms (-38%) → re-run the 3×",
+    "tone": "muted",
+  },
+  {
+    "text": "soak",
+    "tone": "muted",
+  },
+  {
+    "bold": true,
+    "text": "last verdict — failed",
+    "tone": "warning",
+  },
+  {
+    "text": "C2 FAILED [host] p95 312ms (run 2/3)",
+    "tone": "warning",
+  },
+]
+`;
+
+exports[`card readability (T073) compact and expanded rendering are snapshot-tested: expanded-80 1`] = `
+[
+  {
+    "bold": true,
+    "text": "◎ GOAL ⚑ needs review — C2 rejected 3 times",
+    "tone": "warning",
+  },
+  {
+    "bold": true,
+    "tab": "now",
+    "text": "Checkout stays fast under load",
+    "tone": "base",
+  },
+  {
+    "bold": true,
+    "tab": "decisions",
+    "text": "⚑ sign-off needed: C2 rejected 3 times (/goal approve <C#>)",
+    "tone": "error",
+  },
+  {
+    "tab": "progress",
+    "text": "criteria ■■■□□□□□□□ 1/4",
+    "tone": "muted",
+  },
+  {
+    "tab": "progress",
+    "text": "✗ C C2 — p95 stays under 250ms across 3 soak runs of the full checkout path",
+    "tone": "error",
+  },
+  {
+    "text": "p95 312ms (run 2/3)",
+    "tone": "error",
+  },
+  {
+    "tab": "progress",
+    "text": "✓ C C1 — checkout tests green",
+    "tone": "success",
+  },
+  {
+    "tab": "progress",
+    "text": "· C C3 — the fix is explained in plain language",
+    "tone": "muted",
+  },
+  {
+    "tab": "progress",
+    "text": "· I I1 — the full suite still passes",
+    "tone": "muted",
+  },
+  {
+    "bold": true,
+    "text": "plan",
+    "tone": "base",
+  },
+  {
+    "tab": "now",
+    "text": "S S1 ✓ Profile the slow path",
+    "tone": "success",
+  },
+  {
+    "tab": "now",
+    "text": "S S2 ▸ Remove the N+1 in loadCart",
+    "tone": "info",
+  },
+  {
+    "tab": "now",
+    "text": "S S3 · Document the change",
+    "tone": "muted",
+  },
+  {
+    "text": "turn 9 · 61m · 1.4M tok · $5.25",
+    "tone": "muted",
+  },
+  {
+    "tab": "now",
+    "text": "↻ ran bench: p95 231ms (-38%) → re-run the 3× soak",
+    "tone": "muted",
+  },
+  {
+    "bold": true,
+    "text": "last verdict — failed",
+    "tone": "warning",
+  },
+  {
+    "text": "C2 FAILED [host] p95 312ms (run 2/3)",
+    "tone": "warning",
+  },
+]
+`;

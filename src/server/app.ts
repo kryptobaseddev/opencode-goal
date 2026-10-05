@@ -134,12 +134,16 @@ export class GoalApp {
   private recover() {
     for (const slug of this.store.slugs()) {
       const state = this.store.readRun(slug)
-      if (!state || isTerminal(state.status)) continue
+      if (!state) continue
       if (isActive(state.status)) {
         setStatus(state, "paused", "host restarted; resume when ready")
         this.store.ledger(slug, { type: "recovered", status: "paused" })
         this.store.writeRun(state)
       }
+      // T072: EVERY goal on disk — terminal ones included — is mirrored in
+      // memory. A re-attaching TUI's snapshot then reads the disk truth
+      // (complete/N) instead of nothing, so a server reload can never strand
+      // the sidebar card at its last pre-restart view.
       this.runs.set(state.sessionID, state)
     }
   }
@@ -916,10 +920,18 @@ export class GoalApp {
     if (outcome.passed) {
       setStatus(state, "complete", "all required criteria verified")
       this.store.ledger(state.slug, { type: "complete", turn: state.turn })
+      // T072: the terminal write happens BEFORE the reporting layer. The
+      // complete state used to reach disk only inside summarize()'s try —
+      // a reporting failure stranded the run as a zombie "running" on disk,
+      // and the next server reload recovered it into "paused" while the run
+      // had actually finished: the stale paused/20-of-22 card. persist() also
+      // pushes the final `updated` event, so a live TUI converges even if it
+      // never sees another transition.
+      this.persist(state)
       const summary = await this.summarize(state, contract)
       this.noticeM(state.sessionID, M.complete(contract.title, summary ? summary.caveats.length + summary.scopeAudit.length : 0))
       this.decide(state.sessionID, state.slug, "complete", M.completeDecision(contract.title, Boolean(await cleoFacts(this.root, defaultRunner)), summary?.scopeAudit.length ?? 0))
-      await this.transcript(state.sessionID, `◎ Goal complete — "${contract.title}". Every required criterion was verified by the host${contract.verification.mode !== "host" ? " and the independent verifier" : ""}.`)
+      await this.transcript(state.sessionID, `◎ Goal complete — "${contract.title}". Every required criterion was verified by the host${contract.verification.mode !== "host" ? " and the independent verifier" : ""}. The loop has stopped; follow-ups live in the summary dialog and .opencode/goals/${state.slug}/.`)
       return
     }
     const onlyHuman = outcome.integrity.length === 0 && outcome.results.every((r) => r.pass || r.by === "human" || !this.required(contract).has(r.id))

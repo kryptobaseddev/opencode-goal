@@ -8,7 +8,7 @@ import { createStore, reconcile } from "solid-js/store"
 import { GoalRpc, type GoalView } from "../rpc"
 import { bannerText, pillText, statusText, type Tone } from "./format"
 import { tracerLines } from "./tracer"
-import { cardCompactLines, dashboardLines, decisionRows, dialogDigest, DASHBOARD_TABS, type DashboardTab } from "./dashboard"
+import { cardAffordanceTab, cardCompactLines, dashboardLines, decisionRows, dialogDigest, DASHBOARD_TABS, type DashboardTab } from "./dashboard"
 
 type Context = Plugin.Context
 
@@ -124,10 +124,16 @@ export default {
 
     // T056: the panel opens ON DEMAND (the v0.2 auto-open displaced the
     // sidebar); the toggle command is keybindable beside OpenCode's
-    // session.sidebar toggle.
+    // session.sidebar toggle. T073: opening from the card's expand affordance
+    // lands on the tab whose content the sidebar truncated — the affordance
+    // is a click-through, not a dead hint.
     let panelOpen = false
     const openPanel = () => {
       panelOpen = true
+      const id = currentSession()
+      const v = id ? views[id] : undefined
+      const target = v ? cardAffordanceTab(v, now(), SIDEBAR_WIDTH) : undefined
+      if (target) setTab(target)
       context.ui.panel.open(PANEL_NAME)
     }
     const togglePanel = () => {
