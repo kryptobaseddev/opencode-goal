@@ -28,6 +28,8 @@ export function goalHelp({ version }: HelpFacts): string {
     "- `goal_status` / `goal_validate` — read-only checks",
     "- `goal_verdict` — reserved for the read-only verifier child; never available to the worker",
     "",
+    "All `goal_*` tools are called **directly by name** — they are not registered with Code Mode, so `search()`/`tools.*` inside `execute` will never find them (a routing attempt returns an unrelated Unknown-tool error).",
+    "",
     "## Storage layout (per project)",
     "- `.opencode/goals/<slug>/goal.yaml` — the locked contract (sha256)",
     "- `.opencode/goals/<slug>/run.json` — live run state; `ledger.jsonl` — every event, append-only",

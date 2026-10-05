@@ -100,7 +100,7 @@ export function checkQuotes(root: string, verdict: VerifierVerdict): { ok: boole
   return { ok: true }
 }
 
-export async function verifyClaim(contract: Contract, state: RunState, deps: { root: string; contractText: string; verifier?: VerifierRun; shell?: typeof runShell }): Promise<VerifyOutcome> {
+export async function verifyClaim(contract: Contract, state: RunState, deps: { root: string; contractText: string; verifier?: VerifierRun; shell?: typeof runShell; onProgress?: (activity: RunState["activity"]) => void }): Promise<VerifyOutcome> {
   const { root } = deps
   const integrity: string[] = []
   if (lockOf(deps.contractText) !== state.lock)
@@ -117,12 +117,15 @@ export async function verifyClaim(contract: Contract, state: RunState, deps: { r
   // a stale check (the live C15 needle case) must never stomp an explicit
   // sign-off. The owner outranks every automated re-verification.
   const ownerFinal = (id: string) => state.criteria[id]?.status === "pass" && state.criteria[id]?.by === "human"
-  for (const c of [...contract.criteria, ...contract.invariants]) {
-    if (!isHostCheck(c.check)) continue
+  const checkable = [...contract.criteria, ...contract.invariants].filter((c) => isHostCheck(c.check))
+  for (const [index, c] of checkable.entries()) {
     if (ownerFinal(c.id)) {
       results.push({ id: c.id, pass: true, by: "human", detail: "approved by the owner (final)" })
       continue
     }
+    // T063: the tracer shows live per-criterion progress through the checks
+    state.activity = { kind: "verifying", since: state.activity?.since ?? Date.now(), detail: `check ${c.id} · ${index + 1}/${checkable.length}` }
+    deps.onProgress?.(state.activity)
     const r = await runHostCheck(c.check, root, state.base.commit, deps.shell)
     results.push({ id: c.id, pass: r.pass, by: "host", detail: r.detail, raw: r.raw })
   }

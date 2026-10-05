@@ -39,7 +39,7 @@ export function tracerLines(view: GoalView, now: number, width = 40): Line[] {
     case "verifier-child":
       return [{ text: fit(`${spinFrame(now)} verifier child running — ${elapsedText}${a.detail ? ` · ${a.detail}` : ""}`, width), tone: "info" }]
     case "verifying":
-      return [{ text: fit(`${spinFrame(now)} verifying the claim — ${elapsedText} (host checks, then the verifier child)`, width), tone: "info" }]
+      return [{ text: fit(`${spinFrame(now)} verifying the claim — ${elapsedText}${a.detail ? ` · ${a.detail}` : " (host checks, then the verifier child)"}`, width), tone: "info" }]
     case "waiting":
       return [{ text: fit(`◷ waiting — ${leftText ?? elapsedText}${left !== undefined ? " left" : ""}${a.detail ? ` · ${a.detail}` : ""}`, width), tone: "info" }]
     case "cooldown":

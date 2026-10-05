@@ -53,6 +53,12 @@ describe("activity tracer (T053)", () => {
     expect(child[0]!.text).toContain("fixture/test#default")
   })
 
+  test("T063: verifying carries live per-criterion progress instead of the static phrase", () => {
+    const line = tracerLines({ ...base, status: "verifying", activity: { kind: "verifying" as const, since: T0 - 41_000, detail: "check C7 · 7/22" } }, T0, 80)
+    expect(line[0]!.text).toContain("verifying the claim — 41s · check C7 · 7/22")
+    expect(line[0]!.text).not.toContain("host checks, then")
+  })
+
   test("waits and cooldowns count down to their deadline", () => {
     const waiting = tracerLines({ ...base, status: "waiting", activity: { kind: "waiting" as const, since: T0 - 10_000, until: T0 + 130_000, detail: "build running" } }, T0)
     expect(waiting[0]!.text).toContain("waiting")

@@ -655,7 +655,7 @@ export class GoalApp {
         this.noticeM(state.sessionID, M.pausedUserMessage())
       } else {
         state.steers += 1
-        this.store.ledger(state.slug, { type: "steer", text: String(data.item?.payload?.text ?? "").slice(0, 280) })
+        this.store.ledger(state.slug, { type: "steer", text: String(data.item?.payload?.text ?? "").slice(0, 1000) })
       }
       this.persist(state)
     } else if (state.status === "paused" && state.reason?.startsWith("interrupted") && contract?.autonomy.on_interrupt === "resume-on-message") {
@@ -805,7 +805,17 @@ export class GoalApp {
     this.persist(state)
     this.noticeM(state.sessionID, M.verifying())
     const text = existsSync(this.store.contractPath(state.slug)) ? readFileSync(this.store.contractPath(state.slug), "utf8") : ""
-    const outcome = await verifyClaim(contract, state, { root: this.root, contractText: text, verifier: (input) => this.runVerifier(input) })
+    const outcome = await verifyClaim(contract, state, {
+      root: this.root,
+      contractText: text,
+      verifier: (input) => this.runVerifier(input),
+      // T063: every host check refreshes the activity so the tracer shows
+      // live progress (check C7 · 7/22) instead of a static "verifying" line
+      onProgress: (activity) => {
+        state.activity = activity
+        this.persist(state)
+      },
+    })
     const now = Date.now()
     for (const r of outcome.results) {
       const prev = state.criteria[r.id] ?? { status: "unknown" as const, rejections: 0 }
@@ -1365,9 +1375,13 @@ export class GoalApp {
   // ───────────────────────────── worker tools (S7: native names, codemode off)
 
   private async registerTools() {
+    // T062: goal tools are registered codemode:false — they never exist in
+    // Code Mode's catalog. A live run mis-routed goal_claim through `execute`
+    // and got a misleading Unknown-tool error, so every description says so.
+    const hint = " Called directly by name — never available inside Code Mode/execute."
     const tool = (name: string, description: string, input: Record<string, unknown>, execute: (args: any, context: any) => Promise<string | Record<string, unknown>>, extra: Record<string, unknown> = {}) => ({
       name,
-      description,
+      description: `${description}${hint}`,
       options: { namespace: "goal", codemode: false, ...extra },
       input: { type: "object", additionalProperties: false, ...input },
       execute: async (args: any, context: any) => {
