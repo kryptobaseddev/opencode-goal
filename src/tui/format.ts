@@ -68,6 +68,8 @@ export function cardLines(view: GoalView, now: number, width = 40, maxCriteria =
   const head = "◎ Goal"
   const right = `${st.icon} ${st.label}`
   lines.push({ text: `${head}${" ".repeat(Math.max(1, width - head.length - right.length))}${right}`, tone: st.tone, bold: true })
+  // T052: the action-required line persists until the status resolves.
+  if (view.actionRequired) lines.push({ text: fit(`⚑ ACTION: ${view.actionRequired}`, width), tone: "error", bold: true })
   lines.push({ text: fit(view.title, width), tone: "base", bold: true })
   const total = view.criteria.length
   lines.push({ text: `criteria ${bar(proven(view), total)} ${proven(view)}/${total}`, tone: proven(view) === total && total ? "success" : "muted" })

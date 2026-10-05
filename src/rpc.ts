@@ -84,6 +84,8 @@ export type GoalView = {
   blocker?: { key: string; count: number; reason: string; needs?: string }
   wait?: { until: number; reason: string }
   awaitingUser: boolean
+  /** T052: persistent owner-action-required state — stays until the status resolves. */
+  actionRequired?: string
   amendments: number
   flags: number
   updatedAt: number

@@ -234,6 +234,15 @@ export class GoalApp {
       ...(state.blocker ? { blocker: { key: state.blocker.key, count: state.blocker.count, reason: state.blocker.reason, ...(state.blocker.needs ? { needs: state.blocker.needs } : {}) } } : {}),
       ...(state.wait ? { wait: state.wait } : {}),
       awaitingUser: this.factsOf(state.sessionID).forms.size > 0,
+      // T052: derived from the persisted status — the sidebar keeps showing it
+      // until the owner resolves the decision, never a transient toast.
+      ...(state.status === "needs_review"
+        ? { actionRequired: `sign-off needed: ${state.reason?.replace("owner sign-off needed: ", "") ?? "criteria await your decision"} (/goal approve <C#>)` }
+        : state.status === "blocked"
+          ? { actionRequired: `blocked on ${state.blocker?.key ?? "owner decision"}: ${state.blocker?.reason ?? state.reason ?? ""}${state.blocker?.needs ? ` — needs ${state.blocker.needs}` : ""}` }
+          : state.status === "budget_limited"
+            ? { actionRequired: `budget used: raise the budget and amend, or abort (${state.reason ?? ""})` }
+            : {}),
       amendments: state.amendments.filter((a) => a.status === "proposed").length,
       flags: state.flags.length,
       updatedAt: state.updatedAt,
@@ -448,6 +457,7 @@ export class GoalApp {
     this.persist(state)
     this.emitUpdate(state)
     this.noticeM(state.sessionID, M.amended(generation, summary))
+    await this.transcript(state.sessionID, `◎ owner amended the contract (generation ${generation}): ${summary}. Changed criteria reset to unknown and re-verify on the next claim; re-read the contract before acting.`)
     return `Amended ${state.slug} (generation ${generation}): ${summary}. Changed criteria reset to unknown and re-verify on the next claim.`
   }
 
@@ -663,6 +673,7 @@ export class GoalApp {
       setStatus(state, "budget_limited", "budget used; wrap-up turn done")
       this.store.ledger(state.slug, { type: "budget_limited" })
       this.decide(state.sessionID, state.slug, "budget_limited", M.budgetStopped(contract.title))
+      await this.transcript(state.sessionID, `◎ budget used (${contract.title}). The owner decides: raise the budget in goal.yaml and amend, or abort. Do not start new work.`)
       await this.summarize(state, contract)
       return this.persist(state)
     }
@@ -681,6 +692,7 @@ export class GoalApp {
       setStatus(state, "blocked", `${state.blocker.key}: ${state.blocker.reason}`)
       this.store.ledger(state.slug, { type: "blocked", blocker: state.blocker })
       this.decide(state.sessionID, state.slug, "blocked", M.blocked(String(state.blocker.key), String(state.blocker.reason), state.blocker.needs), { blocker: state.blocker })
+      await this.transcript(state.sessionID, `◎ blocked on ${state.blocker.key}: ${state.blocker.reason}${state.blocker.needs ? ` (needs ${state.blocker.needs})` : ""}. Only the owner can resolve this; stop working around it and wait.`)
       return this.persist(state)
     }
 
@@ -694,6 +706,7 @@ export class GoalApp {
       }
       setStatus(state, "budget_limited", backstop ? `backstop of ${this.options.backstopTurns} turns reached` : "budget used")
       this.decide(state.sessionID, state.slug, "budget_limited", M.budgetStopped(contract.title))
+      await this.transcript(state.sessionID, `◎ budget used (${contract.title}). The owner decides: raise the budget in goal.yaml and amend, or abort. Do not start new work.`)
       await this.summarize(state, contract)
       return this.persist(state)
     }
@@ -826,6 +839,9 @@ export class GoalApp {
     }
     setStatus(state, "running")
     this.noticeM(state.sessionID, M.claimRejected(state.verdict?.lines?.find((l) => !l.startsWith("INTEGRITY"))?.split("\n")[0] ?? "see the HOST VERDICT lines"))
+    // T052: the verdict lands as a transcript notice row the agent reads next
+    // turn — persistent, not a toast.
+    await this.transcript(state.sessionID, `◎ HOST VERDICT — did not pass: ${state.verdict?.lines.find((l) => !l.startsWith("INTEGRITY"))?.split("\n")[0] ?? "see the verdict lines"}.\n${state.verdict?.lines.slice(0, 5).join("\n")}\nFix the failed criteria, then goal_claim again.`)
     await this.admit(state, "verdict")
   }
 
@@ -989,6 +1005,7 @@ export class GoalApp {
         this.runs.set(sessionID, target)
         this.store.ledger(target.slug, { type: "attached", from, to: sessionID, by: "owner" })
         this.noticeM(sessionID, M.attached(target.title, target.status))
+        await this.transcript(sessionID, `◎ owner attached the goal "${target.title}" (${target.status}) to this session. It continues here from now on — re-read the contract and run.json before acting.`)
         this.persist(target)
         this.emitUpdate(target)
         return { ok: true, message: `Goal "${target.slug}" attached to this session (${target.status}).` }
@@ -1019,6 +1036,7 @@ export class GoalApp {
           setStatus(state, "paused", "paused by you")
           this.store.ledger(state.slug, { type: "paused", reason: "owner" })
           this.persist(state)
+          await this.transcript(state.sessionID, `◎ owner paused the goal (${state.title}). Stand by; the owner resumes it with /goal resume.`)
           return { ok: true, message: `Goal paused: ${state.title} — /goal resume · /goal abort` }
         case "resume": {
           state.counters = { noProgress: 0, failures: 0 }
@@ -1029,6 +1047,7 @@ export class GoalApp {
           state.fingerprint = fingerprint(this.root)
           this.store.ledger(state.slug, { type: "resumed", by: "owner" })
           this.persist(state)
+          await this.transcript(state.sessionID, `◎ owner resumed the goal. Re-read the contract and the current repository state, then continue from the first unfinished step.`)
           if (!this.factsOf(sessionID).busy) await this.admit(state, "resume")
           return { ok: true, message: `Goal resumed: ${state.title} — /goal status · /goal pause` }
         }
@@ -1037,6 +1056,7 @@ export class GoalApp {
           setStatus(state, "aborted", "aborted by you")
           this.store.ledger(state.slug, { type: "aborted", reason: "owner" })
           this.persist(state)
+          await this.transcript(state.sessionID, `◎ owner aborted the goal (${state.title}). Stop working on it; the ledger and evidence stay on disk.`)
           return { ok: true, message: `Goal aborted: ${state.title} — /goal archive (history intact) · /goal new <next>` }
         case "amend": {
           if (!contract) return { ok: false, message: "contract unavailable" }
@@ -1070,10 +1090,17 @@ export class GoalApp {
           this.store.ledger(state.slug, { type: action, criterion: criterion.id })
           if (state.status === "needs_review" && action === "approve" && contract) {
             this.persist(state)
+            await this.transcript(state.sessionID, `◎ owner approved ${criterion.id} (final — never re-checked). ${criterion.statement}`)
             await this.verify(state, contract, "owner")
             return { ok: true, message: `${criterion.id} approved; goal is ${state.status} — /goal verify · /goal status` }
           }
           this.persist(state)
+          await this.transcript(
+            state.sessionID,
+            action === "approve"
+              ? `◎ owner approved ${criterion.id} (final — never re-checked). ${criterion.statement}`
+              : `◎ owner rejected ${criterion.id}: ${(arg ?? "").slice(id.length).trim() || "no reason given"}. Address the reason or flag the criterion if it is impossible as written.`,
+          )
           return { ok: true, message: `${criterion.id} ${action === "approve" ? "approved" : "rejected"} — /goal verify · /goal status` }
         }
       }
