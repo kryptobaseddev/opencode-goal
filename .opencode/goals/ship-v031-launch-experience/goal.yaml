@@ -1,0 +1,313 @@
+schema: goal/v1
+id: ship-v031-launch-experience
+title: 'v0.3.1 launch experience: live palette, clean start, pickers, real decisions'
+intent:
+  verbatim: 'ship the v0.3.1 launch experience you must continue your dogfood buildout @docs/HANDOFF.md'
+why: >-
+  The owner's 2026-10-05 directive: everything 100% ready to push as a launch release. The last
+  run proved the feedback loop end-to-end but exposed the launch-experience gaps as LIVE defects:
+  a dead command palette, decision dialogs that never reached the owner as usable options, a
+  complete decision offering only Archive, no clean-start launch path, no start picker, and no
+  priority ordering. This run fixes all of them, proves them on a real pty (not just the harness
+  rpc boundary), wraps the session (T024 + archives), and ships exactly one v0.3.1 release.
+outcome: >-
+  opencode-goal v0.3.1 is tagged on GitHub and installed in the owner's OpenCode before the
+  completing claim: Goal commands appear in the command palette on the owner's live TUI
+  (pty-proven, not just simulated), the launch ask offers an engine-driven clean start in a
+  fresh goal-owned session beside the existing two options, /goal start with no argument opens
+  a startable-goal picker with an empty state, goals carry optional low/medium/high priority
+  through contract, registry, lists, palette, picker and the write-goal interview, decision
+  points leave a ledger trail and render as sequenced screen-fit dialogs with selectable
+  choices (decision first, summary digest after), completion offers start-next-goal and
+  guidance rows beside Archive, the verifier timeout defaults to 240s and stays configurable,
+  T024 closes with its 18 ACs evidence-bound and both finished dogfood runs sit in the archive
+  tier — with this run's own verified completion under the installed v0.3.1 as the live proof.
+non_goals:
+  - 'Relay mode, goal queues, home-screen board, Claude Code / Codex adapters, headless runner (HANDOFF backlog)'
+  - 'npm publishing — git install only'
+  - 'Any change to the owner''s global OpenCode install during the run beyond the single release-step reinstall'
+  - 'A hard CLEO dependency — the CLEO link stays optional and CLI-only'
+  - 'Staged or intermediate release tags — exactly one v0.3.1 end release'
+  - 'Web/desktop surfaces beyond the existing RPC contract'
+criteria:
+  - id: C1
+    statement: >-
+      Live-TUI gate (T064 + T065's outstanding pty check + T066's render proof): a deterministic
+      pty smoke boots a real TUI against an isolated host and asserts all three observed live
+      defects are gone — Goal commands present in the palette probe, dialogs render within
+      screen bounds (screen-fit digest), and decision rows are visible and keyboard-selectable
+    check:
+      kind: command
+      run: 'bun scripts/tui-smoke.ts --assert'
+      expect: { exit: 0 }
+      live: true
+      timeout: 600
+  - id: C2
+    statement: >-
+      Clean start (T059): /goal start <slug> fresh (or the engine equivalent) creates a new
+      session, pins the run to THAT session, and prompts the kickoff there while the original
+      session stays untouched — host scenario end-to-end, interacting correctly with the T049
+      session-pinning fix
+    check:
+      kind: command
+      run: 'bun test ./test/host/clean-start.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C3
+    statement: >-
+      The write-goal launch ask offers 3 options — Start goal now, Start in a fresh session,
+      and Start clean — where the third states that the engine opens a new session owned by
+      the goal (never claiming the current one is cleared)
+    check:
+      kind: contains
+      path: skills/write-goal/SKILL.md
+      text: 'Start clean'
+  - id: C4
+    statement: >-
+      Start picker (T060): no-arg /goal start lists startable goals (this project,
+      non-archived, with title and validation state) as a keyboard-selectable dialog wired to
+      the existing start path via the T050 machinery; empty state offers /goal new instead —
+      host scenario driving a start through the picker
+    check:
+      kind: command
+      run: 'bun test ./test/host/start-picker.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C5
+    statement: >-
+      The composer-completions spike verdict is recorded in the observed-behaviour oracle:
+      whether OpenCode exposes dynamic command-argument completions, and which surface shipped
+      because of it
+    check:
+      kind: contains
+      path: docs/spikes.md
+      text: composer-completions
+  - id: C6
+    statement: >-
+      Priority in the contract (T061): optional low/medium/high validated in goal/v1, carried
+      into the registry entry, absent-priority sorting last by updatedAt — unit tests
+    check:
+      kind: command
+      run: 'bun test ./test/unit/priority.test.ts'
+      expect: { exit: 0 }
+  - id: C7
+    statement: >-
+      Priority surfaces (T061): /goal list, the palette goal lists and the start picker sort by
+      priority then updatedAt — host scenario
+    check:
+      kind: command
+      run: 'bun test ./test/host/priority.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C8
+    statement: >-
+      The write-goal interview asks for priority when the project already has a live goal
+      (informed by the registry) — the question bank carries the Priority question
+    check:
+      kind: contains
+      path: skills/write-goal/references/interview.md
+      text: Priority
+  - id: C9
+    statement: >-
+      Decision ledger + sequencing (T066): every decision emission leaves a ledger trace
+      (kind, message, choices, resolution), and at a transition the decision dialog renders
+      first with the summary following as a screen-fit digest — host scenario proving the
+      ledger trail and the dialog order
+    check:
+      kind: command
+      run: 'bun test ./test/host/decision-ledger.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C10
+    statement: >-
+      Complete-decision choices (T067): completion offers more than Archive — a start-next-goal
+      rpc act that dispatches the write-goal interview prompt, non-act choices rendered as
+      visible guidance rows instead of dropped, and the dialog copy states whether approve
+      triggers verify — host scenario
+    check:
+      kind: command
+      run: 'bun test ./test/host/complete-decision.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C11
+    statement: >-
+      Verifier timeout (housekeeping): the default verifier round budget is 240s AND
+      configurable (verifierTimeoutMs through plugin/project config) — unit tests pinning both
+      the default and the override
+    check:
+      kind: command
+      run: 'bun test ./test/unit/verifier-timeout.test.ts'
+      expect: { exit: 0 }
+  - id: C12
+    statement: >-
+      T024 (the v0.3 epic) closes: all 18 v0.2-era ACs bound with programmatic evidence and
+      the task reaches done in CLEO
+    check:
+      kind: command
+      run: 'cleo show T024 --field /data/task/status'
+      expect: { stdout_contains: done }
+  - id: C13
+    statement: >-
+      The finished dogfood-buildout run (complete since 2026-10-04) sits in the archive tier
+      beside ship-v03-feedback-loop — history intact, live lists clean
+    check:
+      kind: file
+      path: .opencode/goals-archive/dogfood-buildout/goal.yaml
+      exists: true
+  - id: C14
+    statement: >-
+      package.json is semantically bumped for the v0.3.1 line (T055 prefix rule; the needle
+      has no trailing dot — a plain 0.3.1 must match)
+    check:
+      kind: command
+      run: 'node -e "process.exit(require(''./package.json'').version.startsWith(''0.3.1'')?0:1)"'
+      expect: { exit: 0 }
+  - id: C15
+    statement: >-
+      CHANGELOG.md carries the v0.3.1 release entry (heading needle — bare "0.3.1" already
+      appears incidentally inside a council-run path on line 32)
+    check:
+      kind: contains
+      path: CHANGELOG.md
+      text: '## 0.3.1'
+  - id: C16
+    statement: The pushed v0.3.1 tag installs from git in an isolated OpenCode
+    check:
+      kind: command
+      run: 'OCGOAL_GIT_INSTALL=1 OCGOAL_GIT_SPEC="github:kryptobaseddev/opencode-goal#v0.3.1" bun test ./test/host/git-install.test.ts'
+      expect: { exit: 0 }
+      live: true
+      timeout: 600
+  - id: C17
+    statement: >-
+      docs/dogfood-4.md exists and quotes this run's own verification evidence (a real child
+      verdict, fallback or transcript artifact)
+    check:
+      kind: contains
+      path: docs/dogfood-4.md
+      regex: 'goal_verdict|verifier-fallback|verifier-transcript'
+  - id: C18
+    statement: >-
+      The dogfood-4 findings are grounded: every claim traceable to this run's ledger/evidence
+      and defects filed with ids — judged by the verifier child on the main host
+    check:
+      kind: verifier
+      ask: >-
+        Read docs/dogfood-4.md and this run's
+        .opencode/goals/ship-v031-launch-experience/ledger.jsonl and evidence/. Judge: does the
+        doc ground its claims (the live pty gate results for palette/dialogs/decisions, the
+        clean-start and picker behaviour, the reinstall gate, a real verifier verdict from the
+        child on the main host) and list defects with CLEO task ids? List anything missing or
+        unsupported.
+invariants:
+  - id: I1
+    statement: The full test suite SHALL CONTINUE TO pass
+    check:
+      kind: command
+      run: 'bun test'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: I2
+    statement: The typecheck SHALL CONTINUE TO pass
+    check:
+      kind: command
+      run: 'bun run typecheck'
+      expect: { exit: 0 }
+  - id: I3
+    statement: >-
+      The test harness and the council audit trails SHALL NOT change (docs/spikes.md is
+      deliberately NOT protected this run — the T060 composer-completions verdict must land
+      there; see A3)
+    check:
+      kind: diff
+      paths: ['test/host/harness.ts', '.cleo/council-runs']
+protect: ['test/host/harness.ts', '.cleo/council-runs/**']
+scope:
+  in:
+    - 'Live TUI: palette diagnosis + fix (T064), deterministic pty gate covering dialogs-bounds (T065 live check) and decision rendering (T066 render)'
+    - 'Launch: clean start in a fresh goal-owned session + skill ask copy (T059), no-arg start picker + empty state + composer-completions spike verdict (T060)'
+    - 'Ordering: low/medium/high priority through contract, registry, /goal list, palette, picker, interview (T061)'
+    - 'Decisions: ledger trail + decision-first/summary-digest sequencing (T066), complete-decision start-next-goal act + guidance rows + verify-copy (T067)'
+    - 'Engine: verifier timeout default 240s + verifierTimeoutMs override (housekeeping row 8)'
+    - 'Wrap-up: T024 18-AC evidence bindings + complete, archive dogfood-buildout, commit the ship-v03 archive move'
+    - 'Closeout: release v0.3.1 with the owner-reinstall gate, dogfood-4, CLEO completes'
+  out:
+    - 'Everything in non_goals'
+constraints:
+  - 'OpenCode 2 only; plain-object default export; @opencode/* imports are types only'
+  - 'Keep the system block byte-stable within a run; volatile status goes in the per-turn tail note'
+  - 'Every behaviour change to the loop gets a host scenario'
+  - 'Commits: type(T###): summary — every commit references a CLEO task (hooks enforce)'
+  - 'setup can run twice per location; everything registered must be disposed in stop()'
+  - 'Every command check stays on a single line and is rehearsed before any claim (lesson from run 0ffe5ac6e001)'
+  - 'Engine-version rule: the release step ends with the owner reinstalling v0.3.1 (plugin remove/add + reload) BEFORE the completing claim; the run blocks externally until confirmed'
+plan:
+  - {id: S1, title: 'Diagnose + fix the palette on the real TUI; harden scripts/tui-smoke.ts --assert into the deterministic pty gate (T064, T065 live check)', proves: [C1]}
+  - {id: S2, title: 'Clean start: engine fresh-session start + run pinning + kickoff prompt; skill ask third option (T059)', proves: [C2, C3]}
+  - {id: S3, title: 'Start picker: no-arg /goal start dialog + empty state; composer-completions spike verdict into spikes.md (T060)', proves: [C4, C5]}
+  - {id: S4, title: 'Priority: low/medium/high through validator, registry, list/palette/picker sorting, interview question (T061)', proves: [C6, C7, C8], depends_on: [S3]}
+  - {id: S5, title: 'Decision ledger trail + decision-first/summary-digest sequencing at transitions (T066)', proves: [C9, C1], depends_on: [S1]}
+  - {id: S6, title: 'Complete decision: start-next-goal rpc act, guidance rows, approve-triggers-verify copy (T067)', proves: [C10, C1], depends_on: [S5]}
+  - {id: S7, title: 'Verifier timeout: 240s default + verifierTimeoutMs override, unit-pinned (housekeeping)', proves: [C11]}
+  - {id: S8, title: 'Wrap-up: T024 evidence bindings + complete; archive dogfood-buildout; commit the ship-v03 archive move (T024)', proves: [C12, C13]}
+  - {id: S9, title: 'Release v0.3.1: bump, changelog, tag, push, git-install proof, owner reinstall gate', proves: [C14, C15, C16], depends_on: [S1, S2, S3, S4, S5, S6, S7, S8]}
+  - {id: S10, title: 'dogfood-4 from this run; CLEO completes T059-T067; final claim under installed v0.3.1', proves: [C17, C18], depends_on: [S9]}
+assumptions:
+  - id: A1
+    text: >-
+      Every new command-check target starts as a committed red stub before /goal start: the
+      seven new test files fail honestly, and scripts/tui-smoke.ts --assert exits 1 until the
+      gate is real (bun exits 0 on a filter matching no files — the vacuous-green lesson)
+    rationale: recon 2026-10-05; v0.3.0 A1 precedent
+    reversible: true
+  - id: A2
+    text: 'Single end release: exactly one tag (v0.3.1) when all criteria are green; no staged tags'
+    rationale: owner decisions 2026-10-03 and 2026-10-04, carried
+    reversible: true
+  - id: A3
+    text: >-
+      The protect list narrows this run: docs/spikes.md is editable because T060's
+      composer-completions verdict must land in the observed-behaviour oracle; the test harness
+      and council trails stay locked
+    rationale: T060 acceptance names spikes.md; prior runs locked it because no task needed it
+    reversible: true
+  - id: A4
+    text: >-
+      Carried from both prior contracts: autonomy questions defer, owner messages steer,
+      interrupts pause; verification host+verifier with max_rejections 3
+    rationale: owner precedent 2026-10-03/04; no change signalled
+    reversible: true
+  - id: A5
+    text: >-
+      CLEO stays the decomposition source of truth: each plan step completes its mapped task
+      with evidence atoms before the step is done; the correlation table lives in context.md
+    rationale: owner directive 2026-10-03
+    reversible: false
+  - id: A6
+    text: >-
+      The version needle is startsWith(''0.3.1'') with NO trailing dot — the handoff §4.3 line
+      wrote ''0.3.1.'' which never matches a plain 0.3.1 release; T055's intent (patch releases
+      in the line stay green) is preserved either way
+    rationale: rehearsal showed the literal needle would be permanently red
+    reversible: true
+  - id: A7
+    text: >-
+      The run starts under the installed v0.3.0 engine; mid-run owner approvals are avoided —
+      decisions defer to the completing round under the reinstalled v0.3.1 (the defects T066
+      fixes are live until then)
+    rationale: dogfood-3 A6 precedent; the completing round runs the fixed engine
+    reversible: false
+stop:
+  escalate_when:
+    - 'The palette investigation concludes OpenCode cannot surface plugin-registered keymap commands (upstream limitation) — stop with the finding; the owner amends (ship best reachable surface vs wait upstream)'
+    - 'The pty gate cannot be made deterministic after the fixes (flaky capture infra) — stop with the finding, do not weaken the criterion silently'
+    - 'git push or the tag is rejected, or the git-install test fails against the pushed v0.3.1'
+    - 'An OpenCode TUI API this work depends on (keymap layers, palette command flags, dialog primitives, composer completions) is absent or changed in the installed OpenCode — stop with the design question'
+    - 'The verifier child still times out at the 240s default on the main host — file the defect and stop for the owner decision on provider or budget'
+verification:
+  mode: host+verifier
+  max_rejections: 3
+autonomy:
+  questions: defer
+  on_user_message: steer
+  on_interrupt: pause
