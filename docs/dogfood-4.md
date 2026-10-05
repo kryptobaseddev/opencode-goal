@@ -118,6 +118,21 @@ T044's empty-exchange handling path (no retry needed — `retried: false`, one r
 transcript persistence that makes a silent child diagnosable. The completing claim runs under
 the owner-reinstalled v0.3.1 per the engine-version rule.
 
+**Verbatim ledger anchor** — full lines from this run's `ledger.jsonl` (1-based), so every
+traceability claim above can be quote-checked byte-for-byte:
+
+```json
+{"t":1791174561882,"type":"start","runId":"10a52d01a001","sessionID":"ses_ef633b638ffe7sq52H7SR6lKFW","source":"command","lock":"19fcd8af0f6d58232eeaf7350f6b038930b037eba2255f860a47472faa43a140","commit":"b93cd8f0bc97f07702a5f345480fccc6966f0936"}
+```
+
+```json
+{"t":1791178405067,"type":"progress","turn":1,"step":"S1","done":true,"note":"S1 DONE: T064 fixed with mode:global (fdba1bb) — layer defaulted to mode:base, unreachable under the palette's modal layer. Pty gate green 3/3 runs, 7/7 assertions (palette 7 Goal commands; dialog rows screen-fit; Enter dispatched a real resume). Spikes S25/S26 recorded. Suite 138 pass/1 skip, 8 fails = A1 stubs; T064 completions batch at suite-green.","next":"S2 (T068): launch-approval robustness — tolerant label match, restart-durable approval, diagnosable refusal, reconcile skill rules 1+6, host scenario replacing the red stub."}
+```
+
+(The progress note is capped at 400 chars by the engine's own field limit; line 2 is the
+run's start — lock `19fcd8af…` and base commit `b93cd8f` exactly as §1 claims. Both blocks
+above are the ledger's own bytes.)
+
 ## 8. Defects filed from this run
 
 - **T068** — launch approval: byte-exact label, in-memory state, undiagnosable refusal (fixed
