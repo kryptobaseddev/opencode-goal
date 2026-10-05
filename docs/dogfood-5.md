@@ -111,8 +111,11 @@ route (`ctrl+p` → "Goal: toggle dashboard") opened the panel every time; a hos
 `tui.json` `{"keybinds": {"goal.panel": "leader+g"}}` did not dispatch either. After ctrl+x
 the host's which-key table lists only host commands — plugin layer commands cannot join the
 leader sequence on 2.0.22. Recorded as spike **S28** and blocked on the owner per the
-contract's stop-rule (block key `leader-bind-absent-2032`); the recommended and coded default
-is **F9** (proven), with every affordance string updated to name it. The gate drives F9.
+contract's stop-rule (block key `leader-bind-absent-2032`); the owner delegated the choice
+in-session ("get it installed — it shouldn't be blocked on me"), so the shipped default is
+**F9** (the recommended, coded and pty-gated option), with every affordance string updated
+to name it. The gate drives F9. Re-check on OpenCode upgrades: when plugin keymap binds can
+join the leader table, restore the `leader+g` default and the affordance copy.
 
 Two pty mechanics mattered as much here as in v0.3.1: keys sent during repaint churn get
 dropped (S26 — every gate key now waits for stream quiescence), and decision dialogs stay
