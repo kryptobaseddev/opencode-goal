@@ -100,6 +100,8 @@ Optional blocks: `why`, `scope {in, out}`, `constraints`, `budget {turns, wall: 
 
 Rules the validator enforces: `schema: goal/v1`; `id` equals the directory; `intent.verbatim`, `outcome`, ≥1 `non_goals` and ≥1 essential criterion are required; ids are `C1…`, `I1…`, `S1…`, `A1…` and unique; every criterion has a check of a known kind with its required fields; invariants are host-checkable; plan references exist and have no cycles; budgets parse. Warnings: an outcome that reads as an activity ("keep improving…"), vague words without a number ("fast", "robust", "clean"), no host-checkable essential criterion. **Quote any value containing `: `** with single quotes. Keep every `command` check on a **single line**: YAML folded scalars (`>-`) fold equally-indented lines but keep literal newlines before more-indented ones, so a loop body written on its own line becomes a separate shell command at verify time. Rehearse each command check exactly as stored (extract it from the parsed YAML, run it through the login shell) before claiming.
 
+**Version-release criteria never pin an exact version string.** A `contains`/`stdout_contains` needle like `"version": "1.2.0"` goes stale the moment a patch ships mid-run and turns a proven criterion red for no reason (contract drift — the live v0.2 case). Check the semantic prefix instead: a one-line command such as `node -e "process.exit(require('./package.json').version.startsWith('1.2.')?0:1)"`, or a `contains` regex anchored on the major.minor pair.
+
 Full field reference: `references/goal-schema.md`. Question bank and recommendation heuristics: `references/interview.md`. Four complete contracts (bugfix, perf, migration, feature): `references/examples.md`.
 
 ## Weak → strong
@@ -120,4 +122,5 @@ Full field reference: `references/goal-schema.md`. Question bank and recommendat
 | Inventing a budget or turn cap | Leave it out unless the owner wants one |
 | A `command` check spread over indented lines | One line — folded scalars keep newlines before indented lines; rehearse the stored command before claiming |
 | A multi-lookahead `regex` in a `contains` check | The engine matches without dot-all — every `(?=.*phrase)` must be satisfiable on ONE line of the file; prefer one needle per criterion, or a single alternation |
+| Pinning a release with an exact version string (`contains "version": "1.2.0"` or `stdout_contains "1.2.0"`) | A prefix or semantic check — `node -e "process.exit(require('./package.json').version.startsWith('1.2.')?0:1)"` for a command, or a `contains` regex like `"version": "1\.2\.` — patch releases must not turn a passing criterion red (contract drift; the live v0.2 case) |
 | Launching before the owner saw the exact contract | Review step, then the `Start goal now` question |

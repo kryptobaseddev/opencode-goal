@@ -227,6 +227,52 @@ stop:
 
 ---
 
+## 5 · Release — ship v1.2 and keep the check true across patch releases
+
+The trap this example exists for: pinning the release with an exact version
+string. `contains "version": "1.2.0"` passes on release day and then fails
+the moment 1.2.1 ships mid-run — contract drift, red criterion, an owner
+amendment that changes nothing real (this exact case closed the v0.2 dogfood
+run). Check the semantic prefix instead.
+
+```yaml
+schema: goal/v1
+id: ship-v1-2
+title: v1.2 released from a clean tree
+intent:
+  verbatim: "cut the 1.2 release"
+outcome: v1.2.x is tagged, the changelog carries it, and a clean checkout of the tag passes its own suite
+non_goals:
+  - Rewriting release automation
+  - Backporting to 1.1
+criteria:
+  - id: C1
+    statement: package.json is semantically bumped for the 1.2 line
+    check: {kind: command, run: 'node -e "process.exit(require(\"./package.json\").version.startsWith(\"1.2.\")?0:1)"'}
+  - id: C2
+    statement: CHANGELOG.md carries the 1.2 entry
+    check: {kind: contains, path: CHANGELOG.md, regex: "## \\[?1\\.2\\."}
+  - id: C3
+    statement: the pushed tag installs from git in an isolated environment
+    check: {kind: command, run: 'INSTALL_TEST=1 TAG=v1.2.0 bun test test/release/git-install.test.ts', timeout: 600}
+invariants:
+  - id: I1
+    statement: the suite still passes on the release commit
+    check: {kind: command, run: "bun test"}
+protect: ["docs/baselines/**"]
+plan:
+  - {id: S1, title: Bump + changelog, proves: [C1, C2]}
+  - {id: S2, title: Tag, push, git-install proof, proves: [C3, I1], depends_on: [S1]}
+```
+
+Why each check holds across patch releases: C1 reads the version and asserts
+the `1.2.` prefix — 1.2.0, 1.2.1, 1.2.9 all pass, 1.3.0 fails (the line
+moved on, which SHOULD be red); C2 anchors the changelog heading on the
+major.minor pair; only C3 names an exact tag, because a specific tag is
+genuinely what it verifies.
+
+---
+
 ## What makes these pass
 
 - Every criterion is **binary and able to fail**: a command that can exit non-zero, a
