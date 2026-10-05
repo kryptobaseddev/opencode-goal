@@ -14,6 +14,13 @@
 #   an overflowing dialog pushes its top or bottom rows off-screen), then
 #   press Enter on the highlighted choice ("Resolve, then resume" ->
 #   rpc.act resume). The orchestrator asserts the engine left "blocked".
+# Phase C (v0.3.2 T072): after Enter resumes the run, the worker drives it to
+#   a completing claim; the engine's terminal push must render the COMPLETING
+#   card — we dismiss the complete-decision dialog and the queued summary
+#   digest (ESC ×2) and assert the sidebar card shows complete + the
+#   loop-stopped line. A stale mid-run snapshot fails this phase.
+# Phase G (v0.3.2 T074): leader+g opens the dashboard panel; the tab key
+#   cycles the highlighted tab — the pty walkthrough of the panel.
 # Phase P (palette, T064): ctrl+p, type "Goal"; the palette must list the
 #   plugin's Goal commands (the keymap layer is mode:"global" — mode-less
 #   layers are unreachable while the palette's own "modal" layer is active).
@@ -149,12 +156,20 @@ dialog_snapshot: list[str] | None = None       # screen rows with the dialog up 
 dialog_title_seen_at: float | None = None
 entered_dialog = False
 entered_dialog_at: float = 0.0
+card_snapshot: list[str] | None = None         # v0.3.2 phase C: the settled complete card
+card_complete_seen_at: float | None = None     # when the complete-decision dialog appeared
+card_esc_sent = 0
+panel_open_sent_at: float | None = None        # v0.3.2 phase G: leader+g
+panel_snapshot: list[str] | None = None
+panel_tab_sent_at: float | None = None
+panel_tab_snapshot: list[str] | None = None
 phase_screens: dict[str, list[str]] = {}
-deadline = time.time() + 180
+deadline = time.time() + 300
 send_waits: list[float] = []
 
 try:
     first_read_at: float | None = None
+    last_byte_at = time.time()
     milestones: dict[int, float] = {}
     while time.time() < deadline:
         r, _, _ = select.select([fd], [], [], 0.2)
@@ -166,6 +181,7 @@ try:
             if not chunk:
                 break
             buf += chunk
+            last_byte_at = time.time()
             if first_read_at is None: first_read_at = time.time()
             for mark in (1024, 10240, 51200, 131072):
                 if len(buf) >= mark and mark not in milestones:
@@ -206,12 +222,80 @@ try:
             time.sleep(3.0)
             phase_screens["post-enter"] = screen.text().splitlines()
 
-        # --- Phase P (palette, T064): after Enter resumes the goal it runs a
-        # few quiet text turns and settles (paused) — an idle TUI reads pty
-        # input again, so the palette probe works exactly like the exploratory
-        # capture that proved the fix. The paused goal keeps its view: the
-        # goal.* palette commands stay enabled (hasGoal).
-        if entered_dialog and palette_sent_at is None and now - entered_dialog_at > 12.0:
+        # --- Phase C (v0.3.2 T072): the resumed run completes; the complete
+        # decision dialog opens (dialog.select — it stays open until ANSWERED,
+        # ESC does not dismiss it), the summary digest queues behind it.
+        # Drive both explicitly: Enter answers the decision (its highlighted
+        # choice dispatches the act), Enter dismisses the digest — then the
+        # card must show the DISK truth (complete + loop stopped), never the
+        # pre-completion snapshot. Keys sent while the TUI still stream are
+        # dropped (S26 input starvation), so every key waits for quiescence.
+        def quiet_for(seconds: float) -> bool:
+            return now - last_byte_at > seconds
+
+        if entered_dialog and card_complete_seen_at is None and "Goal — complete" in text:
+            card_complete_seen_at = now
+        if card_complete_seen_at is not None and card_snapshot is None:
+            if card_esc_sent == 0 and now - card_complete_seen_at > 4.0 and quiet_for(2.0):
+                card_esc_sent = 1
+                send_waits.append(send(fd, b"\r"))   # answer the complete decision (highlighted choice)
+            elif card_esc_sent == 1 and now - card_complete_seen_at > 9.0 and quiet_for(2.0):
+                card_esc_sent = 2
+                send_waits.append(send(fd, b"\r"))   # dismiss the summary digest (alert)
+            elif card_esc_sent == 2 and now - card_complete_seen_at > 13.0 and quiet_for(2.0):
+                card_esc_sent = 3
+                send_waits.append(send(fd, b"\r"))   # any digest still up
+            elif card_esc_sent == 3 and now - card_complete_seen_at > 16.0 and quiet_for(2.0):
+                time.sleep(1.0)                        # settle: the card renders the terminal view
+                for _ in range(20):
+                    r2, _, _ = select.select([fd], [], [], 0.1)
+                    if fd not in r2: break
+                    try:
+                        more = os.read(fd, 65536)
+                    except OSError:
+                        break
+                    if not more: break
+                    buf += more
+                    screen.feed(more.decode("utf-8", "replace"))
+                card_snapshot = screen.text().splitlines()
+                phase_screens["card-complete"] = card_snapshot
+
+        # --- Phase G (v0.3.2 T074): leader+g (ctrl+x then g) opens the
+        # dashboard panel; the tab key cycles the highlighted tab. The
+        # built-in sidebar paints over the panel region on a 180-col screen,
+        # so it is toggled off (leader+b) for the capture — the panel itself
+        # is what the assertion targets. Only after the card phase closed
+        # every dialog, so the keymap layer is live.
+        if card_snapshot is not None and panel_open_sent_at is None and quiet_for(1.5):
+            send_waits.append(send(fd, b"\x18"))       # ctrl+x: the leader key
+            time.sleep(0.15)
+            send_waits.append(send(fd, b"g"))          # g: toggle dashboard
+            time.sleep(0.5)
+            send_waits.append(send(fd, b"\x18"))       # leader again
+            time.sleep(0.15)
+            send_waits.append(send(fd, b"b"))          # b: hide the built-in sidebar
+            panel_open_sent_at = time.time()
+        if panel_open_sent_at is not None and panel_snapshot is None and now - panel_open_sent_at > 3.0:
+            panel_snapshot = screen.text().splitlines()
+            phase_screens["panel-open"] = panel_snapshot
+            send_waits.append(send(fd, b"\t"))         # tab: next dashboard tab
+            panel_tab_sent_at = time.time()
+        if panel_tab_sent_at is not None and panel_tab_snapshot is None and now - panel_tab_sent_at > 2.5:
+            panel_tab_snapshot = screen.text().splitlines()
+            phase_screens["panel-tab"] = panel_tab_snapshot
+            send_waits.append(send(fd, b"\x1b"))       # close the panel before the palette phase
+            time.sleep(0.3)
+            send_waits.append(send(fd, b"\x18"))
+            time.sleep(0.15)
+            send_waits.append(send(fd, b"b"))          # restore the built-in sidebar
+            time.sleep(0.8)
+
+        # --- Phase P (palette, T064): after the panel walkthrough the TUI is
+        # idle again and reads pty input, so the palette probe works exactly
+        # like the exploratory capture that proved the fix. The completed
+        # goal keeps its view: the goal.* palette commands stay enabled
+        # (hasGoal).
+        if panel_tab_snapshot is not None and palette_sent_at is None and now - (panel_tab_sent_at or 0) > 4.0:
             send_waits.append(send(fd, b"\x10"))  # ctrl+p opens the command palette
             time.sleep(1.5)
             for ch in "Goal".encode():
@@ -228,6 +312,7 @@ try:
 finally:
     time.sleep(0.2)
 print(f"DIAG loop ended: dialog_title_seen_at={dialog_title_seen_at} entered_dialog={entered_dialog} "
+      f"card_complete_seen_at={card_complete_seen_at} card_esc={card_esc_sent} panel_open_sent_at={panel_open_sent_at} "
       f"palette_sent_at={palette_sent_at} palette_done={palette_done} buf={len(buf)}B drops={screen.drops} "
       f"first_read_at={first_read_at} send_waits={[round(w, 2) for w in send_waits]} "
       f"milestones={ {k: round(v - (first_read_at or v), 1) for k, v in sorted(milestones.items())} }")
@@ -263,6 +348,42 @@ else:
     record("palette.opens", "Suggested" in flat_at_capture, "built-in Suggested list present (the palette actually opened)")
     titles = sorted(set(re.findall(r"Goal: [a-z][a-z /-]*", flat_at_capture)))
     record("palette.goal-commands", len(titles) >= 6, f"{len(titles)} distinct Goal commands: {[t.strip() for t in titles][:9]}")
+
+# --- v0.3.2 (a) card-complete assertions (T072): after the run settles, the
+# sidebar card shows the DISK truth — the completing status and the
+# loop-stopped line — never a stale mid-run snapshot.
+if card_snapshot is None:
+    record("card.shows-complete", False, "the complete card never settled (complete decision dialog not seen?)")
+else:
+    card_text = "\n".join(card_snapshot)
+    complete_rows = rows_with(card_snapshot, "complete")
+    stopped_rows = rows_with(card_snapshot, "loop stopped")
+    record("card.shows-complete", bool(complete_rows) and "✓" in card_text,
+           f"'complete' at row(s) {complete_rows[:3]}, status mark ✓ present")
+    record("card.loop-stopped-line", bool(stopped_rows),
+           f"'loop stopped' line at row(s) {stopped_rows[:3]} (follow-ups pointer)")
+
+# --- v0.3.2 (b) panel assertions (T074): leader+g opens the dashboard panel
+# with its tab bar; the tab key moves the highlighted tab.
+def tabbar(lines: list[str]) -> tuple[int, str] | None:
+    for i, l in enumerate(lines):
+        if "Now" in l and "Progress" in l and "Decisions" in l and "Goals" in l:
+            return i, l.strip()
+    return None
+if panel_snapshot is None:
+    record("panel.opens", False, "leader+g never opened the panel (card phase incomplete?)")
+else:
+    opened = tabbar(panel_snapshot)
+    record("panel.opens", opened is not None and any("◎ GOAL" in l for l in panel_snapshot),
+           f"tab bar: {opened[1] if opened else 'NOT FOUND'}")
+    if panel_tab_snapshot is None:
+        record("panel.cycles-tabs", False, "no post-tab capture")
+    else:
+        before = tabbar(panel_snapshot)
+        after = tabbar(panel_tab_snapshot)
+        moved = bool(before and after and before[1] != after[1])
+        record("panel.cycles-tabs", moved,
+               f"tab bar before: {before[1] if before else '?'} → after: {after[1] if after else '?'}")
 
 os.kill(pid, signal.SIGTERM)
 failures = [name for name, ok_, _ in results if not ok_]

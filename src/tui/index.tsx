@@ -413,12 +413,17 @@ export default {
                 title: "Goal: toggle dashboard",
                 group: "Goal",
                 palette: true,
-                // T056: beside OpenCode's session.sidebar toggle — bindable
-                // and bound by default to leader+g
-                bind: "leader+g",
+                bind: "ctrl+x g",
                 enabled: () => true,
                 run: () => togglePanel(),
               },
+              // TEMPORARY bind-spelling diagnostics (T074): identify which
+              // chord syntax dispatches on 2.0.22 — removed after the probe.
+              { id: "diag.a", title: "diag a", group: "Goal", bind: "ctrl+x,g", enabled: () => true, run: () => { context.ui.toast.show({ title: "DIAG", message: "ctrl+x,g fired", variant: "info" }); togglePanel() } },
+              { id: "diag.b", title: "diag b", group: "Goal", bind: "ctrl+x g", enabled: () => true, run: () => { context.ui.toast.show({ title: "DIAG", message: "ctrl+x g fired", variant: "info" }); togglePanel() } },
+              { id: "diag.c", title: "diag c", group: "Goal", bind: "leader+g", enabled: () => true, run: () => { context.ui.toast.show({ title: "DIAG", message: "leader+g fired", variant: "info" }); togglePanel() } },
+              { id: "diag.d", title: "diag d", group: "Goal", bind: "f9", enabled: () => true, run: () => { context.ui.toast.show({ title: "DIAG", message: "f9 fired", variant: "info" }); togglePanel() } },
+              { id: "diag.e", title: "diag e", group: "Goal", bind: "g", enabled: () => true, run: () => { context.ui.toast.show({ title: "DIAG", message: "bare g fired", variant: "info" }); togglePanel() } },
               {
                 id: "goal.dashboard.tab",
                 title: "Goal: next dashboard tab",
