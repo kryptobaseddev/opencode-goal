@@ -92,7 +92,10 @@ export class GoalApp {
   private notes = new Map<string, string>()
   private facts = new Map<string, SessionFacts>()
   /** T066: the session's offered-but-unanswered decision, for resolution pairing. */
-  private pendingDecisions = new Map<string, { id: string; kind: string; slug: string; at: number }>()
+  private pendingDecisions = new Map<string, { id: string; kind: string; slug: string; at: number; message: EngineMessage }>()
+  /** T075: the decision whose native form is (being) asked in the composer —
+   *  a reply dispatches the same act the TUI dialog would. */
+  private pendingFormDecisions = new Map<string, { decisionId: string; kind: string; slug: string; choices: Array<{ label: string; act?: string; arg?: string }>; formID?: string; askedAt: number }>()
   private verifierInbox = new Map<string, VerifierVerdict[]>()
   private timers = new Map<string, ReturnType<typeof setTimeout>>()
   private registrations: Array<{ dispose: () => Promise<void> | void }> = []
@@ -213,9 +216,11 @@ export class GoalApp {
   private deferIfHeld(sessionID: string, text: string, sub: string): boolean {
     const f = this.factsOf(sessionID)
     if (!f.busy && f.forms.size === 0) return false
-    // control + read commands stay immediate: pause/abort are how you stop a
-    // runaway turn; status/list/help just read state
-    if (["", "status", "list", "help", "pause", "abort"].includes(sub)) return false
+    // control + read + decision-answer commands stay immediate: pause/abort
+    // are how you stop a runaway turn; approve/reject ARE the decision's
+    // answers (deferring them behind the decision-form's own ask turn would
+    // be circular); status/list/help just read state
+    if (["", "status", "list", "help", "pause", "abort", "approve", "reject"].includes(sub)) return false
     f.deferred.push(text)
     this.noticeM(sessionID, M.commandDeferred(sub, f.busy ? "turn" : "form"))
     return true
@@ -382,7 +387,7 @@ export class GoalApp {
    *  later its resolution (the next owner act on that session). */
   private decide(sessionID: string | undefined, slug: string, kind: "needs_review" | "paused-after-verdict" | "blocked" | "budget_limited" | "amend-proposed" | "supersede-ack" | "complete" | "start-picker", message: EngineMessage, extra: Record<string, unknown> = {}) {
     const decisionId = `${kind}#${slug}@${Date.now().toString(36)}`
-    if (sessionID) this.pendingDecisions.set(sessionID, { id: decisionId, kind, slug, at: Date.now() })
+    if (sessionID) this.pendingDecisions.set(sessionID, { id: decisionId, kind, slug, at: Date.now(), message })
     // T070: guidance-only rows (no act) are MARKED as guidance in the payload
     // itself — every surface that renders the decision (TUI dialog, native
     // form) shows them as advice, not buttons. Keys are only present when
@@ -401,6 +406,52 @@ export class GoalApp {
       .emit("decision", { ...(sessionID ? { sessionID } : {}), slug, kind, decisionId, title: message.id, message: renderMessage(message), choices, ...extra })
       .catch(() => {})
     this.noticeM(sessionID, message)
+    // T075: every decision ALSO asks through a native OpenCode form — the
+    // owner directive: decisions belong in the in-composer ask tool, not
+    // palette hints. The form is asked by the session's own model (the
+    // question tool is the only form-creation surface a server plugin has);
+    // a reply is wired to the same act the dialog carries.
+    void this.askDecisionForm(sessionID, slug, kind, decisionId, message)
+  }
+
+  /**
+   * T075: re-ask the native form for a still-unanswered decision whose first
+   * ask was skipped because the session was mid-turn (e.g. the decision
+   * landed while the owner was answering the previous form).
+   */
+  private reaskDecisionForm(sessionID: string) {
+    const pending = this.pendingDecisions.get(sessionID)
+    if (!pending || this.pendingFormDecisions.has(sessionID)) return
+    if (this.factsOf(sessionID).forms.size > 0) return
+    void this.askDecisionForm(sessionID, pending.slug, pending.kind, pending.id, pending.message)
+  }
+
+  /**
+   * T075: dispatch the question-tool prompt for a decision. The model asks
+   * the owner in the composer; form.replied maps the picked label back to
+   * the choice's act and dispatches it (see onEvent). Skipped when the
+   * session is busy or already holding a form — the TUI dialog remains the
+   * other surface either way.
+   */
+  private async askDecisionForm(sessionID: string | undefined, slug: string, kind: string, decisionId: string, message: EngineMessage) {
+    if (!sessionID) return
+    const f = this.factsOf(sessionID)
+    if (f.busy || f.forms.size > 0 || this.pendingFormDecisions.has(sessionID)) return
+    const actable = message.choices.filter((c) => c.act)
+    if (!actable.length) return // guidance-only: nothing to wire a form to
+    this.pendingFormDecisions.set(sessionID, { decisionId, kind, slug, choices: message.choices.map((c) => ({ label: c.label, act: c.act, arg: c.arg })), askedAt: Date.now() })
+    const options = message.choices.map((c) => `- label: ${c.label}${c.act ? "" : " (guidance — advice, not an action)"} · description: ${c.run}`).join("\n")
+    const text = [
+      `◎ goal-decision (kind=${kind}, slug=${slug}) — the goal engine needs the OWNER's decision now.`,
+      `Decision: ${renderMessage(message)}`,
+      `Ask the owner NOW with the question tool: one question, header "Goal", question "${message.id}". Offer EXACTLY these options, in this order (every option needs its description):`,
+      options,
+      `Answer with the question tool call only — no other work this turn. The owner's pick dispatches the engine act directly.`,
+    ].join("\n")
+    this.store.ledger(slug, { type: "decision-form-asked", decision: decisionId, kind })
+    await this.ctx.session
+      .prompt({ sessionID, text } as any)
+      .catch((error) => this.store.ledger(slug, { type: "decision-form-failed", decision: decisionId, error: String(error).slice(0, 300) }))
   }
 
   private async transcript(sessionID: string, text: string) {
@@ -680,6 +731,11 @@ export class GoalApp {
         const sid = data.form?.sessionID
         if (!sid) return
         this.factsOf(sid).forms.add(data.form.id)
+        // T075: this form answers the session's pending decision (the
+        // question-tool prompt askDecisionForm sent) — remember the id so
+        // only ITS reply dispatches the act
+        const pendingForm = this.pendingFormDecisions.get(sid)
+        if (pendingForm && !pendingForm.formID) pendingForm.formID = String(data.form.id)
         const state = this.runs.get(sid)
         if (state && isActive(state.status)) {
           this.noticeM(sid, M.awaitingAnswer(String(data.form?.question ?? "a question from the worker")))
@@ -692,6 +748,24 @@ export class GoalApp {
         f.forms.delete(data.id)
         const answers = Object.values(data.answer ?? {}).flatMap((v) => (Array.isArray(v) ? v : [v])).map(String)
         f.lastFormAnswer = { labels: answers, at: Date.now() }
+        // T075: a reply to a DECISION form dispatches the same rpc act the
+        // TUI dialog carries — answering either surface resolves both.
+        const pendingForm = this.pendingFormDecisions.get(data.sessionID)
+        if (pendingForm && pendingForm.formID === data.id) {
+          const chosen = pendingForm.choices.find((c) => answers.some((a) => a === c.label || (c.label && a.startsWith(c.label))))
+          this.store.ledger(pendingForm.slug, { type: "decision-form-answered", decision: pendingForm.decisionId, kind: pendingForm.kind, picked: chosen?.label ?? "(none)", act: chosen?.act })
+          if (chosen?.act) {
+            // ownerAct pairs + resolves the pending decision and emits
+            // decision.resolved (via "form") so live TUIs close their
+            // dialog: answering either surface suppresses the other
+            void this.ownerAct(data.sessionID, chosen.act as any, chosen.arg, "form")
+          } else {
+            // a guidance row or a write-in: no act; the decision stays open
+            // on the dialog surface and nothing double-fires
+            this.pendingFormDecisions.delete(data.sessionID)
+            void this.rpc?.events.emit("decision.resolved", { sessionID: data.sessionID, kind: pendingForm.kind, decisionId: pendingForm.decisionId, via: "form-guidance" }).catch(() => {})
+          }
+        }
         // T069: commands that deferred behind the form run now — unless the
         // reply itself started a new turn (busy flips before the flush)
         this.flushDeferred(data.sessionID)
@@ -726,6 +800,9 @@ export class GoalApp {
       // ack promised exactly that. Before any goal handling so commands for
       // goal-less sessions flush too.
       this.flushDeferred(sid)
+      // T075: a decision whose form-ask was skipped because the session was
+      // mid-turn gets its native form now (the decision is still unanswered)
+      this.reaskDecisionForm(sid)
     }
     const state = this.runs.get(sid)
     if (!state) return
@@ -1142,7 +1219,7 @@ export class GoalApp {
 
   // ───────────────────────────── owner actions (command, RPC)
 
-  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend" | "archive" | "attach" | "start" | "start-next" | "decompose", arg?: string): Promise<{ ok: boolean; message: string }> {
+  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend" | "archive" | "attach" | "start" | "start-next" | "decompose", arg?: string, via: "form" | "dialog" = "dialog"): Promise<{ ok: boolean; message: string }> {
     return this.serial(async () => {
       // T066: the next owner act resolves the session's pending decision —
       // the ledger carries the pairing (offered → answered).
@@ -1150,6 +1227,12 @@ export class GoalApp {
       if (pending) {
         this.pendingDecisions.delete(sessionID)
         this.store.ledger(pending.slug, { type: "decision-resolved", decision: pending.id, kind: pending.kind, action, ...(arg ? { arg } : {}), ok: true })
+        // T075: duplicate suppression — whichever surface answers first
+        // (native form or TUI dialog) resolves the other: the stale form's
+        // reply finds no pending entry and never double-acts, and live TUIs
+        // close their dialog on this event.
+        void this.rpc?.events.emit("decision.resolved", { sessionID, kind: pending.kind, decisionId: pending.id, via }).catch(() => {})
+        this.pendingFormDecisions.delete(sessionID)
       }
       // T067: the complete decision's "start the next goal" dispatches the
       // write-goal interview right here — the owner picks the next goal from
@@ -1572,7 +1655,9 @@ export class GoalApp {
         const state = this.runs.get(event.sessionID)
         if (!state) return
         const contract = this.contractOf(state)
-        if (contract && isActive(state.status) && event.tool === "question" && contract.autonomy.questions === "defer")
+        if (event.tool === "question" && contract && isActive(state.status) && contract.autonomy.questions === "defer" && !this.pendingFormDecisions.has(event.sessionID))
+          // T075 exception: the ENGINE-initiated decision form (askDecisionForm's
+          // prompt) is the owner's ask — the worker's own questions stay deferred.
           throw new Error("Goal mode defers questions to the owner during a run. Make the most reasonable reversible choice and note it as an assumption in goal_progress, or call goal_block if this truly needs the owner.")
         const paths = targetPaths(event.tool, event.input)
         for (const p of paths) {

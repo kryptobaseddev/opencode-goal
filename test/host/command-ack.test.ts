@@ -19,7 +19,7 @@ describe("deferred command acknowledgment (T069)", () => {
     const host = await goalHost(
       script((req, turn) => {
         if (turn.trigger.includes("HOLDTURN") && turn.results === 0) {
-          return { toolCalls: [{ name: "write", args: { path: "held.txt", content: "held\n" } }], delayMs: 6000 }
+          return { toolCalls: [{ name: "write", args: { path: "held.txt", content: "held\n" } }], delayMs: 12000 }
         }
         if (turn.trigger.includes("goal started") || turn.trigger.includes("goal turn") || turn.trigger.includes("resumed")) {
           if (turn.results === 0) return { toolCalls: [{ name: "write", args: { path: "done.txt", content: DONE } }] }
@@ -36,8 +36,13 @@ describe("deferred command acknowledgment (T069)", () => {
 
       // ── 1. mid-turn: the command acknowledges instantly, executes never ──
       await host.client.session.prompt({ sessionID, text: "HOLDTURN please" } as any)
-      // wait for busy: the fixture turn is running (write tool, 6s delay)
-      await Bun.sleep(2500)
+      // the turn is REALLY running when its request hit the fixture (the
+      // write tool's 12s delay keeps the session busy past the assertions)
+      await until(
+        async () => host.fixture.requests.some((r) => JSON.stringify(r.messages).includes("HOLDTURN") && r.tools?.length),
+        30000,
+        100,
+      )
       const sentAt = Date.now()
       void host.client.session.command({ sessionID, name: "goal", text: "start demo" } as any)
       const ack = await until(async () => notices.find((n) => n.text.includes("acknowledged") && n.text.includes("/goal start")), 5000, 50)
@@ -62,11 +67,32 @@ describe("deferred command acknowledgment (T069)", () => {
       // ── 4. behind an open form: ack on send, execute on reply ──
       await host.client.session.command({ sessionID, name: "goal", text: "pause" } as any)
       await waitStatus(host, ["paused"], 30000)
+      // the kickoff turn the flushed start launched may still be draining —
+      // wait for the session to go IDLE (last execution event = end) so the
+      // next deferral is attributable to the FORM, not a busy turn
+      let lastExecutionEnd = 0
+      let executionSeen = 0
+      const watch = async () => {
+        try {
+          for await (const e of (host.client as any).event.subscribe({}) as AsyncIterable<any>) {
+            if (!e.data?.sessionID || e.data.sessionID !== sessionID) continue
+            if (e.type === "session.execution.started") executionSeen = Date.now()
+            if (["session.execution.succeeded", "session.execution.failed", "session.execution.interrupted"].includes(e.type)) lastExecutionEnd = Date.now()
+          }
+        } catch {
+          /* stream teardown noise */
+        }
+      }
+      void watch()
+      await until(async () => lastExecutionEnd > 0 && Date.now() - Math.max(lastExecutionEnd, executionSeen) > 700, 30000, 200)
       const form = await (host.client.session.form as any).create({
         sessionID,
         title: "Unrelated question holding the session",
         fields: [{ key: "q0", type: "string" as const, custom: true, options: [{ value: "ok", label: "ok" }] }],
       })
+      // the create response can beat the plugin's form.created handling —
+      // wait until the ENGINE sees the form (awaitingUser) before commanding
+      await until(async () => (await goalRpc.snapshot({ sessionID }))?.view?.awaitingUser === true, 10000, 100)
       notices.length = 0
       void host.client.session.command({ sessionID, name: "goal", text: "resume" } as any)
       const formAck = await until(async () => notices.find((n) => n.text.includes("acknowledged") && n.text.includes("/goal resume") && n.text.includes("form")), 5000, 50)

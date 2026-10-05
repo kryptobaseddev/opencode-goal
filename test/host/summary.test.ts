@@ -89,11 +89,13 @@ describe("post-goal summary (T045)", () => {
       const sessionID = await newSession(host)
       await host.client.session.command({ sessionID, name: "goal", text: "start demo" } as any)
       const done = await waitStatus(host, ["complete", "paused", "needs_review", "blocked"], 90000)
-      off?.()
       expect(done.status).toBe("complete")
 
-      // the rpc event reached subscribed surfaces (the TUI dialog's feed)
-      const byRpc = summaries.find((s) => s.status === "complete")
+      // the rpc event reached subscribed surfaces (the TUI dialog's feed).
+      // T072 grace-wait: the terminal write now lands BEFORE the reporting
+      // layer, so disk can say complete while the summary event is still in
+      // flight — wait for it instead of assuming.
+      const byRpc = await until(async () => summaries.find((s) => s.status === "complete"), 15000)
       expect(byRpc).toBeDefined()
       expect(byRpc.headline).toContain("3/3 criteria proven")
       expect(byRpc.text).toContain("Post-goal summary")

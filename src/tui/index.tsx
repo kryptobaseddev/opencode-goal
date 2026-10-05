@@ -352,6 +352,22 @@ export default {
       })()
     })
 
+    // T075: answering either surface suppresses the other. When the native
+    // form (or any other owner act) resolves the decision, any open decision
+    // dialog for that session closes — the pick already happened.
+    const offResolved = rpc.events.on("decision.resolved", (event: any) => {
+      const data = event.data ?? {}
+      const depth = openDecisions.get(data.sessionID) ?? 0
+      if (!depth) return
+      openDecisions.delete(data.sessionID)
+      try {
+        context.ui.dialog.clear()
+      } catch {
+        // no dialog open on this attachment
+      }
+      flushSummary(data.sessionID)
+    })
+
     // T049: goals are reachable from any session. When this session has no
     // goal, the palette still lists the project's goals so the owner can
     // attach one here instead of hunting for the session that started it.
@@ -470,6 +486,7 @@ export default {
       offNotice?.()
       offSummary?.()
       offDecision?.()
+      offResolved?.()
       offData?.()
       for (const dispose of disposers.splice(0)) dispose()
     }

@@ -46,6 +46,21 @@ export const GoalRpc = {
         additionalProperties: true,
       },
     },
+    // T075: whichever surface answered a decision (native form or TUI
+    // dialog) — live TUIs close their open dialog on it (suppression).
+    "decision.resolved": {
+      schema: {
+        type: "object",
+        properties: {
+          sessionID: { type: "string" },
+          kind: { type: "string" },
+          decisionId: { type: "string" },
+          via: { type: "string", enum: ["form", "dialog", "form-guidance"] },
+        },
+        required: ["sessionID", "kind", "via"],
+        additionalProperties: true,
+      },
+    },
   },
 } as const
 
