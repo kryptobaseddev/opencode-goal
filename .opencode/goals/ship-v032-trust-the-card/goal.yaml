@@ -1,0 +1,238 @@
+schema: goal/v1
+id: ship-v032-trust-the-card
+title: 'v0.3.2 trust the card: convergence, readable UI, native ask-tool decisions'
+intent:
+  verbatim: 'We need to combine both the v0.3.2 "trust the card" and the ask tool surface to make sure that our in-composer ask tool directive has its own slice with every decision point included (like needs_review, blocked, complete, and picker, plus any others we might need to look at adding). We also need to create a native Open Code form so you can pick options in the composer. We need to make sure we build in the slice that fixes what we just lived through: T072 stale snapshot across restarts, T073 truncation with show more + clickable details + width scaling, T074 live validate the tabs and panel, plus T069, T070, T071. Get all of this put together into a release, dogfood it the same way, and get it fully written up in the contract.'
+why: >-
+  Every item is an owner-reported live defect from the v0.3.1 completion: the sidebar froze
+  at a mid-run snapshot (paused/20-of-22/turn-7) while the run on disk was complete 22/22;
+  rows truncate with no way to expand; the T056 dashboard has never been owner-validated;
+  decision guidance ("Decompose with CLEO") was a dead end; nothing says the loop stopped;
+  /goal commands queue silently; and the owner directive is explicit — decisions belong in
+  OpenCode's native in-composer ask tool, not palette hints.
+outcome: >-
+  opencode-goal v0.3.2 is tagged on GitHub and installed in the owner's OpenCode before the
+  completing claim: the sidebar card always converges to disk truth (restarts and stream drops
+  never leave a stale snapshot — the completing card shows complete 22/22), every card row is
+  fully readable through a show-more/clickable expanded view at any width, the owner has
+  live-validated the dashboard tabs and panel, every engine decision point (needs_review,
+  blocked, budget_limited, paused-after-verdict, complete, start-picker) also asks through a
+  native OpenCode form selectable in the composer with duplicate-suppression against the TUI
+  dialog, "Decompose with CLEO" is a real act, completion surfaces state the loop stopped and
+  where follow-ups live, deferred /goal commands acknowledge themselves — with this run's own
+  verified completion under the installed v0.3.2 as the live proof.
+non_goals:
+  - 'Relay mode, goal queues, home-screen board, Claude Code / Codex adapters, headless runner, npm publishing (HANDOFF backlog)'
+  - 'Redesigning the T056 dashboard information architecture — T074 validates and fixes what exists'
+  - 'Any change to the owner''s global OpenCode install during the run beyond the single release-step reinstall'
+  - 'Staged or intermediate release tags — exactly one v0.3.2 end release'
+criteria:
+  - id: C1
+    statement: >-
+      Live-TUI gate, extended: `scripts/tui-smoke.ts --assert` keeps the seven v0.3.1
+      assertions AND adds (a) after the run settles, the sidebar card shows the completing
+      status (T072's live proof — no stale snapshot survives), and (b) the panel opens
+      (leader+g) and cycles its tabs (T074's pty walkthrough)
+    check:
+      kind: command
+      run: 'bun scripts/tui-smoke.ts --assert'
+      expect: { exit: 0 }
+      live: true
+      timeout: 600
+  - id: C2
+    statement: >-
+      Snapshot convergence (T072): after a server reload mid-run and a later completion, the
+      snapshot a re-attaching TUI fetches shows the DISK truth (complete/22), and the engine
+      pushes a final update on terminal transitions — a stale paused/20-of-22 card is
+      unreproducible — host scenario with reload → complete → snapshot assert
+    check:
+      kind: command
+      run: 'bun test ./test/host/refresh-convergence.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C3
+    statement: >-
+      Card readability (T073): the compact card keeps its cap but gains an explicit expand
+      affordance; the expanded view renders every row fully; truncated rows are click-through
+      to the matching panel tab; rendering is snapshot-tested compact and expanded
+    check:
+      kind: command
+      run: 'bun test ./test/unit/tui-card.test.ts'
+      expect: { exit: 0 }
+      timeout: 300
+  - id: C4
+    statement: >-
+      Dashboard validated live (T074): the owner signs off at the reinstall gate that the
+      Now/Progress/Decisions/Goals tabs, C/I/S legend, leader+g panel and selectable decision
+      rows work on their real TUI (the pty walkthrough evidence rides the gate)
+    check:
+      kind: human
+      ask: 'At the v0.3.2 reinstall gate: open the dashboard (leader+g), cycle the tabs, select a decision row. Does every tab render readably, the legend explain the marks, and the rows act? Anything broken, name it.'
+  - id: C5
+    statement: >-
+      Native ask-tool decisions (T075): every decision point (needs_review, blocked,
+      budget_limited, paused-after-verdict, complete, start-picker) also creates an OpenCode
+      form with the act-able choices as native options; a form reply dispatches the same rpc
+      act; answering one surface suppresses the other's dialog — host scenario driving a
+      decision end-to-end through the form
+    check:
+      kind: command
+      run: 'bun test ./test/host/ask-tool-decisions.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C6
+    statement: >-
+      Deferred commands acknowledge (T069): a /goal command issued while a turn or form is
+      active produces an immediate visible acknowledgment (notice row or composer indicator)
+      and executes when the turn ends — never silent — host scenario
+    check:
+      kind: command
+      run: 'bun test ./test/host/command-ack.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C7
+    statement: >-
+      Guidance acts (T070): the complete decision's "Decompose with CLEO" carries a decompose
+      rpc act that dispatches the CLEO decomposition prompt into the session; guidance-only
+      rows are marked in the dialog copy as guidance — host scenario
+    check:
+      kind: command
+      run: 'bun test ./test/host/decompose-act.test.ts'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: C8
+    statement: >-
+      End-state copy (T071): at complete/failed/aborted the card and the summary digest state
+      that the loop has stopped and where the follow-ups live — unit-pinned copy
+    check:
+      kind: command
+      run: 'bun test ./test/unit/end-state-copy.test.ts'
+      expect: { exit: 0 }
+      timeout: 300
+  - id: C9
+    statement: 'package.json is semantically bumped for the v0.3.2 line (prefix needle, no trailing dot)'
+    check:
+      kind: command
+      run: 'node -e "process.exit(require(''./package.json'').version.startsWith(''0.3.2'')?0:1)"'
+      expect: { exit: 0 }
+  - id: C10
+    statement: CHANGELOG.md carries the v0.3.2 release entry
+    check:
+      kind: contains
+      path: CHANGELOG.md
+      text: '## 0.3.2'
+  - id: C11
+    statement: The pushed v0.3.2 tag installs from git in an isolated OpenCode
+    check:
+      kind: command
+      run: 'OCGOAL_GIT_INSTALL=1 OCGOAL_GIT_SPEC="github:kryptobaseddev/opencode-goal#v0.3.2" bun test ./test/host/git-install.test.ts'
+      expect: { exit: 0 }
+      live: true
+      timeout: 600
+  - id: C12
+    statement: docs/dogfood-5.md exists and quotes this run's own verification evidence
+    check:
+      kind: contains
+      path: docs/dogfood-5.md
+      regex: 'goal_verdict|verifier-fallback|verifier-transcript'
+  - id: C13
+    statement: >-
+      The dogfood-5 findings are grounded: every claim traceable to this run's ledger/evidence
+      and defects filed with ids — judged by the verifier child on the main host. Byte-exact
+      verbatim anchors (fenced ledger lines) are included from the start so citations survive
+      the host quote re-read
+    check:
+      kind: verifier
+      ask: >-
+        Read docs/dogfood-5.md and this run's .opencode/goals/ship-v032-trust-the-card/ledger.jsonl
+        and evidence/. Judge: does the doc ground its claims (card convergence, card readability,
+        the owner's dashboard sign-off, form-driven decisions, the reinstall gate, a real verifier
+        verdict from the child) and list defects with CLEO task ids? Quote the doc's own fenced
+        anchors verbatim when citing. List anything missing or unsupported.
+invariants:
+  - id: I1
+    statement: The full test suite SHALL CONTINUE TO pass
+    check:
+      kind: command
+      run: 'bun test'
+      expect: { exit: 0 }
+      timeout: 600
+  - id: I2
+    statement: The typecheck SHALL CONTINUE TO pass
+    check:
+      kind: command
+      run: 'bun run typecheck'
+      expect: { exit: 0 }
+  - id: I3
+    statement: The test harness and the council audit trails SHALL NOT change (spikes.md stays unlocked for new spike verdicts)
+    check:
+      kind: diff
+      paths: ['test/host/harness.ts', '.cleo/council-runs']
+protect: ['test/host/harness.ts', '.cleo/council-runs/**']
+scope:
+  in:
+    - 'Trust: snapshot convergence across reloads + terminal pushes (T072)'
+    - 'Readability: card expand/show-more, click-through, width scaling (T073)'
+    - 'Validation: live owner sign-off on the dashboard tabs/panel + pty walkthrough (T074)'
+    - 'Decisions: native OpenCode forms at every decision point, duplicate-suppressed (T075)'
+    - 'Riders: deferred-command acknowledgment (T069), decompose act + guidance marking (T070), end-state copy (T071)'
+    - 'Closeout: release v0.3.2 with the owner-reinstall gate, dogfood-5, CLEO completes'
+  out:
+    - 'Everything in non_goals'
+constraints:
+  - 'OpenCode 2 only; plain-object default export; @opencode/* imports are types only'
+  - 'Keep the system block byte-stable within a run; volatile status goes in the per-turn tail note'
+  - 'Every behaviour change to the loop gets a host scenario'
+  - 'Commits: type(T###): summary — every commit references a CLEO task (hooks enforce)'
+  - 'setup can run twice per location; everything registered must be disposed in stop()'
+  - 'Every command check stays on a single line and is rehearsed before any claim'
+  - 'Engine-version rule: the release step ends with the owner reinstalling v0.3.2 BEFORE the completing claim; the run blocks externally until confirmed'
+plan:
+  - {id: S1, title: 'Snapshot convergence: reload mid-run → complete → snapshot shows disk truth (T072)', proves: [C2]}
+  - {id: S2, title: 'Card readability: expand affordance, full expanded rows, click-through to panel tabs (T073)', proves: [C3]}
+  - {id: S3, title: 'End-state copy + decompose act + guidance marking + deferred-command ack (T071, T070, T069)', proves: [C6, C7, C8]}
+  - {id: S4, title: 'Native forms at every decision point, duplicate-suppressed (T075)', proves: [C5]}
+  - {id: S5, title: 'Extend the pty gate: card-shows-complete after settle + panel opens and cycles; live panel walkthrough evidence (T074 pty part)', proves: [C1], depends_on: [S1, S2]}
+  - {id: S6, title: 'Release v0.3.2: bump, changelog, tag, push, git-install proof, owner reinstall gate + live dashboard sign-off (T074 human)', proves: [C4, C9, C10, C11], depends_on: [S1, S2, S3, S4, S5]}
+  - {id: S7, title: 'dogfood-5 from this run; CLEO completes T069-T075; final claim under installed v0.3.2', proves: [C12, C13], depends_on: [S6]}
+assumptions:
+  - id: A1
+    text: >-
+      Every new command-check target starts as a committed red stub before /goal start, and
+      scripts/tui-smoke.ts --assert goes RED at contract commit (its two new assertions are
+      pending) so C1 rehearses honestly — the v0.3.1 gate lives on in git history
+    rationale: vacuous-green lesson, v0.3.0 A1 precedent
+    reversible: true
+  - id: A2
+    text: 'Single end release: exactly one tag (v0.3.2) when all criteria are green; no staged tags'
+    rationale: owner decisions 2026-10-03/04/05, carried
+    reversible: true
+  - id: A3
+    text: 'T074 is a human criterion: the owner validates the dashboard live at the reinstall gate; owner-final approval is available if the verifier disagrees (T051/T057)'
+    rationale: the owner has never seen the panel; live validation is the point
+    reversible: false
+  - id: A4
+    text: 'Carried: autonomy questions defer, owner messages steer, interrupts pause; verification host+verifier, max_rejections 3'
+    rationale: owner precedent through three runs
+    reversible: true
+  - id: A5
+    text: 'CLEO stays the decomposition source of truth; each plan step completes its mapped task with evidence atoms (batched at suite-green for workspace-wide sets)'
+    rationale: owner directive 2026-10-03 + the v0.3.1 batching lesson
+    reversible: false
+  - id: A6
+    text: 'The version needle is startsWith(''0.3.2'') with no trailing dot'
+    rationale: T055 prefix rule; the handoff needle class never matches a plain release
+    reversible: true
+stop:
+  escalate_when:
+    - 'Snapshot convergence requires an OpenCode API that does not exist (no push on reconnect) — stop with the design question before building polling'
+    - 'The pty gate cannot stay deterministic with the new assertions — stop with the finding, never weaken silently'
+    - 'git push or the tag is rejected, or the git-install test fails against the pushed v0.3.2'
+    - 'An OpenCode TUI API this work depends on (forms from a server plugin, panel slots, expand affordances) is absent or changed — stop with the design question'
+verification:
+  mode: host+verifier
+  max_rejections: 3
+autonomy:
+  questions: defer
+  on_user_message: steer
+  on_interrupt: pause

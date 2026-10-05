@@ -20,6 +20,16 @@ import { mkdir, writeFile } from "node:fs/promises"
 import { goalHost, newSession, script, waitStatus } from "../test/host/goal.helpers"
 
 if (process.argv.includes("--assert")) {
+  // v0.3.2 (ship-v032-trust-the-card C1): the gate is RED until the two new
+  // assertions are implemented in the S5 plan step — (a) after the run
+  // settles, the sidebar card shows the completing status (no stale snapshot
+  // survives, T072), and (b) the panel opens (leader+g) and cycles its tabs
+  // (T074's pty walkthrough). The seven v0.3.1 assertions stay green behind
+  // this gate once S5 lands.
+  console.error("tui-smoke --assert: RED — v0.3.2 extensions pending (card-shows-complete after settle; panel opens and cycles)")
+  process.exit(1)
+}
+if (false) {
   // Fresh phase artifacts: a stale gate-palette.txt from a previous run would
   // release the worker's blocking phase before the palette was ever probed.
   const spikesDir = join(import.meta.dir, "..", ".tmp", "spikes")
@@ -120,6 +130,7 @@ plan:
   console.log(`TUI-SMOKE-ASSERT ${pass ? "PASS" : "FAIL"} (pty gate exit ${ptyExit})`)
   process.exit(pass ? 0 : 1)
 }
+// the plain hold-mode host for manual captures follows
 
 const host = await goalHost(script(() => ({ text: "I will get to it." })))
 const sessionID = await newSession(host)
