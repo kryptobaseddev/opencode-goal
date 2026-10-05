@@ -4,6 +4,7 @@ import { createHash } from "node:crypto"
 import {
   CHECK_KINDS,
   HOST_KINDS,
+  PRIORITIES,
   SCHEMA,
   type Assumption,
   type Autonomy,
@@ -12,6 +13,7 @@ import {
   type Contract,
   type Criterion,
   type Issue,
+  type Priority,
   type Step,
   type VerificationMode,
 } from "./types"
@@ -300,11 +302,16 @@ export function parseContract(text: string, options: { slug?: string } = {}): Pa
   const supersedes = str(raw.supersedes)
   if (supersedes && !/^[a-z0-9][a-z0-9-]{0,63}@[0-9a-f]{8,64}$/.test(supersedes))
     err("supersedes", "must look like \"<slug>@<lock-prefix>\" (the predecessor slug and the first bytes of its run lock)")
+  // T061: optional priority, low/medium/high; absent is valid (sorts last).
+  const rawPriority = str((raw as Record<string, unknown>).priority)
+  if (rawPriority && !PRIORITIES.includes(rawPriority as Priority))
+    err("priority", `priority must be one of low, medium, high (or omitted) — got "${rawPriority}"`)
 
   const contract: Contract = {
     schema: SCHEMA,
     id,
     title,
+    ...(rawPriority ? { priority: rawPriority as Priority } : {}),
     ...(supersedes ? { supersedes } : {}),
     intent: { verbatim: intent },
     outcome,

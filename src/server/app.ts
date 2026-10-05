@@ -1,7 +1,7 @@
 // The goal engine: owns run state for this location, drives continuations from
 // session.execution.* events, injects the contract into every request, and runs
 // verification. Spike findings referenced as S1-S9 live in docs/spikes.md.
-import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import type { Plugin } from "@opencode/plugin"
@@ -12,7 +12,7 @@ import { isHostCheck } from "../contract/types"
 import { GoalRpc, type GoalSummary, type GoalView } from "../rpc"
 import { account, budgetUse, initialRun, isActive, isTerminal, modelCan, ownerCan, setStatus, type PendingKind, type RunState, type Status } from "../engine/state"
 import { Store } from "../engine/store"
-import { Registry } from "../engine/registry"
+import { Registry, byPriorityThenRecency } from "../engine/registry"
 import { admissionNote } from "../engine/similarity"
 import { goalHelp } from "./help"
 import { cleoFacts, cleoLinkEvent, type Runner } from "../engine/cleo-link"
@@ -188,7 +188,8 @@ export class GoalApp {
     this.store.writeRun(state)
     // T026: every persisted transition refreshes the derived machine-level
     // index (skipped when nothing changed, since usage bursts persist often).
-    this.registry.update(this.rootReal, state.slug, { title: state.title, status: state.status, ...(state.runId ? { runId: state.runId } : {}), ...(state.lock ? { lock: state.lock } : {}), updatedAt: Date.now() })
+    // T061: priority rides the registry entry (absent stays absent).
+    this.registry.update(this.rootReal, state.slug, { title: state.title, status: state.status, ...(state.runId ? { runId: state.runId } : {}), ...(state.lock ? { lock: state.lock } : {}), ...(state.priority ? { priority: state.priority } : {}), updatedAt: Date.now() })
     this.emitUpdate(state)
   }
 
@@ -1341,14 +1342,20 @@ export class GoalApp {
             .map((slug) => {
               const read = this.store.readContract(slug)
               const valid = Boolean(read?.contract) && read!.issues.every((i) => i.level !== "error")
-              return { slug, title: read?.contract?.title ?? slug, valid: valid as boolean }
+              // T061: drafts order by priority then the goal.yaml mtime.
+              let updatedAt = 0
+              try {
+                updatedAt = statSync(join(this.root, ".opencode", "goals", slug, "goal.yaml")).mtimeMs
+              } catch {}
+              return { slug, title: read?.contract?.title ?? slug, valid: valid as boolean, priority: read?.contract?.priority as "low" | "medium" | "high" | undefined, updatedAt }
             })
+            .sort((a, b) => byPriorityThenRecency(a, b))
           if (!startable.length) {
             this.decide(sessionID, "(none)", "start-picker", M.startPickerEmpty(this.store.slugs().length))
             return say(`No startable goal — /goal new <what you want done> writes one.`, "warning")
           }
           this.decide(sessionID, "(picker)", "start-picker", M.startPicker(startable))
-          return say(startable.map((g) => `${g.slug} — ${g.title}${g.valid ? "" : " (validation problems)"}`).join("\n"), "info")
+          return say(startable.map((g) => `${g.slug}${g.priority ? ` [${g.priority}]` : ""} — ${g.title}${g.valid ? "" : " (validation problems)"}`).join("\n"), "info")
         }
         const tokens = arg.split(/\s+/)
         const slug0 = tokens[0]!
@@ -1400,13 +1407,13 @@ export class GoalApp {
 
   private listText(): string {
     return this.list()
-      .map((g) => `${g.slug} — ${g.status}${g.total ? ` (${g.proven}/${g.total})` : ""}`)
+      .map((g) => `${g.slug} — ${g.status}${g.priority ? ` [${g.priority}]` : ""}${g.total ? ` (${g.proven}/${g.total})` : ""}`)
       .join("\n")
   }
 
   list(): GoalSummary[] {
     const bySlug = new Map([...this.runs.values()].map((r) => [r.slug, r]))
-    return this.store.slugs().map((slug) => {
+    const summaries = this.store.slugs().map((slug) => {
       const run = bySlug.get(slug) ?? this.store.readRun(slug)
       const states = run ? Object.values(run.criteria) : []
       const status = run?.status ?? "draft"
@@ -1414,8 +1421,12 @@ export class GoalApp {
       // T049: attachable = started, not terminal, not mid-turn (attaching a
       // running goal would strand its in-flight turn's events).
       const attachable = Boolean(run && !terminal && !isActive(run.status))
-      return { slug, title: run?.title ?? slug, status, ...(run ? { sessionID: run.sessionID } : {}), proven: states.filter((s) => s.status === "pass").length, total: states.length, ...(terminal || attachable ? { terminal, attachable } : {}) }
+      // T061: drafts read their priority from the contract; runs carry it.
+      const priority = run?.priority ?? (this.store.readContract(slug)?.contract?.priority as GoalSummary["priority"] | undefined)
+      return { slug, title: run?.title ?? slug, status, ...(priority ? { priority } : {}), ...(run ? { sessionID: run.sessionID } : {}), proven: states.filter((s) => s.status === "pass").length, total: states.length, ...(terminal || attachable ? { terminal, attachable } : {}) }
     })
+    // T061: priority then updatedAt, absent-priority goals last.
+    return summaries.sort((a, b) => byPriorityThenRecency(a, b))
   }
 
   private async registerHooks() {

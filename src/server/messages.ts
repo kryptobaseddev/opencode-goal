@@ -47,7 +47,7 @@ export const M = {
     msg("goal.started", "success", `Goal started: ${title}. The contract is locked and rendered into every request.`, [status, resume]),
   cleanStarted: (targetID: string, slug: string) =>
     msg("goal.clean-start", "success", `Started clean: the kickoff prompt landed in the new session "${targetID}" (goal kickoff · ${slug}). This session stays untouched — nothing was cleared.`, [
-      { label: `Open the goal session`, run: `switch to the session "goal kickoff · ${slug}"` },
+      { label: `Open the goal session`, run: `open the session "goal kickoff · ${slug}"` },
       status,
     ]),
   startPicker: (goals: Array<{ slug: string; title: string; valid: boolean }>) =>

@@ -47,6 +47,12 @@ export type Step = {
   depends_on: string[]
 }
 
+/** T061: optional goal priority. Absent is valid and sorts LAST. */
+export type Priority = "low" | "medium" | "high"
+export const PRIORITIES: readonly Priority[] = ["low", "medium", "high"]
+/** Sort weight: high first, absent last, ties by updatedAt descending. */
+export const priorityWeight = (p?: Priority): number => (p === "high" ? 3 : p === "medium" ? 2 : p === "low" ? 1 : 0)
+
 export type Budget = {
   turns?: number
   /** Wall-clock budget in milliseconds of active run time. */
@@ -68,6 +74,8 @@ export type Contract = {
   schema: typeof SCHEMA
   id: string
   title: string
+  /** T061: optional low/medium/high ordering across lists, palette and picker. */
+  priority?: Priority
   /** T031: "<slug>@<lock-prefix>" — this goal replaces that one (owner-approved append, never a rewrite). */
   supersedes?: string
   intent: { verbatim: string }

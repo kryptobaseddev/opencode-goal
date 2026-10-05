@@ -29,6 +29,8 @@
 
 **Autonomy** — "If you type while it runs?" [steer: your message guides the next turn (Recommended) · pause]
 
+**Priority** (ask only when the project already has a live goal — check the registry or `.opencode/goals/*/run.json` for a non-terminal run; a first goal needs no ordering) — "Where does this goal rank against the live one if you must choose where work goes first?" [medium (Recommended: the default lane) · high (first in /goal list, the palette and the start picker; taken ahead of the live goal) · low (lists last; the live goal keeps the attention) · skip (no field — sorts last by recency)]
+
 ## Launch question
 
-Options, in this order: `Start goal now` (Recommended; the exact label `goal_start` checks) · Start in a fresh session · Save for later.
+Options, in this order: `Start goal now` (Recommended; the label must start with the exact text `goal_start` checks) · Start in a fresh session · Start clean (the engine opens a new session owned by the goal) · Save for later.

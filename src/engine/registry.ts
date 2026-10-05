@@ -8,8 +8,15 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFile
 import { homedir, tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 
-export type RegistryEntry = { title: string; status: string; runId?: string; lock?: string; archived?: boolean; updatedAt: number }
+export type RegistryEntry = { title: string; status: string; runId?: string; lock?: string; archived?: boolean; priority?: "low" | "medium" | "high"; updatedAt: number }
 export type RegistryData = { version: 1; projects: Record<string, { goals: Record<string, RegistryEntry>; updatedAt: number }> }
+
+/** T061: priority then recency — high > medium > low > absent, ties by updatedAt descending (missing updatedAt = 0). */
+export const byPriorityThenRecency = <T extends { priority?: RegistryEntry["priority"]; updatedAt?: number }>(a: T, b: T): number => {
+  const wa = a.priority === "high" ? 3 : a.priority === "medium" ? 2 : a.priority === "low" ? 1 : 0
+  const wb = b.priority === "high" ? 3 : b.priority === "medium" ? 2 : b.priority === "low" ? 1 : 0
+  return wb - wa || (b.updatedAt ?? 0) - (a.updatedAt ?? 0)
+}
 
 export const DEFAULT_REGISTRY_PATH = join(homedir(), ".local", "share", "opencode", "goal-registry.json")
 
@@ -44,7 +51,8 @@ export class Registry {
       current.status === entry.status &&
       current.runId === entry.runId &&
       current.lock === entry.lock &&
-      current.archived === entry.archived
+      current.archived === entry.archived &&
+      current.priority === entry.priority
     )
       return false
     project.goals[slug] = entry
@@ -65,12 +73,12 @@ export class Registry {
     return true
   }
 
-  /** All goals across all known projects: [{project, slug, ...entry}]. */
+  /** All goals across all known projects: [{project, slug, ...entry}], priority then recency. */
   list(): Array<{ project: string; slug: string } & RegistryEntry> {
     const out: Array<{ project: string; slug: string } & RegistryEntry> = []
     for (const [project, p] of Object.entries(this.read().projects))
       for (const [slug, entry] of Object.entries(p.goals)) out.push({ project, slug, ...entry })
-    return out.sort((a, b) => b.updatedAt - a.updatedAt)
+    return out.sort(byPriorityThenRecency)
   }
 
   /**
@@ -92,7 +100,7 @@ export class Registry {
         try {
           const run = JSON.parse(readFileSync(runPath, "utf8"))
           if (run?.version !== 1) continue
-          entry = { title: run.title ?? slug, status: run.status ?? "draft", ...(run.runId ? { runId: run.runId } : {}), ...(run.lock ? { lock: run.lock } : {}), updatedAt: run.updatedAt ?? statSync(runPath).mtimeMs }
+          entry = { title: run.title ?? slug, status: run.status ?? "draft", ...(run.runId ? { runId: run.runId } : {}), ...(run.lock ? { lock: run.lock } : {}), ...(run.priority ? { priority: run.priority } : {}), updatedAt: run.updatedAt ?? statSync(runPath).mtimeMs }
         } catch {
           // a goal folder without a readable run.json: still a draft goal
           const contract = join(goalsDir, slug, "goal.yaml")

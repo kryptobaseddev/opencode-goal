@@ -93,4 +93,4 @@ export type GoalView = {
   updatedAt: number
 }
 
-export type GoalSummary = { slug: string; title: string; status: string; sessionID?: string; proven: number; total: number; terminal?: boolean; attachable?: boolean }
+export type GoalSummary = { slug: string; title: string; status: string; priority?: "low" | "medium" | "high"; sessionID?: string; proven: number; total: number; terminal?: boolean; attachable?: boolean }

@@ -35,6 +35,8 @@ export type RunState = {
   version: 1
   slug: string
   title: string
+  /** T061: copied from the contract at start so the registry/rebuild keep it. */
+  priority?: "low" | "medium" | "high"
   sessionID: string
   runId: string
   lock: string
@@ -75,6 +77,7 @@ export function initialRun(contract: Contract, args: { sessionID: string; runId:
     version: 1,
     slug: contract.id,
     title: contract.title,
+    ...(contract.priority ? { priority: contract.priority } : {}),
     sessionID: args.sessionID,
     runId: args.runId,
     lock: args.lock,

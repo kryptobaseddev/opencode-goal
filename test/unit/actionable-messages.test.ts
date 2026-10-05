@@ -11,6 +11,9 @@ import { M, MESSAGE_BUILDERS, renderMessage, type Choice, type EngineMessage } f
 
 const samples: Record<string, () => EngineMessage> = {
   goalStarted: () => M.goalStarted("Ship the widget"),
+  cleanStarted: () => M.cleanStarted("ses_123", "ship-v031"),
+  startPicker: () => M.startPicker([{ slug: "demo", title: "Demo", valid: true }]),
+  startPickerEmpty: () => M.startPickerEmpty(2),
   goalSummary: () => M.goalSummary("goal complete — 5/5 criteria proven", 2, "complete"),
   amended: () => M.amended(2, "C15 needle 0.2.0 → 0.2.2"),
   pausedAdmissionError: () => M.pausedAdmissionError("socket closed"),
