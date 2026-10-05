@@ -142,6 +142,12 @@ transcript file, and §1 now quotes only what the ledger carries. The
 verifier child catching its own round's evidence gap, in flight, is the
 feedback loop working end to end.
 
+The second claim's round (turn 5) timed out with zero messages —
+`verifier-transcript-turn-5-*.json` records `done: timeout, rounds: 1,
+messages: 0` (provider hang, not an empty parse): the failure mode T044
+made visible and diagnosable instead of silent. C1's live proof remains the
+healthy turn-4 round above.
+
 ## 7. What the next board should look at
 
 T059–T061 (launch surface, start picker, priority field) plus the standing
