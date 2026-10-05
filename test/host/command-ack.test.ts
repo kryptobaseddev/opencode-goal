@@ -65,43 +65,33 @@ describe("deferred command acknowledgment (T069)", () => {
       expect(started.sessionID).toBe(sessionID)
 
       // ── 4. behind an open form: ack on send, execute on reply ──
+      // Deterministic by construction: a FRESH session (never ran a turn, so
+      // nothing can be busy) holds an unrelated form; the /goal resume
+      // command defers behind IT (T049: owner acts fall back to the
+      // project's unique non-terminal goal from any session), the ack names
+      // the form, and the reply releases the queue.
       await host.client.session.command({ sessionID, name: "goal", text: "pause" } as any)
       await waitStatus(host, ["paused"], 30000)
-      // the kickoff turn the flushed start launched may still be draining —
-      // wait for the session to go IDLE (last execution event = end) so the
-      // next deferral is attributable to the FORM, not a busy turn
-      let lastExecutionEnd = 0
-      let executionSeen = 0
-      const watch = async () => {
-        try {
-          for await (const e of (host.client as any).event.subscribe({}) as AsyncIterable<any>) {
-            if (!e.data?.sessionID || e.data.sessionID !== sessionID) continue
-            if (e.type === "session.execution.started") executionSeen = Date.now()
-            if (["session.execution.succeeded", "session.execution.failed", "session.execution.interrupted"].includes(e.type)) lastExecutionEnd = Date.now()
-          }
-        } catch {
-          /* stream teardown noise */
-        }
-      }
-      void watch()
-      await until(async () => lastExecutionEnd > 0 && Date.now() - Math.max(lastExecutionEnd, executionSeen) > 700, 30000, 200)
+      const holder = await newSession(host)
       const form = await (host.client.session.form as any).create({
-        sessionID,
+        sessionID: holder,
         title: "Unrelated question holding the session",
         fields: [{ key: "q0", type: "string" as const, custom: true, options: [{ value: "ok", label: "ok" }] }],
       })
       // the create response can beat the plugin's form.created handling —
-      // wait until the ENGINE sees the form (awaitingUser) before commanding
-      await until(async () => (await goalRpc.snapshot({ sessionID }))?.view?.awaitingUser === true, 10000, 100)
+      // wait until the ENGINE sees the form (the holder's own goal view is
+      // absent, so await on the ack itself below; this wait just paces the
+      // form registration)
+      await Bun.sleep(700)
       notices.length = 0
-      void host.client.session.command({ sessionID, name: "goal", text: "resume" } as any)
+      void host.client.session.command({ sessionID: holder, name: "goal", text: "resume" } as any)
       const formAck = await until(async () => notices.find((n) => n.text.includes("acknowledged") && n.text.includes("/goal resume") && n.text.includes("form")), 15000, 50)
       expect(formAck).toBeDefined()
       await Bun.sleep(500)
       // still paused: the form holds the queue
       const stillPaused = await run(host)
       expect(stillPaused.status).toBe("paused")
-      await (host.client.session.form as any).reply({ sessionID, formID: form.id, answer: { q0: "ok" } })
+      await (host.client.session.form as any).reply({ sessionID: holder, formID: form.id, answer: { q0: "ok" } })
       const resumed = await waitStatus(host, ["running"], 90000)
       expect(resumed.status).toBe("running")
     } finally {
