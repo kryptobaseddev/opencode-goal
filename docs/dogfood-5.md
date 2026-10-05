@@ -180,6 +180,12 @@ their real TUI, and decision rows act — §10 carries the sign-off record.
 - **T071** completion silence — fixed (`0b39ab7`), unit `end-state-copy.test.ts`.
 - **T069** silent command deferral — fixed (`0b39ab7`), host scenario `command-ack.test.ts`.
 
+Evidence discipline, learned again: the first CLEO evidence batch ran while the suite and
+the pty gate executed in parallel — every `tool:test` run failed on the one genuinely
+timing-sensitive test (`live-counters`, a 45s mid-flight observation window) and the
+failures were then shared through the tool cache. The batch re-ran on an otherwise idle
+machine against the settled tree; concurrent heavy runs and evidence runs do not mix.
+
 <!-- SECTION-FILLED-AFTER-SIGNOFF: the owner's dashboard sign-off record. -->
 
 ## 11. What the next session inherits
