@@ -1,0 +1,19 @@
+{
+  "childID": "ses_efb31dc04ffeQYUuRvsss7ubkv",
+  "done": "done",
+  "by": "verifier",
+  "messages": [
+    {
+      "type": "user",
+      "parts": []
+    },
+    {
+      "type": "assistant",
+      "parts": []
+    },
+    {
+      "type": "idle",
+      "parts": []
+    }
+  ]
+}

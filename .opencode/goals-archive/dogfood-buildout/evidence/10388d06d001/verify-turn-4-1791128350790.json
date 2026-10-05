@@ -1,0 +1,140 @@
+{
+  "source": "owner",
+  "claim": null,
+  "outcome": {
+    "passed": false,
+    "needsHuman": [],
+    "results": [
+      {
+        "id": "C1",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 1.6s"
+      },
+      {
+        "id": "C2",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 8.8s"
+      },
+      {
+        "id": "C3",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C4",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 1.2s"
+      },
+      {
+        "id": "C5",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 5.7s"
+      },
+      {
+        "id": "C6",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C7",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.7s"
+      },
+      {
+        "id": "C8",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 4.1s"
+      },
+      {
+        "id": "C9",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C10",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C11",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C12",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 14.2s"
+      },
+      {
+        "id": "C13",
+        "pass": true,
+        "by": "host",
+        "detail": "docs/design.md contains the expected pattern"
+      },
+      {
+        "id": "C14",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.8s"
+      },
+      {
+        "id": "C15",
+        "pass": true,
+        "by": "host",
+        "detail": "package.json contains the expected text"
+      },
+      {
+        "id": "C16",
+        "pass": true,
+        "by": "host",
+        "detail": "CHANGELOG.md contains the expected text"
+      },
+      {
+        "id": "C17",
+        "pass": true,
+        "by": "host",
+        "detail": "docs/dogfood-2.md contains the expected pattern"
+      },
+      {
+        "id": "I1",
+        "pass": false,
+        "by": "host",
+        "detail": "run 1/1: exit 1, expected 0\n1 tests skipped:\n(skip) install from git > OpenCode installs github:kryptobaseddev/opencode-goal#v0.1.0-alpha.1 and registers /goal, the tools and the skill\n\n\n1 tests failed:\n(fail) goal loop on a real OpenCode 2 host > talk-only turns stall the goal after three turns [263.83ms]\n\n 81 pass\n 1 skip\n 1 fail\n 2 snapshots, 325 expect() calls\nRan 83 tests across 19 files. [63.00s]"
+      },
+      {
+        "id": "I2",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 1.4s"
+      },
+      {
+        "id": "I3",
+        "pass": true,
+        "by": "host",
+        "detail": "unchanged since start"
+      },
+      {
+        "id": "C18",
+        "pass": true,
+        "by": "human",
+        "detail": "approved by the owner (final)"
+      }
+    ],
+    "integrity": [],
+    "lines": [
+      "I1 FAILED [host] The full test suite SHALL CONTINUE TO pass\n    run 1/1: exit 1, expected 0\n    1 tests skipped:\n    (skip) install from git > OpenCode installs github:kryptobaseddev/opencode-goal#v0.1.0-alpha.1 and registers /goal, the tools and the skill\n    \n    \n    1 tests failed:\n    (fail) goal loop on a real OpenCode 2 host > talk-only turns stall the goal after three turns [263.83ms]\n    \n     81 pass\n     1 skip\n     1 fail\n     2 snapshots, 325 expect() calls\n    Ran 83 tests across 19 files. [63.00s]"
+    ]
+  }
+}

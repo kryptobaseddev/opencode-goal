@@ -1,0 +1,226 @@
+{
+  "version": 1,
+  "slug": "ship-v03-feedback-loop",
+  "title": "v0.3.0 feedback loop: every decision persistent, actionable, visible",
+  "sessionID": "ses_ef6ed677fffezbQx6mjU88EJK9",
+  "runId": "109159956001",
+  "lock": "2bff41e4a945caaf3fa215f401a0f7186f8f0e839aa6fc4bda631811b1aebaca",
+  "status": "complete",
+  "createdAt": 1791153772896,
+  "updatedAt": 1791164974341,
+  "turn": 6,
+  "activeMs": 9163876,
+  "activeSince": null,
+  "usage": {
+    "tokens": 897844,
+    "cost": 0,
+    "baseTokens": 4032,
+    "baseCost": 0
+  },
+  "base": {
+    "commit": "fe3a86aa97ad01831674b301531bafaf12eba6be"
+  },
+  "counters": {
+    "noProgress": 0,
+    "failures": 0
+  },
+  "wrapup": false,
+  "criteria": {
+    "C1": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 3.5s",
+      "rejections": 0
+    },
+    "C2": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 0.1s",
+      "rejections": 0
+    },
+    "C3": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 4.8s",
+      "rejections": 0
+    },
+    "C4": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 0.1s",
+      "rejections": 0
+    },
+    "C5": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 4.1s",
+      "rejections": 0
+    },
+    "C6": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 8.3s",
+      "rejections": 0
+    },
+    "C7": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 3.5s",
+      "rejections": 0
+    },
+    "C8": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 0.1s",
+      "rejections": 0
+    },
+    "C9": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 0.1s",
+      "rejections": 0
+    },
+    "C10": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 0.1s",
+      "rejections": 0
+    },
+    "C11": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 0.1s",
+      "rejections": 0
+    },
+    "C12": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 2.7s",
+      "rejections": 0
+    },
+    "C13": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "skills/write-goal/SKILL.md contains the expected text",
+      "rejections": 0
+    },
+    "C14": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "skills/write-goal/references/examples.md contains the expected text",
+      "rejections": 0
+    },
+    "C15": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 0.1s",
+      "rejections": 0
+    },
+    "C16": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "CHANGELOG.md contains the expected text",
+      "rejections": 0
+    },
+    "C17": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 1.0s",
+      "rejections": 0
+    },
+    "C18": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "docs/dogfood-3.md contains the expected pattern",
+      "rejections": 0
+    },
+    "C19": {
+      "status": "pass",
+      "by": "human",
+      "at": 1791164973119,
+      "detail": "approved by the owner (final)",
+      "rejections": 0
+    },
+    "I1": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 98.0s",
+      "rejections": 0
+    },
+    "I2": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "exit 0 in 1.7s",
+      "rejections": 0
+    },
+    "I3": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791164973119,
+      "detail": "unchanged since start",
+      "rejections": 0
+    }
+  },
+  "steps": {
+    "S1": "done",
+    "S2": "done",
+    "S3": "done",
+    "S4": "done",
+    "S5": "done",
+    "S6": "done",
+    "S7": "done",
+    "S8": "done",
+    "S9": "done",
+    "S10": "done",
+    "S11": "done",
+    "S12": "done",
+    "S13": "done",
+    "S14": "active"
+  },
+  "turnFacts": {
+    "tools": 53,
+    "goalCalls": 0,
+    "stepsChanged": false
+  },
+  "steers": 4,
+  "compacted": false,
+  "flags": [],
+  "amendments": [],
+  "fingerprint": "83b9feb044cf21a1be5f",
+  "lastUsageEmit": 1791164685149,
+  "progress": {
+    "note": "S13 gate passed: install cache pins #v0.3.0 (01:13:31Z), owner resumed the run. Session engine is the reinstalled v0.3.0.",
+    "next": "goal_claim (preliminary) → live verifier round under v0.3.0 → quote dogfood-3 §6 from the fresh transcript → commit → final claim",
+    "at": 1791162952264,
+    "turn": 4
+  },
+  "reason": "all required criteria verified",
+  "verdict": {
+    "at": 1791164973119,
+    "turn": 6,
+    "passed": true,
+    "lines": [
+      "All required criteria passed."
+    ]
+  }
+}

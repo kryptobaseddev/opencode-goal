@@ -1,0 +1,164 @@
+{
+  "source": "claim",
+  "claim": {
+    "at": 1791070540616,
+    "turn": 2,
+    "summary": "Re-claim after fixing C13 (single-line council record) and exhausting all independent work: every host-checked criterion rehearsed green moments ago (C1-C12 commands pass, C14 git-install re-ran live at 949ms, C13/C15/C16/C17 contains verified engine-exact, I1 suite 82 pass, I2 typecheck, I3 diff clean); dogfood-2 complete with the turn-0 verdict quoted, live recovery data point, and the engine-version lesson; all work pushed through 0e18de5. C18 is the verifier round.",
+    "evidence": {
+      "C1": "bun test test/host/verifier-reliability.test.ts -> 2 pass (fallback verdict parsed + quote re-read; transcript persisted; tool path primary)",
+      "C2": "bun test test/host/live-counters.test.ts -> 1 pass (counters persist mid-execution, never the sentinel 1)",
+      "C3": "bun test test/unit/contract.test.ts -> 25 pass including the multi-line command warning",
+      "C4": "bun test test/host/rehearsal.test.ts -> 2 pass (unrunnable check refuses the lock naming the criterion; red baseline starts and completes)",
+      "C5": "bun test test/host/amend.test.ts -> 1 pass (stopped-state tamper blocked; amend confirm re-locks generation 1 with evidence record; completes on amended contract)",
+      "C6": "bun test test/unit/registry.test.ts -> 3 pass (cross-project, rebuild parity, draft+prune)",
+      "C7": "bun test test/host/archive.test.ts -> 1 pass (demote never delete; registry archived:true; live list excludes); panel probes FOUND in capture",
+      "C8": "bun test test/host/supersede.test.ts -> 2 pass (terminal predecessor superseded+archived with both-side ledgers; live predecessor refused without recorded acknowledgment)",
+      "C9": "bun test test/unit/similarity.test.ts -> 6 pass (existence, ranked similarity, archived surfaced, admission note)",
+      "C10": "bun test test/unit/help.test.ts -> 4 pass",
+      "C11": "bun test test/unit/cleo-link.test.ts -> 4 pass (CLI-first, config fallback, absent CLEO no-op, no DB reads)",
+      "C12": "bun test test/host/paths.test.ts -> 7 pass (budget wrap-up, goal_wait, absent/diff, human approval, compaction, session.deleted, provider degradation) + synthetic notices",
+      "C13": "design.md single-line council record verified engine-exact (regex with m flag matches: start-time rehearsal + supersedes + descriptive slug on one line)",
+      "C14": "rehearsal re-ran the git-install test against the pushed tag live -> exit 0 in 949ms; tag v0.2.0 at 06d9bfc",
+      "C15": "package.json contains \"version\": \"0.2.0\" (verified)",
+      "C16": "CHANGELOG.md contains the 0.2.0 entry (verified)",
+      "C17": "docs/dogfood-2.md contains goal_verdict x4: the payload shape, the turn-0 verdict quote, the reliability scenario evidence (verified)",
+      "C18": "docs/dogfood-2.md grounds every claim in this run's ledger/evidence: continuation (synthetic notices, 381-tool feedback turn), the turn-0 HOST VERDICT quoted verbatim, verifier flow (fallback scenario + alpha.1-engine root cause with the no-transcript proof), cost/cache (round-1 numbers carried forward), amendment/supersession host-proven with the live applicability note, defects as CLEO tasks T013-T016 closed + harness gap recorded + upstream issues 1804/1805/1833"
+    }
+  },
+  "outcome": {
+    "passed": false,
+    "needsHuman": [],
+    "results": [
+      {
+        "id": "C1",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 3.9s"
+      },
+      {
+        "id": "C2",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 9.5s"
+      },
+      {
+        "id": "C3",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C4",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 2.0s"
+      },
+      {
+        "id": "C5",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 6.6s"
+      },
+      {
+        "id": "C6",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C7",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 1.4s"
+      },
+      {
+        "id": "C8",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 4.9s"
+      },
+      {
+        "id": "C9",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C10",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C11",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C12",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 16.0s"
+      },
+      {
+        "id": "C13",
+        "pass": true,
+        "by": "host",
+        "detail": "docs/design.md contains the expected pattern"
+      },
+      {
+        "id": "C14",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.9s"
+      },
+      {
+        "id": "C15",
+        "pass": true,
+        "by": "host",
+        "detail": "package.json contains the expected text"
+      },
+      {
+        "id": "C16",
+        "pass": true,
+        "by": "host",
+        "detail": "CHANGELOG.md contains the expected text"
+      },
+      {
+        "id": "C17",
+        "pass": true,
+        "by": "host",
+        "detail": "docs/dogfood-2.md contains the expected pattern"
+      },
+      {
+        "id": "I1",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 65.1s"
+      },
+      {
+        "id": "I2",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 1.3s"
+      },
+      {
+        "id": "I3",
+        "pass": true,
+        "by": "host",
+        "detail": "unchanged since start"
+      },
+      {
+        "id": "C18",
+        "pass": false,
+        "by": "verifier",
+        "detail": "verifier failed: verifier did not call goal_verdict"
+      }
+    ],
+    "integrity": [],
+    "lines": [
+      "C18 FAILED [verifier] The dogfood-2 findings are grounded: every claim traceable to this run's ledger/evidence, defects filed as CLEO tasks with ids\n    verifier failed: verifier did not call goal_verdict"
+    ]
+  }
+}

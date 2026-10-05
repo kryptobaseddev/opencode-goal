@@ -1,0 +1,146 @@
+{
+  "source": "owner",
+  "claim": null,
+  "outcome": {
+    "passed": true,
+    "needsHuman": [],
+    "results": [
+      {
+        "id": "C1",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 3.5s"
+      },
+      {
+        "id": "C2",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C3",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 4.8s"
+      },
+      {
+        "id": "C4",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C5",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 4.1s"
+      },
+      {
+        "id": "C6",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 8.3s"
+      },
+      {
+        "id": "C7",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 3.5s"
+      },
+      {
+        "id": "C8",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C9",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C10",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C11",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C12",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 2.7s"
+      },
+      {
+        "id": "C13",
+        "pass": true,
+        "by": "host",
+        "detail": "skills/write-goal/SKILL.md contains the expected text"
+      },
+      {
+        "id": "C14",
+        "pass": true,
+        "by": "host",
+        "detail": "skills/write-goal/references/examples.md contains the expected text"
+      },
+      {
+        "id": "C15",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C16",
+        "pass": true,
+        "by": "host",
+        "detail": "CHANGELOG.md contains the expected text"
+      },
+      {
+        "id": "C17",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 1.0s"
+      },
+      {
+        "id": "C18",
+        "pass": true,
+        "by": "host",
+        "detail": "docs/dogfood-3.md contains the expected pattern"
+      },
+      {
+        "id": "I1",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 98.0s"
+      },
+      {
+        "id": "I2",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 1.7s"
+      },
+      {
+        "id": "I3",
+        "pass": true,
+        "by": "host",
+        "detail": "unchanged since start"
+      },
+      {
+        "id": "C19",
+        "pass": true,
+        "by": "human",
+        "detail": "approved by the owner (final)"
+      }
+    ],
+    "integrity": [],
+    "lines": [
+      "All required criteria passed."
+    ]
+  }
+}

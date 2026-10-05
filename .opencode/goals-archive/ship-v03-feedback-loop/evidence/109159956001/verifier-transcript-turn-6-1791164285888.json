@@ -1,0 +1,9 @@
+{
+  "childID": "ses_ef64bd123ffeKmpKsseXHDImpl",
+  "done": "timeout",
+  "by": "verifier",
+  "rounds": 1,
+  "retried": false,
+  "model": "zai-coding-plan/glm-5.3#high",
+  "messages": []
+}

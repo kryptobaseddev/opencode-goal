@@ -1,0 +1,202 @@
+schema: goal/v1
+id: dogfood-buildout
+title: v0.2 dogfood — real-model run, skill-forge pass, TUI dashboard panel
+intent:
+  verbatim: 'you need to dogfood yourself by building your goal system out and testing it fully in opencode 2 for our project'
+why: >-
+  T012 is the first real-model exercise of the whole goal system — this very run is the
+  dogfood. Building T010 and T009 under the loop exercises the plugin on real feature work
+  and ends in a released tag, the way the owner wants to iterate.
+outcome: >-
+  opencode-goal v0.1.0-alpha.2 is tagged on GitHub: the engine has survived one real-model
+  goal end to end (this run, with ledger and evidence on disk), the bundled write-goal skill
+  passes all three skill-forge validators with worked examples, and the TUI goal dashboard
+  panel renders in a real TUI capture.
+non_goals:
+  - 'goal_amend, /goal edit, relay mode, goal queues, home-screen board, Claude Code / Codex adapters (HANDOFF §9.6)'
+  - 'Switching continuations to session.synthetic (HANDOFF §9.5) — keep the deterministic continuation prompt'
+  - 'Any change to the owner''s global OpenCode plugin install — reinstall is manual, after the goal'
+  - 'New runtime dependencies for the plugin'
+criteria:
+  - id: C1
+    statement: >-
+      The loop ran for real: this goal''s ledger records a start event and at least one
+      admitted worker turn
+    check:
+      kind: contains
+      path: .opencode/goals/dogfood-buildout/ledger.jsonl
+      regex: '"type":"(start|admit)"'
+  - id: C2
+    statement: >-
+      docs/dogfood-1.md documents, grounded in this run''s ledger and evidence, the observed
+      continuation behaviour, the verifier flow with real goal_verdict quotes, request/token
+      cost, and prompt-cache behaviour — and every defect found is filed as a CLEO task
+    check:
+      kind: verifier
+      ask: >-
+        Read docs/dogfood-1.md, .opencode/goals/dogfood-buildout/ledger.jsonl and
+        .opencode/goals/dogfood-buildout/evidence/. Judge whether the doc records, each
+        grounded in the ledger/evidence: (1) how continuation behaved on a real model,
+        (2) the verifier flow including real goal_verdict quotes, (3) observed request/token
+        cost, (4) prompt-cache behaviour; and whether defects discovered are filed as CLEO
+        tasks (list their ids). List anything missing or unsupported by the artifacts.
+  - id: C3
+    statement: >-
+      skills/write-goal passes awesome-skills skill-validator: validate.py, audit_body.py and
+      check_depth.py all exit 0
+    check:
+      kind: command
+      run: >-
+        [ -x .tmp/venv/bin/python ] || python3 -m venv .tmp/venv;
+        .tmp/venv/bin/pip install -q pyyaml;
+        for s in validate audit_body check_depth; do
+          .tmp/venv/bin/python "$HOME/projects/awesome-skills/skills/skill-validator/scripts/$s.py"
+          /Users/keatonhoskins/projects/opencode-goal/skills/write-goal || exit 1;
+        done
+      expect: { exit: 0 }
+      live: true
+      timeout: 300
+  - id: C4
+    statement: >-
+      The skill ships worked examples: skills/write-goal/references/examples.md contains
+      complete goal/v1 contracts
+    check:
+      kind: contains
+      path: skills/write-goal/references/examples.md
+      regex: 'schema: goal/v1'
+  - id: C5
+    statement: >-
+      The released tag installs and registers: the git-install test passes against
+      github:kryptobaseddev/opencode-goal#v0.1.0-alpha.2 (isolated OpenCode, skill list shows
+      write-goal)
+    check:
+      kind: command
+      run: >-
+        OCGOAL_GIT_INSTALL=1
+        OCGOAL_GIT_SPEC="github:kryptobaseddev/opencode-goal#v0.1.0-alpha.2"
+        bun test test/host/git-install.test.ts
+      expect: { exit: 0 }
+      live: true
+      timeout: 600
+  - id: C6
+    statement: >-
+      The TUI dashboard panel has a snapshot test at test/unit/tui-panel.test.ts rendering the
+      criteria board, per-criterion evidence, the ledger timeline and verdicts
+    check:
+      kind: command
+      run: bun test test/unit/tui-panel.test.ts
+      expect: { exit: 0 }
+  - id: C7
+    statement: >-
+      A real OpenCode TUI capture shows the panel by default (no key presses): the captured
+      screen contains the panel''s Timeline section
+    check:
+      kind: command
+      run: >-
+        bun scripts/tui-smoke.ts & SMOKE=$!;
+        sleep 4;
+        python3 spikes/tui-capture.py 15;
+        kill $SMOKE 2>/dev/null; wait $SMOKE 2>/dev/null;
+        grep -q Timeline .tmp/spikes/tui-raw.txt
+      expect: { exit: 0 }
+      live: true
+      timeout: 120
+  - id: C8
+    statement: package.json is bumped for the release
+    check:
+      kind: contains
+      path: package.json
+      text: '"version": "0.1.0-alpha.2"'
+  - id: C9
+    statement: CHANGELOG.md has a v0.1.0-alpha.2 entry
+    check:
+      kind: contains
+      path: CHANGELOG.md
+      text: 0.1.0-alpha.2
+invariants:
+  - id: I1
+    statement: The full test suite SHALL CONTINUE TO pass
+    check: { kind: command, run: bun test, expect: { exit: 0 }, timeout: 300 }
+  - id: I2
+    statement: The typecheck SHALL CONTINUE TO pass
+    check: { kind: command, run: bun run typecheck, expect: { exit: 0 } }
+  - id: I3
+    statement: The observed-behaviour oracle and the test harness SHALL NOT change
+    check:
+      kind: diff
+      paths: ['docs/spikes.md', 'test/host/harness.ts']
+protect: ['docs/spikes.md', 'test/host/harness.ts']
+scope:
+  in:
+    - 'skills/write-goal: validator fixes, references/examples.md (4 complete goals), trigger evals'
+    - 'src/tui + src/rpc: session.panel goal dashboard (always visible), keybinding to focus, test/unit/tui-panel.test.ts'
+    - 'docs/dogfood-1.md from this run''s ledger/evidence; defect CLEO tasks'
+    - 'Release: version bump, CHANGELOG, commit, tag v0.1.0-alpha.2, push --follow-tags, git-install test'
+  out:
+    - 'Everything in non_goals; also no .opencode/goals contract or state edits (engine-guarded)'
+constraints:
+  - 'OpenCode 2 only; plain-object default export; @opencode/* imports are types only'
+  - 'Keep the system block byte-stable within a run; volatile status goes in the per-turn tail note'
+  - 'Every behaviour change to the loop gets a host scenario in test/host/goal.test.ts'
+  - 'Commits: type(T###): summary — every commit references a CLEO task (hooks enforce)'
+  - 'setup can run twice per location; everything registered must be disposed in stop()'
+plan:
+  - id: S1
+    title: 'Skill pass: run the three validators (venv + pyyaml), fix findings, add references/examples.md, run trigger evals'
+    proves: [C3, C4]
+  - id: S2
+    title: 'TUI session.panel goal dashboard, always visible: contract, per-criterion evidence, ledger timeline, verdicts + keybinding + snapshot test'
+    proves: [C6, C7]
+    depends_on: [S1]
+  - id: S3
+    title: 'Write docs/dogfood-1.md from this run''s ledger/evidence (continuation, verifier quotes, cost, cache); file defects as CLEO tasks'
+    proves: [C1, C2]
+    depends_on: [S2]
+  - id: S4
+    title: 'Release v0.1.0-alpha.2: bump, CHANGELOG, commit, tag, push --follow-tags, git-install test'
+    proves: [C5, C8, C9]
+    depends_on: [S3]
+  - id: S5
+    title: 'CLEO: cleo verify + cleo complete T010, T009, T012 with evidence atoms'
+    proves: []
+    depends_on: [S4]
+assumptions:
+  - id: A1
+    text: >-
+      The worker and verifier for this run use this session''s real provider
+      (GLM via zai-coding-plan), which satisfies T012''s "real provider"
+    rationale: the goal executes inside this OpenCode session; the provider cannot be swapped mid-run
+    reversible: false
+  - id: A2
+    text: PyYAML for the skill validators is installed into .tmp/venv (project-local, gitignored), not the global Python env
+    rationale: keeps the owner''s environment untouched; .tmp/ is already ignored
+    reversible: true
+  - id: A3
+    text: >-
+      Goal runtime artifacts (.opencode/goals/*/run.json, ledger.jsonl, evidence/) are added
+      to .gitignore per HANDOFF §8.4, while docs/dogfood-1.md is committed
+    rationale: runtime state should not be versioned; the findings doc is the durable record
+    reversible: true
+  - id: A4
+    text: The dogfood findings doc is finalized in S3, after S1/S2, so cost and cache observations span real work
+    rationale: cost/cache evidence accumulates over the run
+    reversible: true
+  - id: A5
+    text: >-
+      T012/T010/T009 are completed in CLEO during the run via cleo verify + cleo complete with
+      programmatic evidence atoms (ADR-051)
+    rationale: the project''s own completion discipline applies to the loop as well
+    reversible: true
+stop:
+  escalate_when:
+    - 'A real-model finding needs an engine redesign rather than a small fix — file the defect as a CLEO task and stop for review'
+    - 'The TUI panel needs OpenTUI APIs not covered by docs/research/opencode2-plugin-api.md or docs/spikes.md — spike first, then stop and ask'
+    - 'The skill validators still cannot run after the venv/PyYAML fix, or git push is rejected'
+    - 'The git-install test fails against the pushed tag'
+verification:
+  mode: host+verifier
+  max_rejections: 3
+autonomy:
+  questions: defer
+  on_user_message: steer
+  on_interrupt: pause

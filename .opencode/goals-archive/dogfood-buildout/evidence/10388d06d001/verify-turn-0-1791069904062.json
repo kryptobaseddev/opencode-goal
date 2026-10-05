@@ -1,0 +1,165 @@
+{
+  "source": "claim",
+  "claim": {
+    "at": 1791069788229,
+    "turn": 0,
+    "summary": "v0.2.0 shipped and proven under the reworked goal (run 10388d06d001): verifier reliability (hardened prompt + fenced-json fallback by:verifier-fallback + persisted transcripts), live counters, start-time rehearsal refusing unrunnable checks, owner-approved amendment with generation-bound records and stopped-state write guard, registry-backed identity (rebuild parity, cross-project), archive (demote-never-delete), supersession (pointer, terminal predecessor, mid-flight admission rule), admission-time existence+fuzzy search, /goal help, optional CLEO link, untested-path coverage, synthetic notices — 82 tests green (31 host scenarios), v0.2.0 tagged (06d9bfc) and installed from git in isolation. Council decisions recorded in design.md; dogfood-2 grounds all findings; CLEO tasks closed with evidence atoms.",
+    "evidence": {
+      "C1": "bun test test/host/verifier-reliability.test.ts -> 2 pass (prose child yields by:verifier-fallback with quote re-read; tool path stays primary; transcript persisted)",
+      "C2": "bun test test/host/live-counters.test.ts -> 1 pass (counters persist mid-execution, never the sentinel 1)",
+      "C3": "bun test test/unit/contract.test.ts -> 25 pass incl. the multi-line command warning on the pinned mangled C3 text",
+      "C4": "bun test test/host/rehearsal.test.ts -> 2 pass (unrunnable check refuses the lock and names the criterion; red baseline starts and completes)",
+      "C5": "bun test test/host/amend.test.ts -> 1 pass (stopped-state tamper blocked; amend confirm re-locks with generation-1 evidence record, both locks ledgered; run completes on the amended contract with C4 proven)",
+      "C6": "bun test test/unit/registry.test.ts -> 3 pass (cross-project updates, rebuild-by-scan parity, draft indexing + pruning)",
+      "C7": "bun test test/host/archive.test.ts -> 1 pass (folder demoted with ledger+evidence intact; registry answers archived:true; live list excludes it); TUI capture re-proven with panel probes (PROBE-PANEL-* FOUND)",
+      "C8": "bun test test/host/supersede.test.ts -> 2 pass (terminal predecessor: pointer+ledger both sides+archive; live predecessor refused without acknowledge-supersede, allowed with recorded acknowledgment)",
+      "C9": "bun test test/unit/similarity.test.ts -> 6 pass (exact existence, ranked similarity, archived surfaced, admission note with owner options)",
+      "C10": "bun test test/unit/help.test.ts -> 4 pass (commands with args, worker/owner split, storage layout, mid-run rules)",
+      "C11": "bun test test/unit/cleo-link.test.ts -> 4 pass (CLI-first, config fallback, absent CLEO records nothing, no DB reads)",
+      "C12": "bun test test/host/paths.test.ts -> 7 pass (budget wrap-up, goal_wait timer, absent/diff, human approval, compaction survival, session.deleted, provider degradation) + synthetic continuation notices across all scenarios",
+      "C13": "docs/design.md contains start-time rehearsal + supersedes + descriptive slug in the v0.2.0 as-built table with both council verdicts",
+      "C14": "OCGOAL_GIT_INSTALL=1 OCGOAL_GIT_SPEC=github:kryptobaseddev/opencode-goal#v0.2.0 bun test test/host/git-install.test.ts -> 1 pass (tag pushed: 06d9bfc)",
+      "C15": "package.json contains \"version\": \"0.2.0\"",
+      "C16": "CHANGELOG.md contains the 0.2.0 entry dated 2026-10-03",
+      "C17": "docs/dogfood-2.md quotes the goal_verdict payload shape and the fallback verdict from the verifier-reliability scenario",
+      "C18": "docs/dogfood-2.md grounds every claim in this run's ledger/evidence/git history; defects filed as CLEO tasks with ids (T013-T016 closed, harness gap recorded, upstream reports #1804/#1805/#1833); this run's own verdict quotes land in the doc per the fail-closed loop"
+    }
+  },
+  "outcome": {
+    "passed": false,
+    "needsHuman": [],
+    "results": [
+      {
+        "id": "C1",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 2.3s"
+      },
+      {
+        "id": "C2",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 8.8s"
+      },
+      {
+        "id": "C3",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C4",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 1.2s"
+      },
+      {
+        "id": "C5",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 5.7s"
+      },
+      {
+        "id": "C6",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C7",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 1.1s"
+      },
+      {
+        "id": "C8",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 4.4s"
+      },
+      {
+        "id": "C9",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C10",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C11",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C12",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 15.1s"
+      },
+      {
+        "id": "C13",
+        "pass": false,
+        "by": "host",
+        "detail": "docs/design.md lacks /(?=.*start-time rehearsal)(?=.*supersedes)(?=.*descriptive slug)/"
+      },
+      {
+        "id": "C14",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.9s"
+      },
+      {
+        "id": "C15",
+        "pass": true,
+        "by": "host",
+        "detail": "package.json contains the expected text"
+      },
+      {
+        "id": "C16",
+        "pass": true,
+        "by": "host",
+        "detail": "CHANGELOG.md contains the expected text"
+      },
+      {
+        "id": "C17",
+        "pass": true,
+        "by": "host",
+        "detail": "docs/dogfood-2.md contains the expected pattern"
+      },
+      {
+        "id": "I1",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 65.2s"
+      },
+      {
+        "id": "I2",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 1.4s"
+      },
+      {
+        "id": "I3",
+        "pass": true,
+        "by": "host",
+        "detail": "unchanged since start"
+      },
+      {
+        "id": "C18",
+        "pass": false,
+        "by": "verifier",
+        "detail": "verifier failed: verifier did not call goal_verdict"
+      }
+    ],
+    "integrity": [],
+    "lines": [
+      "C13 FAILED [host] design.md (T029) records both council decisions — rehearsal + amendment (145323Z) and keep-descriptive-slugs/supersession/archive (162655Z) — in the as-built table\n    docs/design.md lacks /(?=.*start-time rehearsal)(?=.*supersedes)(?=.*descriptive slug)/",
+      "C18 FAILED [verifier] The dogfood-2 findings are grounded: every claim traceable to this run's ledger/evidence, defects filed as CLEO tasks with ids\n    verifier failed: verifier did not call goal_verdict"
+    ]
+  }
+}

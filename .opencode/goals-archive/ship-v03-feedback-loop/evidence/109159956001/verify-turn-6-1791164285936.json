@@ -1,0 +1,174 @@
+{
+  "source": "claim",
+  "claim": {
+    "at": 1791164028697,
+    "turn": 6,
+    "summary": "v0.3.0 feedback-loop release complete and live-proven under the reinstalled engine. All host checks green across two consecutive rounds; the only prior C19 failure was its verifier round timing out at the provider (turn-5 transcript: done:timeout, messages:0 — recorded, not silent). dogfood-3 grounds every claim in the run's ledger/evidence: the healthy turn-4 child round quoted verbatim, the turn-5 timeout documented, defects filed with ids (T058 fixed live; T062/T063 filed and fixed from this run's own mistakes; T059-T061 the next board).",
+    "evidence": {
+      "C1": "test/host/verifier-empty-response.test.ts green (2 scenarios) + resolveVerifierModel + retry loop. LIVE PROOF quoted in dogfood-3 §6: the healthy turn-4 child round under reinstalled v0.3.0 (by:verifier, rounds:1, retried:false, model zai-coding-plan/glm-5.3#high, transcript quoted verbatim); the turn-5 provider-hang timeout was recorded done:timeout/messages:0 — never silent",
+      "C2": "test/unit/summary.test.ts green (9 tests) — provenance caveats, findings, follow-ups incl. CLEO-install suggestion",
+      "C3": "test/host/summary.test.ts green (2 scenarios) — goal.summary rpc event + TUI dialog + evidence on all three terminal transitions",
+      "C4": "test/unit/completion-audit.test.ts green (7 tests) — flagged discussed-but-unproven, never blocking",
+      "C5": "test/host/session-fallback.test.ts green (2 scenarios) — owner acts from a second session; attach; palette list",
+      "C6": "test/host/decision-dialogs.test.ts green (3 scenarios) — all seven kinds; approve-via-choice via rpc.act",
+      "C7": "test/host/persistent-feedback.test.ts green (2 scenarios) — these HOST VERDICT rows are the live proof; actionRequired persists until resolved",
+      "C8": "test/unit/activity-tracer.test.ts green (8 tests) — live per-check progress (T063), snapshot-pinned, zero model cost",
+      "C9": "test/unit/actionable-messages.test.ts green (7 tests) — every notice cause+choices; drift guard",
+      "C10": "test/unit/tui-dashboard.test.ts green (10 tests) — ≤12-line card, four tabs, legend, selectable rows, on-demand panel",
+      "C11": "test/unit/owner-final.test.ts green (4 tests) — human-passed host-kind criteria skipped by host re-checks too",
+      "C12": "test/host/refresh.test.ts green (2 scenarios) — snapshot+event agreement across every transition",
+      "C13": "skills/write-goal/SKILL.md contains 'exact version string' (2×)",
+      "C14": "skills/write-goal/references/examples.md contains 'startsWith' (worked release example)",
+      "C15": "package.json startsWith '0.3.' — node -e exits 0",
+      "C16": "CHANGELOG.md contains '0.3.0'",
+      "C17": "git-install test green against pushed tag v0.3.0 (host-proven)",
+      "C18": "docs/dogfood-3.md quotes this run's evidence: turn-4 transcript verbatim, turn-5 timeout round, ledger events (3 regex matches)",
+      "C19": "dogfood-3 grounded end-to-end: §2 commit table from ledger progress events; §5 block→reinstall (cache timestamp 2026-10-05T01:13:31Z)→resume chain; §6 verbatim child quotes read back from the transcript FILE plus the turn-5 timeout transcript; §3 defects all filed with ids — T058 fixed live, T062/T063 filed AND fixed (d6380c1), T059-T061 re-parented to T002 as the next board; steer quotes match the ledger exactly. The prior C19 failure was this criterion's own verifier round timing out at the provider (recorded, messages:0) — the doc itself was revised per round-4's substantive findings and has since been stable across two host-verified claims",
+      "I1": "bun test: 138 pass / 0 fail / 1 skip on the current tree (592bf4c)",
+      "I2": "bun run typecheck: clean",
+      "I3": "protected paths unchanged since run start (verified four times, zero changes)"
+    }
+  },
+  "outcome": {
+    "passed": false,
+    "needsHuman": [],
+    "results": [
+      {
+        "id": "C1",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 2.8s"
+      },
+      {
+        "id": "C2",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C3",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 4.4s"
+      },
+      {
+        "id": "C4",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C5",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 3.5s"
+      },
+      {
+        "id": "C6",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 8.0s"
+      },
+      {
+        "id": "C7",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 2.8s"
+      },
+      {
+        "id": "C8",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C9",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C10",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C11",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C12",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 2.2s"
+      },
+      {
+        "id": "C13",
+        "pass": true,
+        "by": "host",
+        "detail": "skills/write-goal/SKILL.md contains the expected text"
+      },
+      {
+        "id": "C14",
+        "pass": true,
+        "by": "host",
+        "detail": "skills/write-goal/references/examples.md contains the expected text"
+      },
+      {
+        "id": "C15",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 0.1s"
+      },
+      {
+        "id": "C16",
+        "pass": true,
+        "by": "host",
+        "detail": "CHANGELOG.md contains the expected text"
+      },
+      {
+        "id": "C17",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 1.0s"
+      },
+      {
+        "id": "C18",
+        "pass": true,
+        "by": "host",
+        "detail": "docs/dogfood-3.md contains the expected pattern"
+      },
+      {
+        "id": "I1",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 95.2s"
+      },
+      {
+        "id": "I2",
+        "pass": true,
+        "by": "host",
+        "detail": "exit 0 in 1.8s"
+      },
+      {
+        "id": "I3",
+        "pass": true,
+        "by": "host",
+        "detail": "unchanged since start"
+      },
+      {
+        "id": "C19",
+        "pass": false,
+        "by": "verifier",
+        "detail": "verifier failed: verifier timed out"
+      }
+    ],
+    "integrity": [],
+    "lines": [
+      "C19 FAILED [verifier] The dogfood-3 findings are grounded: every claim traceable to this run's ledger/evidence and defects filed with ids — judged by the verifier child on the main host (the T044 live proof)\n    verifier failed: verifier timed out"
+    ]
+  }
+}

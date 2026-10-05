@@ -1,0 +1,187 @@
+{
+  "slug": "ship-v03-feedback-loop",
+  "title": "v0.3.0 feedback loop: every decision persistent, actionable, visible",
+  "status": "complete",
+  "turns": 6,
+  "headline": "goal complete — 22/22 criteria proven, 1 with provenance caveats",
+  "criteria": [
+    {
+      "id": "C1",
+      "statement": "Verifier child on the real host (T044): the child request carries an explicitly resolved model and empty responses are handled (retried/recorded, never a silent empty exchange) — host scenario with an empty-response fixture; the live main-host proof is this run's own completing verifier round under the reinstalled v0.3.0, quoted in dogfood-3",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 3.5s"
+    },
+    {
+      "id": "C2",
+      "statement": "Post-goal summary builder (T045): per-criterion outcomes with by: provenance (owner-approved and fallback-passed labeled as caveats), scope audit, non-goals restated, mid-run findings from the ledger, follow-up prompts including the CLEO-install suggestion when .cleo is absent",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 0.1s"
+    },
+    {
+      "id": "C3",
+      "statement": "The summary renders (T045): on complete/needs_review/budget_limited transitions the engine emits goal.summary and the TUI surfaces it — host scenario",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 4.8s"
+    },
+    {
+      "id": "C4",
+      "statement": "Completion scope audit (T046, owner decision — flagged caveat): plan steps with proves:[] and no sibling evidence, and scope.in items mapping to no criterion outcome, are flagged as discussed-but-unproven; completion is not blocked",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 0.1s"
+    },
+    {
+      "id": "C5",
+      "statement": "Goals escape their session (T049): owner actions fall back to the project's unique non-terminal goal from any session, and palette commands list selectable goals when the current session has none — host scenario acting from a second session",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 4.1s"
+    },
+    {
+      "id": "C6",
+      "statement": "Decision dialogs at every decision point (T050): needs_review, paused-after-verdict, blocked, budget_limited, amend-proposed, supersede-ack and complete each emit an engine decision payload the TUI renders as a selectable dialog wired to rpc.act — host scenario driving one decision end-to-end",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 8.3s"
+    },
+    {
+      "id": "C7",
+      "statement": "Persistent terminal feedback (T052): verdicts, owner actions, amendments, blocks and completions land as transcript notice rows the agent sees next turn, and an action-required sidebar state persists until resolved — host scenario including an owner-side action leaving its note",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 3.5s"
+    },
+    {
+      "id": "C8",
+      "statement": "Live activity tracer (T053): a pure formatter renders engine working state with elapsed time (verifying, verifier child running, waits and cooldown countdowns) for the composer-top slot and panel, snapshot-tested, zero model cost",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 0.1s"
+    },
+    {
+      "id": "C9",
+      "statement": "Actionable message content (T054): every notice carries the cause plus concrete choices; a unit suite pins that no engine notice is actionless",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 0.1s"
+    },
+    {
+      "id": "C10",
+      "statement": "Dashboard rework (T056): sidebar card capped ~12 lines, panel reorganized into Now/Progress/Decisions/Goals tabs with plain-language criteria and a C/I/S legend, actionable rows keyboard-selectable, panel opens on demand — snapshot tests",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 0.1s"
+    },
+    {
+      "id": "C11",
+      "statement": "Owner-final beats host re-checks (T057): a criterion passed by:human is skipped by host re-verification as well as verifier re-checks and recorded as approved-by-owner — unit test with a host-kind criterion",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 0.1s"
+    },
+    {
+      "id": "C12",
+      "statement": "Sidebar and panel refresh across state transitions (T058): the view updates on every goal state change after the fix — host scenario across transitions",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 2.7s"
+    },
+    {
+      "id": "C13",
+      "statement": "Authoring rule in the skill (T055): write-goal SKILL.md forbids exact version-string needles and requires prefix or semantic version checks",
+      "status": "pass",
+      "by": "host",
+      "detail": "skills/write-goal/SKILL.md contains the expected text"
+    },
+    {
+      "id": "C14",
+      "statement": "The pattern is taught by example (T055): references/examples.md shows a version-release criterion using a semantic prefix check, never an exact contains needle",
+      "status": "pass",
+      "by": "host",
+      "detail": "skills/write-goal/references/examples.md contains the expected text"
+    },
+    {
+      "id": "C15",
+      "statement": "package.json is semantically bumped for v0.3 (prefix check — the T055 rule applied to this very contract)",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 0.1s"
+    },
+    {
+      "id": "C16",
+      "statement": "CHANGELOG.md carries the v0.3.0 entry",
+      "status": "pass",
+      "by": "host",
+      "detail": "CHANGELOG.md contains the expected text"
+    },
+    {
+      "id": "C17",
+      "statement": "The pushed v0.3.0 tag installs from git in an isolated OpenCode",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 1.0s"
+    },
+    {
+      "id": "C18",
+      "statement": "docs/dogfood-3.md exists and quotes this run's own verification evidence (a real child verdict, fallback or transcript artifact)",
+      "status": "pass",
+      "by": "host",
+      "detail": "docs/dogfood-3.md contains the expected pattern"
+    },
+    {
+      "id": "C19",
+      "statement": "The dogfood-3 findings are grounded: every claim traceable to this run's ledger/evidence and defects filed with ids — judged by the verifier child on the main host (the T044 live proof)",
+      "status": "pass",
+      "by": "human",
+      "detail": "approved by the owner (final)",
+      "caveat": "approved by the owner — final; not independently re-checked"
+    },
+    {
+      "id": "I1",
+      "statement": "The full test suite SHALL CONTINUE TO pass",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 98.0s"
+    },
+    {
+      "id": "I2",
+      "statement": "The typecheck SHALL CONTINUE TO pass",
+      "status": "pass",
+      "by": "host",
+      "detail": "exit 0 in 1.7s"
+    },
+    {
+      "id": "I3",
+      "statement": "The observed-behaviour oracle, the test harness and the council audit trails SHALL NOT change",
+      "status": "pass",
+      "by": "host",
+      "detail": "unchanged since start"
+    }
+  ],
+  "caveats": [
+    "C19 — approved by the owner — final; not independently re-checked"
+  ],
+  "scopeAudit": [],
+  "nonGoals": [
+    "Relay mode, goal queues, home-screen board, Claude Code / Codex adapters, headless runner (HANDOFF backlog)",
+    "npm publishing — git install only",
+    "Any change to the owner's global OpenCode install during the run beyond the single release-step reinstall",
+    "A hard CLEO dependency — the CLEO link stays optional and CLI-only",
+    "Staged or intermediate release tags — exactly one v0.3.0 end release",
+    "Web/desktop surfaces beyond the existing RPC contract"
+  ],
+  "findings": [
+    {
+      "kind": "blocked",
+      "text": "owner-reinstall-v030 — Third and final report — the run stops here for your decision. Install cache still pins #v0.2.2. v0.3.0 is tagged, pushed, git-install-proven; suite 137/0; every pre-claim criterion and CLEO task closed. Only the engine-version gate remains: `opencode plugin remove \".../opencode-goal#v0.2.2\"` then `opencode plugin add \".../opencode-goal#v0.3.0\"` then `opencode reload`. Reply to resume: dogfood-3 gets its live verifier quote, then the completing claim under v0.3.0. (raised 3×)"
+    }
+  ],
+  "followUps": [
+    "Start the next goal: /goal new <what you want done> — the non-goals below are the ready-made backlog.",
+    "Decompose long-running work with CLEO (this project is already linked; keep tasks completing with evidence)."
+  ],
+  "text": "# Post-goal summary — v0.3.0 feedback loop: every decision persistent, actionable, visible\ngoal complete — 22/22 criteria proven, 1 with provenance caveats · 6 turn(s)\n\nOutcome (as contracted): opencode-goal v0.3.0 is tagged on GitHub and installed in the owner's OpenCode before the completing claim: the verifier child reliably yields verdicts on the main host, every engine decision point opens an actionable dialog and leaves a persistent transcript notice the agent sees next turn, an activity tracer shows engine work live at zero model cost, the dashboard is a compact sidebar card plus tabbed panel instead of a raw stream, every notice carries why and choices, completion renders a post-goal summary with provenance caveats and a flagged scope audit, goals are reachable from any session, and owner approval is final against host re-checks too — with this run's own verified completion under the installed v0.3.0 as the live proof.\n\n## Criteria\n- ✓ pass C1 [host] Verifier child on the real host (T044): the child request carries an explicitly resolved model and empty responses are handled (retried/recorded, never a silent empty exchange) — host scenario with an empty-response fixture; the live main-host proof is this run's own completing verifier round under the reinstalled v0.3.0, quoted in dogfood-3\n- ✓ pass C2 [host] Post-goal summary builder (T045): per-criterion outcomes with by: provenance (owner-approved and fallback-passed labeled as caveats), scope audit, non-goals restated, mid-run findings from the ledger, follow-up prompts including the CLEO-install suggestion when .cleo is absent\n- ✓ pass C3 [host] The summary renders (T045): on complete/needs_review/budget_limited transitions the engine emits goal.summary and the TUI surfaces it — host scenario\n- ✓ pass C4 [host] Completion scope audit (T046, owner decision — flagged caveat): plan steps with proves:[] and no sibling evidence, and scope.in items mapping to no criterion outcome, are flagged as discussed-but-unproven; completion is not blocked\n- ✓ pass C5 [host] Goals escape their session (T049): owner actions fall back to the project's unique non-terminal goal from any session, and palette commands list selectable goals when the current session has none — host scenario acting from a second session\n- ✓ pass C6 [host] Decision dialogs at every decision point (T050): needs_review, paused-after-verdict, blocked, budget_limited, amend-proposed, supersede-ack and complete each emit an engine decision payload the TUI renders as a selectable dialog wired to rpc.act — host scenario driving one decision end-to-end\n- ✓ pass C7 [host] Persistent terminal feedback (T052): verdicts, owner actions, amendments, blocks and completions land as transcript notice rows the agent sees next turn, and an action-required sidebar state persists until resolved — host scenario including an owner-side action leaving its note\n- ✓ pass C8 [host] Live activity tracer (T053): a pure formatter renders engine working state with elapsed time (verifying, verifier child running, waits and cooldown countdowns) for the composer-top slot and panel, snapshot-tested, zero model cost\n- ✓ pass C9 [host] Actionable message content (T054): every notice carries the cause plus concrete choices; a unit suite pins that no engine notice is actionless\n- ✓ pass C10 [host] Dashboard rework (T056): sidebar card capped ~12 lines, panel reorganized into Now/Progress/Decisions/Goals tabs with plain-language criteria and a C/I/S legend, actionable rows keyboard-selectable, panel opens on demand — snapshot tests\n- ✓ pass C11 [host] Owner-final beats host re-checks (T057): a criterion passed by:human is skipped by host re-verification as well as verifier re-checks and recorded as approved-by-owner — unit test with a host-kind criterion\n- ✓ pass C12 [host] Sidebar and panel refresh across state transitions (T058): the view updates on every goal state change after the fix — host scenario across transitions\n- ✓ pass C13 [host] Authoring rule in the skill (T055): write-goal SKILL.md forbids exact version-string needles and requires prefix or semantic version checks\n- ✓ pass C14 [host] The pattern is taught by example (T055): references/examples.md shows a version-release criterion using a semantic prefix check, never an exact contains needle\n- ✓ pass C15 [host] package.json is semantically bumped for v0.3 (prefix check — the T055 rule applied to this very contract)\n- ✓ pass C16 [host] CHANGELOG.md carries the v0.3.0 entry\n- ✓ pass C17 [host] The pushed v0.3.0 tag installs from git in an isolated OpenCode\n- ✓ pass C18 [host] docs/dogfood-3.md exists and quotes this run's own verification evidence (a real child verdict, fallback or transcript artifact)\n- ✓ pass C19 [human] The dogfood-3 findings are grounded: every claim traceable to this run's ledger/evidence and defects filed with ids — judged by the verifier child on the main host (the T044 live proof)\n    caveat: approved by the owner — final; not independently re-checked\n- ✓ pass I1 [host] The full test suite SHALL CONTINUE TO pass\n- ✓ pass I2 [host] The typecheck SHALL CONTINUE TO pass\n- ✓ pass I3 [host] The observed-behaviour oracle, the test harness and the council audit trails SHALL NOT change\n\n## Non-goals (deliberately not done)\n- Relay mode, goal queues, home-screen board, Claude Code / Codex adapters, headless runner (HANDOFF backlog)\n- npm publishing — git install only\n- Any change to the owner's global OpenCode install during the run beyond the single release-step reinstall\n- A hard CLEO dependency — the CLEO link stays optional and CLI-only\n- Staged or intermediate release tags — exactly one v0.3.0 end release\n- Web/desktop surfaces beyond the existing RPC contract\n\n## Mid-run findings\n- blocked: owner-reinstall-v030 — Third and final report — the run stops here for your decision. Install cache still pins #v0.2.2. v0.3.0 is tagged, pushed, git-install-proven; suite 137/0; every pre-claim criterion and CLEO task closed. Only the engine-version gate remains: `opencode plugin remove \".../opencode-goal#v0.2.2\"` then `opencode plugin add \".../opencode-goal#v0.3.0\"` then `opencode reload`. Reply to resume: dogfood-3 gets its live verifier quote, then the completing claim under v0.3.0. (raised 3×)\n\n## Provenance caveats\n- C19 — approved by the owner — final; not independently re-checked\n\n## Follow-ups\n- Start the next goal: /goal new <what you want done> — the non-goals below are the ready-made backlog.\n- Decompose long-running work with CLEO (this project is already linked; keep tasks completing with evidence)."
+}

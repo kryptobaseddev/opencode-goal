@@ -1,0 +1,117 @@
+{
+  "at": 1791153772939,
+  "results": [
+    {
+      "id": "C1",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 157,
+      "detail": "run 1/1: exit 1, expected 0\nerror: expect(received).toBe(expected)\n\nExpected: false\nReceived: true\n\n      at <anonymous> (/Users/keatonhoskins/projects/opencode-goal/test/host/verifier-empty-response.test.ts:9:16)\n(fail) RED STUB (S1/T044): an empty child exchange is handled, not silent [2.48ms]\n\n 0 pass\n 1 fail\n 1 expect() calls\nRan 1 test across 1 file. [54.00ms]"
+    },
+    {
+      "id": "C2",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 100,
+      "detail": "run 1/1: exit 1, expected 0\nerror: expect(received).toBe(expected)\n\nExpected: false\nReceived: true\n\n      at <anonymous> (/Users/keatonhoskins/projects/opencode-goal/test/unit/summary.test.ts:9:16)\n(fail) RED STUB (S4/T045): summary builder with provenance caveats exists [0.15ms]\n\n 0 pass\n 1 fail\n 1 expect() calls\nRan 1 test across 1 file. [4.00ms]"
+    },
+    {
+      "id": "C3",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 95,
+      "detail": "run 1/1: exit 1, expected 0\nerror: expect(received).toBe(expected)\n\nExpected: false\nReceived: true\n\n      at <anonymous> (/Users/keatonhoskins/projects/opencode-goal/test/host/summary.test.ts:7:16)\n(fail) RED STUB (S4/T045): goal.summary renders on terminal transitions [0.14ms]\n\n 0 pass\n 1 fail\n 1 expect() calls\nRan 1 test across 1 file. [4.00ms]"
+    },
+    {
+      "id": "C4",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 101,
+      "detail": "run 1/1: exit 1, expected 0\nerror: expect(received).toBe(expected)\n\nExpected: false\nReceived: true\n\n      at <anonymous> (/Users/keatonhoskins/projects/opencode-goal/test/unit/completion-audit.test.ts:9:16)\n(fail) RED STUB (S5/T046): unproven scope items are flagged, not blocking [0.16ms]\n\n 0 pass\n 1 fail\n 1 expect() calls\nRan 1 test across 1 file. [4.00ms]"
+    },
+    {
+      "id": "C5",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 99,
+      "detail": "run 1/1: exit 1, expected 0\nerror: expect(received).toBe(expected)\n\nExpected: false\nReceived: true\n\n      at <anonymous> (/Users/keatonhoskins/projects/opencode-goal/test/host/session-fallback.test.ts:8:16)\n(fail) RED STUB (S3/T049): owner actions work from any session [0.16ms]\n\n 0 pass\n 1 fail\n 1 expect() calls\nRan 1 test across 1 file. [5.00ms]"
+    },
+    {
+      "id": "C6",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 95,
+      "detail": "run 1/1: exit 1, expected 0\nerror: expect(received).toBe(expected)\n\nExpected: false\nReceived: true\n\n      at <anonymous> (/Users/keatonhoskins/projects/opencode-goal/test/host/decision-dialogs.test.ts:8:16)\n(fail) RED STUB (S7/T050): decision payloads drive dialogs wired to rpc.act [0.14ms]\n\n 0 pass\n 1 fail\n 1 expect() calls\nRan 1 test across 1 file. [5.00ms]"
+    },
+    {
+      "id": "C7",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 104,
+      "detail": "run 1/1: exit 1, expected 0\nerror: expect(received).toBe(expected)\n\nExpected: false\nReceived: true\n\n      at <anonymous> (/Users/keatonhoskins/projects/opencode-goal/test/host/persistent-feedback.test.ts:8:16)\n(fail) RED STUB (S8/T052): decisions leave persistent, agent-visible notices [0.20ms]\n\n 0 pass\n 1 fail\n 1 expect() calls\nRan 1 test across 1 file. [4.00ms]"
+    },
+    {
+      "id": "C8",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 89,
+      "detail": "run 1/1: exit 1, expected 0\nerror: expect(received).toBe(expected)\n\nExpected: false\nReceived: true\n\n      at <anonymous> (/Users/keatonhoskins/projects/opencode-goal/test/unit/activity-tracer.test.ts:8:16)\n(fail) RED STUB (S9/T053): activity tracer formatter exists [0.39ms]\n\n 0 pass\n 1 fail\n 1 expect() calls\nRan 1 test across 1 file. [4.00ms]"
+    },
+    {
+      "id": "C9",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 89,
+      "detail": "run 1/1: exit 1, expected 0\nerror: expect(received).toBe(expected)\n\nExpected: false\nReceived: true\n\n      at <anonymous> (/Users/keatonhoskins/projects/opencode-goal/test/unit/actionable-messages.test.ts:7:16)\n(fail) RED STUB (S6/T054): no notice is actionless [0.13ms]\n\n 0 pass\n 1 fail\n 1 expect() calls\nRan 1 test across 1 file. [4.00ms]"
+    },
+    {
+      "id": "C10",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 94,
+      "detail": "run 1/1: exit 1, expected 0\nerror: expect(received).toBe(expected)\n\nExpected: false\nReceived: true\n\n      at <anonymous> (/Users/keatonhoskins/projects/opencode-goal/test/unit/tui-dashboard.test.ts:8:16)\n(fail) RED STUB (S11/T056): dashboard renders tabs + compact card [0.15ms]\n\n 0 pass\n 1 fail\n 1 expect() calls\nRan 1 test across 1 file. [6.00ms]"
+    },
+    {
+      "id": "C11",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 96,
+      "detail": "run 1/1: exit 1, expected 0\nerror: expect(received).toBe(expected)\n\nExpected: false\nReceived: true\n\n      at <anonymous> (/Users/keatonhoskins/projects/opencode-goal/test/unit/owner-final.test.ts:8:16)\n(fail) RED STUB (S2/T057): owner-final overrides host re-checks too [0.13ms]\n\n 0 pass\n 1 fail\n 1 expect() calls\nRan 1 test across 1 file. [4.00ms]"
+    },
+    {
+      "id": "C12",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 95,
+      "detail": "run 1/1: exit 1, expected 0\nerror: expect(received).toBe(expected)\n\nExpected: false\nReceived: true\n\n      at <anonymous> (/Users/keatonhoskins/projects/opencode-goal/test/host/refresh.test.ts:8:16)\n(fail) RED STUB (S10/T058): view refreshes across state transitions [0.13ms]\n\n 0 pass\n 1 fail\n 1 expect() calls\nRan 1 test across 1 file. [4.00ms]"
+    },
+    {
+      "id": "C15",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 127,
+      "detail": "run 1/1: exit 1, expected 0\n"
+    },
+    {
+      "id": "C17",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 120579,
+      "detail": "run 1/1: exit 1, expected 0\n194 |     }\n195 |     await Bun.sleep(stepMs)\n196 |   }\n197 |   throw new Error(`timed out after ${timeoutMs}ms${last ? `: ${last}` : \"\"}`)\n                  ^\nerror: timed out after 120000ms\n      at until (/Users/keatonhoskins/projects/opencode-goal/test/host/harness.ts:197:13)\n(fail) install from git > OpenCode installs github:kryptobaseddev/opencode-goal#v0.3.0 and "
+    },
+    {
+      "id": "I1",
+      "pass": false,
+      "unrunnable": false,
+      "ms": 73010,
+      "detail": "run 1/1: exit 1, expected 0\n(fail) RED STUB (S7/T050): decision payloads drive dialogs wired to rpc.act [0.09ms]\n(fail) RED STUB (S8/T052): decisions leave persistent, agent-visible notices [0.14ms]\n(fail) RED STUB (S10/T058): view refreshes across state transitions [0.10ms]\n(fail) RED STUB (S1/T044): an empty child exchange is handled, not silent [0.07ms]\n(fail) RED STUB (S3/T049): owner actions "
+    },
+    {
+      "id": "I2",
+      "pass": true,
+      "unrunnable": false,
+      "ms": 1825,
+      "detail": "exit 0 in 1.8s"
+    }
+  ]
+}

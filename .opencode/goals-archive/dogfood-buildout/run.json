@@ -1,0 +1,234 @@
+{
+  "version": 1,
+  "slug": "dogfood-buildout",
+  "title": "v0.2.0: reliable verification, amendable contracts, goal identity at scale",
+  "sessionID": "ses_f004d6e62ffeR2rs3E9wNMHmv9",
+  "runId": "10388d06d001",
+  "lock": "9910450c49223a701c65a7bcaab6e071e052b47f95def122c72e3298e8e741ed",
+  "status": "complete",
+  "createdAt": 1791060660344,
+  "updatedAt": 1791152096063,
+  "turn": 4,
+  "activeMs": 10917670,
+  "activeSince": null,
+  "usage": {
+    "tokens": 4722573,
+    "cost": 0,
+    "baseTokens": 1355360,
+    "baseCost": 0
+  },
+  "base": {
+    "commit": "2a90353d746904f57f7674aadf43d856bffb070c"
+  },
+  "counters": {
+    "noProgress": 0,
+    "failures": 0
+  },
+  "wrapup": false,
+  "criteria": {
+    "C1": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 2.6s",
+      "rejections": 0
+    },
+    "C2": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 9.3s",
+      "rejections": 0
+    },
+    "C3": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 0.1s",
+      "rejections": 0
+    },
+    "C4": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 1.7s",
+      "rejections": 0
+    },
+    "C5": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 6.2s",
+      "rejections": 0
+    },
+    "C6": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 0.1s",
+      "rejections": 0
+    },
+    "C7": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 1.2s",
+      "rejections": 0
+    },
+    "C8": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 4.7s",
+      "rejections": 0
+    },
+    "C9": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 0.1s",
+      "rejections": 0
+    },
+    "C10": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 0.1s",
+      "rejections": 0
+    },
+    "C11": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 0.2s",
+      "rejections": 0
+    },
+    "C12": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 17.3s",
+      "rejections": 0
+    },
+    "C13": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "docs/design.md contains the expected pattern",
+      "rejections": 0
+    },
+    "C14": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 1.0s",
+      "rejections": 0
+    },
+    "C15": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "package.json contains the expected text",
+      "rejections": 0
+    },
+    "C16": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "CHANGELOG.md contains the expected text",
+      "rejections": 0
+    },
+    "C17": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "docs/dogfood-2.md contains the expected pattern",
+      "rejections": 0
+    },
+    "C18": {
+      "status": "pass",
+      "by": "human",
+      "at": 1791150441858,
+      "detail": "approved by the owner (final)",
+      "rejections": 0
+    },
+    "I1": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 70.8s",
+      "rejections": 0
+    },
+    "I2": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "exit 0 in 1.3s",
+      "rejections": 0
+    },
+    "I3": {
+      "status": "pass",
+      "by": "host",
+      "at": 1791150441858,
+      "detail": "unchanged since start",
+      "rejections": 0
+    }
+  },
+  "steps": {
+    "S1": "active",
+    "S2": "active",
+    "S3": "pending",
+    "S4": "pending",
+    "S5": "pending",
+    "S6": "pending",
+    "S7": "pending",
+    "S8": "pending",
+    "S9": "pending",
+    "S10": "pending",
+    "S11": "pending",
+    "S12": "pending",
+    "S13": "pending",
+    "S14": "pending",
+    "S15": "pending",
+    "S16": "active"
+  },
+  "turnFacts": {
+    "tools": 126,
+    "goalCalls": 1,
+    "stepsChanged": false
+  },
+  "steers": 0,
+  "compacted": false,
+  "flags": [],
+  "amendments": [
+    {
+      "change": "outcome: unchanged · criteria unchanged [C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C16, C17, C18, I1, I2, I3] changed [C15] added [-] removed [-]",
+      "rationale": "proposed; awaiting /goal amend confirm",
+      "at": 1791128226950,
+      "status": "proposed"
+    },
+    {
+      "change": "outcome: unchanged · criteria unchanged [C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C16, C17, C18, I1, I2, I3] changed [C15] added [-] removed [-]",
+      "rationale": "owner-confirmed via /goal amend confirm",
+      "at": 1791128241697,
+      "status": "accepted"
+    }
+  ],
+  "fingerprint": "027cdc00753427592fac",
+  "progress": {
+    "note": "Blocker resolved: owner installed v0.2.0 (06d9bfc confirmed) and resumed at turn 4. dogfood-2 records the engine swap. Claiming for the final verifier round.",
+    "next": "goal_claim — C18's verifier round now runs under the installed v0.2.0 engine with the fallback armed.",
+    "at": 1791079683615,
+    "turn": 4
+  },
+  "reason": "all required criteria verified",
+  "verdict": {
+    "at": 1791150441858,
+    "turn": 4,
+    "passed": true,
+    "lines": [
+      "All required criteria passed."
+    ]
+  },
+  "lastUsageEmit": 1791152096063
+}
