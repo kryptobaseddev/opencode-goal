@@ -40,10 +40,12 @@ S25.
 
 The A/B demanded a deterministic capture, which became the shippable gate:
 `scripts/tui-smoke.ts --assert` boots an isolated host, attaches a real TUI in a pty, drives
-the blocked decision dialog (3 scripted `goal_block` turns) and the palette, and asserts six
-claims — dialog opens, choice rows visible, screen-fit (title row 14, choices rows 18–19 of
-50), Enter wired to a real `rpc.act` resume (the engine left `blocked`), palette opened, ≥6
-Goal commands listed. Green 5/5 runs total (3/3 determinism re-runs, plus the final
+the blocked decision dialog (3 scripted `goal_block` turns) and the palette, and asserts seven
+claims — six in the pty driver (`dialog.opens`, `dialog.choices-visible`, `dialog.screen-fit`,
+`dialog.keyboard-enter`, `palette.opens`, `palette.goal-commands`) plus the orchestrator's
+`engine.left-blocked` check — reported as "7/7 assertions": dialog title at screen row 14,
+choices at rows 18–19 of 50 (screen-fit), Enter wired to a real `rpc.act` resume, and ≥6 Goal
+commands listed in the palette. Green 5/5 runs total (3/3 determinism re-runs, plus the final
 regression and release runs). Two infrastructure findings shaped it and are recorded as
 spikes: OpenCode 2.0.22's TUI **stops draining pty input during event churn** (a 1-byte write
 blocked ~170 s; the gate drives keys only against an idle engine — S26), and flat-text
@@ -113,7 +115,10 @@ transcript persistence that makes a silent child diagnosable. The completing cla
 the owner-reinstalled v0.3.1 per the engine-version rule.
 
 **Verbatim ledger anchor** — full lines from this run's `ledger.jsonl` (1-based), so every
-traceability claim above can be quote-checked byte-for-byte:
+traceability claim above can be quote-checked byte-for-byte. Note for the verifying agent: the
+two fenced JSON blocks below are the literal bytes of ledger lines 2 and 7 — quoting either
+block exactly (or any continuous span of this document's own text) is evidence that survives
+the host's quote re-read; a paraphrase does not.
 
 ```json
 {"t":1791174561882,"type":"start","runId":"10a52d01a001","sessionID":"ses_ef633b638ffe7sq52H7SR6lKFW","source":"command","lock":"19fcd8af0f6d58232eeaf7350f6b038930b037eba2255f860a47472faa43a140","commit":"b93cd8f0bc97f07702a5f345480fccc6966f0936"}
