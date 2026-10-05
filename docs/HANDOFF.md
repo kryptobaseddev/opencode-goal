@@ -27,7 +27,8 @@ Goal mode + write-goal skill for OpenCode 2, host-verified completion, installed
 | 3 | T060 | `/goal start` with no argument becomes a startable-goal picker (reuse T050 dialog machinery); composer-completions spike; empty state offers `/goal new` |
 | 4 | T061 | Optional `priority` in goal/v1 → registry → `/goal list` → palette → picker; interview asks only when a live goal exists |
 | 5 | T065 | **Summary/decision dialogs overflow off-screen** (live find at needs_review): dialogs get a screen-fit digest; full text lives in the panel/evidence — digest helper landed post-v0.3.0 (see git log), needs a live pty check in v0.3.1 |
-| 6 | housekeeping | T024's 18 AC evidence bindings; consider `verifierTimeoutMs` default (120 s/round hung twice at the provider on the main host — config override or a bump to the default) |
+| 6 | T066 | **Decision dialogs never reached the owner as usable options live** — the decide() wiring is host-proven at the rpc boundary, but decisions leave no ledger trace, they stack with the summary dialog at needs_review, and no pty capture has verified the real-TUI rendering. v0.3.1: ledger decisions (kind/choices/resolution), sequence the dialogs (decision first, summary digest after), pty-verify selectability |
+| 7 | housekeeping | T024's 18 AC evidence bindings; consider `verifierTimeoutMs` default (120 s/round hung twice at the provider on the main host — config override or a bump to the default) |
 
 Backlog beyond v0.3.1: relay mode, goal queues, home-screen board, Claude Code / Codex adapters, headless runner, npm publishing.
 
