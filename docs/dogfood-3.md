@@ -159,7 +159,10 @@ T051/T057).
 One more live defect surfaced at wrap-up: the owner's command palette lists
 no Goal commands even though the TUI plugin is running (toasts and the
 summary dialog fire) — filed as T064 for v0.3.1 with a pty-capture
-reproduction plan.
+reproduction plan. And the needs_review summary dialog itself overflowed off
+the screen (dialogs are not scrollable; the full ~50-line summary rendered
+unbounded) — filed as T065 with a screen-fit digest helper, since dialogs
+must never carry more than a screen of text.
 
 ## 7. What the next board should look at
 

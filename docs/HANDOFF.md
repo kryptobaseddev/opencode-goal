@@ -26,7 +26,8 @@ Goal mode + write-goal skill for OpenCode 2, host-verified completion, installed
 | 2 | T059 | Clean start: launch ask offers "start clean — opens a new session owned by the goal" via `session.create` (mechanism proven by the verifier child + T049 attach); no clear-in-place API exists |
 | 3 | T060 | `/goal start` with no argument becomes a startable-goal picker (reuse T050 dialog machinery); composer-completions spike; empty state offers `/goal new` |
 | 4 | T061 | Optional `priority` in goal/v1 → registry → `/goal list` → palette → picker; interview asks only when a live goal exists |
-| 5 | housekeeping | T024's 18 AC evidence bindings; consider `verifierTimeoutMs` default (120 s/round hung twice at the provider on the main host — config override or a bump to the default) |
+| 5 | T065 | **Summary/decision dialogs overflow off-screen** (live find at needs_review): dialogs get a screen-fit digest; full text lives in the panel/evidence — digest helper landed post-v0.3.0 (see git log), needs a live pty check in v0.3.1 |
+| 6 | housekeeping | T024's 18 AC evidence bindings; consider `verifierTimeoutMs` default (120 s/round hung twice at the provider on the main host — config override or a bump to the default) |
 
 Backlog beyond v0.3.1: relay mode, goal queues, home-screen board, Claude Code / Codex adapters, headless runner, npm publishing.
 

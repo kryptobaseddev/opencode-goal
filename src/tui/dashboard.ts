@@ -95,6 +95,17 @@ export function decisionRows(view: GoalView): ActionRow[] {
   return rows
 }
 
+/** (T065) Dialogs are not scrollable on the real TUI: a full post-goal
+ *  summary (~50 lines) overflowed off the owner's screen. Everything shown
+ *  in a dialog goes through this digest: headline, the first lines, and a
+ *  pointer to where the rest lives. */
+export function dialogDigest(title: string, text: string, maxLines = 14, maxCols = 100): string {
+  const lines = text.split("\n").map((l) => (l.length > maxCols ? `${l.slice(0, maxCols - 1)}…` : l))
+  const head = lines.slice(0, maxLines)
+  const rest = lines.length - head.length
+  return [title, ...head, ...(rest > 0 ? [`… +${rest} more lines — full text: the Goal panel (leader+g) or .opencode/goals/ evidence` ] : [])].join("\n")
+}
+
 /** (B) the tabbed panel body. Pure; snapshot-tested. */
 export function dashboardLines(view: GoalView, tab: DashboardTab, now: number, width = 46, goals: GoalSummary[] = []): Line[] {
   const st = statusOf(view.status)

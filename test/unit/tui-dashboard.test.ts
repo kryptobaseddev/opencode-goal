@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { GoalView } from "../../src/rpc"
-import { cardCompactLines, dashboardLines, decisionRows, DASHBOARD_TABS, humanizedEvents } from "../../src/tui/dashboard"
+import { cardCompactLines, dashboardLines, decisionRows, dialogDigest, DASHBOARD_TABS, humanizedEvents } from "../../src/tui/dashboard"
 
 // T056 — the dashboard rework. The v0.2 panel streamed raw ledger actions
 // (a wall of text) and the sidebar was completely overtaken. Pinned here:
@@ -161,5 +161,18 @@ describe("the tabbed panel (T056 B/E)", () => {
     const events = humanizedEvents(view, 5)
     expect(events.map((e) => e.kind)).toEqual(["verdict", "verdict"])
     expect(humanizedEvents({ ...view, timeline: [{ t: at, kind: "admit", text: "turn 1 admitted" }] }, 5)).toEqual([])
+  })
+
+  test("T065: dialogs carry a screen-fit digest, never the full text", () => {
+    const full = Array.from({ length: 50 }, (_, i) => `line ${i + 1} of the summary with some length`).join("\n")
+    const digest = dialogDigest("goal complete — 21/22", full)
+    const lines = digest.split("\n")
+    expect(lines.length).toBeLessThanOrEqual(16) // title + 14 + pointer
+    expect(lines[0]).toBe("goal complete — 21/22")
+    expect(lines.at(-1)).toMatch(/\+36 more lines/)
+    expect(digest).toContain("leader+g")
+    // short texts pass through whole, with no truncation pointer
+    const short = dialogDigest("title", "one line")
+    expect(short.split("\n")).toEqual(["title", "one line"])
   })
 })

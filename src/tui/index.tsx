@@ -8,7 +8,7 @@ import { createStore, reconcile } from "solid-js/store"
 import { GoalRpc, type GoalView } from "../rpc"
 import { bannerText, pillText, statusText, type Tone } from "./format"
 import { tracerLines } from "./tracer"
-import { cardCompactLines, dashboardLines, decisionRows, DASHBOARD_TABS, type DashboardTab } from "./dashboard"
+import { cardCompactLines, dashboardLines, decisionRows, dialogDigest, DASHBOARD_TABS, type DashboardTab } from "./dashboard"
 
 type Context = Plugin.Context
 
@@ -71,6 +71,8 @@ export default {
     // T045: the post-goal summary lands as a dialog for the owner (headline
     // as the toast, full text — provenance caveats, scope audit, follow-ups —
     // in the dialog), only for the session the goal belongs to.
+    // T065: dialogs are not scrollable — the full text once overflowed off
+    // the screen; dialogs carry a screen-fit digest, the panel keeps the rest.
     const offSummary = rpc.events.on("summary", (event: any) => {
       const data = event.data ?? {}
       const current = context.ui.router.current()
@@ -78,7 +80,10 @@ export default {
         context.ui.toast.show({ title: "Goal summary", message: String(data.headline ?? data.text ?? ""), variant: "info", ...(data.sessionID ? { sessionID: data.sessionID } : {}) })
         return
       }
-      void context.ui.dialog.alert({ title: `Goal summary — ${data.status ?? ""}`, message: String(data.text ?? data.headline ?? "") })
+      void context.ui.dialog.alert({
+        title: `Goal summary — ${data.status ?? ""}`,
+        message: dialogDigest(String(data.headline ?? "summary"), String(data.text ?? data.headline ?? "")),
+      })
     })
     const offData = context.data.listen(({ details }: any) => {
       if (details?.type === "server.connected") for (const id of requested) void fetchView(id)
