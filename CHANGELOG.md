@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.1 — 2026-10-05
+
+The launch-experience release: the palette is live on the real TUI, launches are clean and pickable, goals carry priority, decisions reach the owner as usable options. Built and proven under the goal loop itself (dogfood-4), with every live defect fixed behind a deterministic pty gate.
+
+- **Fixed: the command palette listed zero Goal commands on the real TUI (T064)** — the keymap layer registered from the app slot defaulted to `mode:"base"`, and base-mode layers are unreachable while any modal is open (the command palette itself registers `mode:"modal`). The layer now ships `mode:"global"` like the host's own palette layer — proven by pty A/B, and gated ever since by `scripts/tui-smoke.ts --assert`, a deterministic pty capture that also asserts dialogs stay screen-fit and decision dialogs are keyboard-selectable (T065's live check, T066's render proof).
+- **Fixed: goal_start refused legitimately approved launches (T068)** — launch approval matched the option label byte-exact (the bundled skill's own "(Recommended)" suffix broke it), lived only in memory (a server restart voided it), and the refusal could not say why. Approvals now match on the label prefix, persist to `.opencode/goals/.launch-approvals.json` (restart-durable inside the 10-minute window), and refusals name what was observed (no approval seen vs label mismatch vs expired).
+- **Start clean (T059)** — `/goal start <slug> fresh` (and `goal_start({fresh:true})`) opens a NEW session owned by the goal, pins the run to it and prompts the kickoff there; the invoking session stays untouched (no clear-in-place API exists — none is pretended). The write-goal launch ask offers three launch options: Start goal now · Start in a fresh session · Start clean.
+- **Start picker (T060)** — `/goal start` with no argument opens the startable-goal picker: a keyboard-selectable dialog (title + validation state) wired to the start path; with nothing startable it offers `/goal new`. The composer-completions spike verdict is recorded in spikes.md (S27): OpenCode 2.0.22 exposes no dynamic command-argument completions — the dialog is the surface.
+- **Goal priority (T061)** — optional `priority: low|medium|high` in goal/v1, carried through the run state and the machine registry; `/goal list`, the palette goal lists and the start picker sort by priority then recency, absent-priority last. The write-goal interview asks for priority when the project already has a live goal.
+- **Decisions leave a trail and keep their place (T066)** — every decision emission is ledgered (kind, message, choices, decisionId) and the owner's answering act pairs with it (`decision-resolved`). At a transition the decision dialog renders first; the summary queues behind it and renders as the screen-fit digest when the decision closes — the two dialogs no longer bury each other.
+- **Complete offers more than Archive (T067)** — the complete decision gains a "Start the next goal" act that dispatches the write-goal interview into the session; guidance-only choices (the CLEO hints) render as visible rows in the dialog instead of being dropped; the needs_review copy states that approving triggers verification of everything else.
+- **Verifier round budget (housekeeping)** — `verifierTimeoutMs` is now the PER-ROUND budget (240s default, up from total/2 = 120s per round — the last run's two provider hangs each burned a 120s round and retried too late), and stays overridable through plugin/project config.
+- **T024 (the v0.3 epic) closed** — all 18 child acceptance criteria bound to their children's verified evidence chains; both finished dogfood runs (dogfood-buildout, ship-v03-feedback-loop) archived with history intact.
+
 ## 0.3.0 — 2026-10-05
 
 The feedback-loop release: every decision persistent, actionable, visible. Built and proven under the goal loop itself (dogfood-3).
