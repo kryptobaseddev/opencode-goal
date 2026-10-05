@@ -361,6 +361,28 @@ export class GoalApp {
 
   // ───────────────────────────── starting and admitting turns
 
+  /**
+   * T059: start clean. The engine creates a NEW session owned by the goal,
+   * pins the run to that session (T049: the run map keys the new session) and
+   * the kickoff admission prompts there — a fresh context with none of the
+   * writing session's accumulated history. The invoking session is never
+   * cleared (OpenCode exposes no clear-in-place API; that is a TUI command)
+   * and stays untouched apart from one notice naming where to look.
+   */
+  private async startClean(fromSessionID: string, slug: string): Promise<string> {
+    // Not wrapped in serial(): startGoal below takes the queue, and the queue
+    // is not reentrant — nesting would deadlock. session.create is safe
+    // outside the queue; everything stateful flows through startGoal.
+    const created: any = await this.ctx.session.create({ title: `goal kickoff · ${slug}` } as any)
+    const targetID: string | undefined = created?.id ?? created?.data?.id
+    if (!targetID) return `Could not open a new session for "${slug}" — nothing started. Run /goal start ${slug} in this session instead.`
+    this.store.ledger(slug, { type: "clean-start", from: fromSessionID, to: targetID })
+    const message = await this.startGoal(targetID, slug, "command")
+    if (!message.startsWith("Goal \"")) return message
+    this.noticeM(fromSessionID, M.cleanStarted(targetID, slug))
+    return `Started clean — ${message} The kickoff prompt landed in the new session "${targetID}"; this session stays untouched.`
+  }
+
   async startGoal(sessionID: string, slug: string, source: "command" | "tool", options: { acknowledgeSupersede?: boolean } = {}): Promise<string> {
     return this.serial(async () => {
       const current = this.runs.get(sessionID)
@@ -1294,6 +1316,13 @@ export class GoalApp {
         const acknowledgeSupersede = tokens.includes("acknowledge-supersede")
         if (!this.store.slugs().includes(slug0) && this.store.archivedSlugs().includes(slug0))
           return say(`"${slug0}" exists, archived at .opencode/goals-archive/${slug0}/ (history intact; it WAS a goal here). Move it back or write a superseding goal.`, "warning")
+        // T059: start clean — the engine opens a NEW session owned by the
+        // goal, pins the run to it and prompts the kickoff there. Nothing
+        // clears the current session (no such API exists); it stays untouched.
+        if (tokens.includes("fresh") && this.store.slugs().includes(slug0)) {
+          const message = await this.startClean(sessionID, slug0)
+          return say(message, message.startsWith("Started") ? "success" : "error")
+        }
         const message = await this.startGoal(sessionID, slug0, "command", { acknowledgeSupersede })
         return say(message, message.startsWith("Goal \"") ? "success" : "error")
       }
@@ -1590,8 +1619,8 @@ export class GoalApp {
       ),
       tool(
         "start",
-        `Start a validated goal in this session. Only after the owner approved launching it by choosing an option labelled "${LAUNCH_LABEL}" (a "(Recommended)" suffix is fine) in a question, or ran /goal start themselves.`,
-        { properties: { slug: { type: "string", maxLength: 64 } }, required: ["slug"] },
+        `Start a validated goal in this session. Only after the owner approved launching it by choosing an option labelled "${LAUNCH_LABEL}" (a "(Recommended)" suffix is fine) in a question, or ran /goal start themselves. With fresh: true the engine opens a NEW session owned by the goal and prompts the kickoff there instead ("Start clean").`,
+        { properties: { slug: { type: "string", maxLength: 64 }, fresh: { type: "boolean", description: "Start clean: open a new session owned by the goal, prompt the kickoff there, leave this session untouched" } }, required: ["slug"] },
         async (args, context) => {
           const approval = this.launchApproval(context.sessionID)
           if (!approval) {
@@ -1614,6 +1643,7 @@ export class GoalApp {
           }
           this.factsOf(context.sessionID).launchApprovedAt = undefined
           this.clearLaunchApproval(context.sessionID)
+          if (args.fresh) return this.startClean(context.sessionID, String(args.slug))
           return this.startGoal(context.sessionID, String(args.slug), "tool")
         },
       ),

@@ -45,6 +45,11 @@ const archive = { label: "Archive goal", run: "/goal archive", act: "archive" }
 export const M = {
   goalStarted: (title: string) =>
     msg("goal.started", "success", `Goal started: ${title}. The contract is locked and rendered into every request.`, [status, resume]),
+  cleanStarted: (targetID: string, slug: string) =>
+    msg("goal.clean-start", "success", `Started clean: the kickoff prompt landed in the new session "${targetID}" (goal kickoff · ${slug}). This session stays untouched — nothing was cleared.`, [
+      { label: `Open the goal session`, run: `switch to the session "goal kickoff · ${slug}"` },
+      status,
+    ]),
   goalSummary: (headline: string, caveats: number, status2: string) =>
     msg(`goal.summary.${status2}`, status2 === "complete" ? "success" : "warning", `goal.summary — ${headline}${caveats ? ` (${caveats} caveat${caveats > 1 ? "s" : ""}: provenance and unproven scope flagged in the dialog/evidence)` : ""}`, [
       { label: "Show status", run: "/goal status" },
