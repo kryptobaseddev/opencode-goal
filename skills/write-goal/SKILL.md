@@ -57,8 +57,8 @@ Start from `assets/goal.template.yaml` (or the shape below). Then validate: call
 Show the owner the contract compactly: outcome, a table of criteria (id · statement · check), invariants, protected paths, non-goals, budget. Ask: **Approve** (Recommended) / Revise criteria / Revise scope / Save as draft.
 
 ### 6 · Launch
-Ask with these options: **`Start goal now`** (Recommended — the label must be exactly this) / Start in a fresh session / Save for later.
-- OpenCode with the plugin: on "Start goal now", call `goal_start({slug})`. The plugin only accepts it right after the owner picked that exact label. If it refuses, tell the owner to run `/goal start <slug>`.
+Ask with these options: **`Start goal now`** (Recommended) / Start in a fresh session / Save for later. The first option's label must **start with** `Start goal now` — a `(Recommended)` suffix is expected and fine (T068: the engine matches on the prefix, never byte-exact).
+- OpenCode with the plugin: on "Start goal now", call `goal_start({slug})`. The plugin accepts it right after the owner picked a matching option — within 10 minutes, surviving server restarts. If it refuses, its message names what was observed (no approval seen vs label mismatch vs expired); follow that, or tell the owner to run `/goal start <slug>`.
 - Fresh session: tell the owner to open a new session and run `/goal start <slug>`.
 - Claude Code (no plugin): offer a `/goal` condition rendered from the contract (≤4,000 chars: the end state, the stated check, the constraints that matter).
 - Codex: offer `/goal <end state>. Done when <check>. Scope: <in/out>. If <blocker>, stop and report.`

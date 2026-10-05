@@ -1,7 +1,7 @@
 // The goal engine: owns run state for this location, drives continuations from
 // session.execution.* events, injects the contract into every request, and runs
 // verification. Spike findings referenced as S1-S9 live in docs/spikes.md.
-import { existsSync, readFileSync, realpathSync } from "node:fs"
+import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import type { Plugin } from "@opencode/plugin"
@@ -68,7 +68,7 @@ export const DEFAULTS: Options = {
 }
 
 type Loaded = { contract: Contract; lock: string; text: string }
-type SessionFacts = { busy: boolean; forms: Set<string>; launchApprovedAt?: number; cancelledAt?: number }
+type SessionFacts = { busy: boolean; forms: Set<string>; launchApprovedAt?: number; cancelledAt?: number; lastFormAnswer?: { labels: string[]; at: number } }
 
 const canonical = (p: string) => {
   try {
@@ -196,6 +196,45 @@ export class GoalApp {
     let f = this.facts.get(sessionID)
     if (!f) this.facts.set(sessionID, (f = { busy: false, forms: new Set() }))
     return f
+  }
+
+  // T068: launch approvals persist across plugin/server restarts inside the
+  // TTL — in-memory state died with the process, so a legitimately approved
+  // launch refused after a restart (live: two restarts voided one). The
+  // sidecar lives beside the goal folders; a file there never matches a slug
+  // (directories with goal.yaml only).
+  private get approvalsFile() {
+    return join(this.root, ".opencode", "goals", ".launch-approvals.json")
+  }
+  private readLaunchApprovals(): Record<string, { at: number; label: string }> {
+    try {
+      const parsed = JSON.parse(readFileSync(this.approvalsFile, "utf8"))
+      return typeof parsed === "object" && parsed ? (parsed as Record<string, { at: number; label: string }>) : {}
+    } catch {
+      return {}
+    }
+  }
+  private writeLaunchApproval(sessionID: string, at: number, label: string) {
+    const all = this.readLaunchApprovals()
+    all[sessionID] = { at, label }
+    writeFileSync(this.approvalsFile, JSON.stringify(all, null, 2))
+  }
+  private clearLaunchApproval(sessionID: string) {
+    const all = this.readLaunchApprovals()
+    if (!(sessionID in all)) return
+    delete all[sessionID]
+    writeFileSync(this.approvalsFile, JSON.stringify(all, null, 2))
+  }
+  /** The approval state for a session: fresh in memory, else fresh on disk, else none. */
+  private launchApproval(sessionID: string): { at: number; label: string } | undefined {
+    const mem = this.factsOf(sessionID).launchApprovedAt
+    if (mem && Date.now() - mem <= this.options.launchApprovalMs) {
+      const disk = this.readLaunchApprovals()[sessionID]
+      return { at: mem, label: disk?.label ?? LAUNCH_LABEL }
+    }
+    const disk = this.readLaunchApprovals()[sessionID]
+    if (disk && Date.now() - disk.at <= this.options.launchApprovalMs) return disk
+    return undefined
   }
 
   /** Recent ledger events for the dashboard's Timeline section, oldest first. */
@@ -576,7 +615,17 @@ export class GoalApp {
         const f = this.factsOf(data.sessionID)
         f.forms.delete(data.id)
         const answers = Object.values(data.answer ?? {}).flatMap((v) => (Array.isArray(v) ? v : [v])).map(String)
-        if (answers.includes(LAUNCH_LABEL)) f.launchApprovedAt = Date.now()
+        f.lastFormAnswer = { labels: answers, at: Date.now() }
+        // T068: tolerant launch matching — the skill's own rule tells agents to
+        // label the recommended option "(Recommended)", so the byte-exact
+        // match refused legitimately approved launches live. Any answer that
+        // STARTS WITH the launch label approves; the observed label is kept
+        // for a diagnosable refusal.
+        const launchAnswer = answers.find((a) => a === LAUNCH_LABEL || a.startsWith(LAUNCH_LABEL))
+        if (launchAnswer) {
+          f.launchApprovedAt = Date.now()
+          this.writeLaunchApproval(data.sessionID, f.launchApprovedAt, launchAnswer)
+        }
         const state = this.runs.get(data.sessionID)
         if (state) this.emitUpdate(state)
         return
@@ -1541,13 +1590,30 @@ export class GoalApp {
       ),
       tool(
         "start",
-        `Start a validated goal in this session. Only after the owner approved launching it by choosing "${LAUNCH_LABEL}" in a question, or ran /goal start themselves.`,
+        `Start a validated goal in this session. Only after the owner approved launching it by choosing an option labelled "${LAUNCH_LABEL}" (a "(Recommended)" suffix is fine) in a question, or ran /goal start themselves.`,
         { properties: { slug: { type: "string", maxLength: 64 } }, required: ["slug"] },
         async (args, context) => {
-          const approved = this.factsOf(context.sessionID).launchApprovedAt
-          if (!approved || Date.now() - approved > this.options.launchApprovalMs)
-            throw new Error(`Launching a goal needs the owner's explicit approval: ask with the question tool and an option labelled exactly "${LAUNCH_LABEL}", or ask them to run /goal start ${args.slug}.`)
+          const approval = this.launchApproval(context.sessionID)
+          if (!approval) {
+            // T068: a refusal names what was observed so the agent can
+            // self-correct instead of guessing between never-asked, wrong
+            // label and expired. An expired approval leaves its record on
+            // disk (any age); a wrong label is known from the last form
+            // answer in memory.
+            const seen = this.factsOf(context.sessionID).lastFormAnswer
+            const diskRecord = this.readLaunchApprovals()[context.sessionID]
+            const matched = (label?: string) => !!label && (label === LAUNCH_LABEL || label.startsWith(LAUNCH_LABEL))
+            const detail = matched(diskRecord?.label) || (seen && seen.labels.some(matched))
+              ? `the approval expired (a ${Math.round(this.options.launchApprovalMs / 60_000)}-minute window; restarts keep it until then)`
+              : !seen
+                ? "no launch approval was seen in this session"
+                : `the owner's last answer was ${JSON.stringify(seen.labels[0] ?? "")}, which does not start with "${LAUNCH_LABEL}"`
+            throw new Error(
+              `Launching a goal needs the owner's approval: ${detail}. Ask with the question tool with an option whose label starts with "${LAUNCH_LABEL}", or have them run /goal start ${args.slug}.`,
+            )
+          }
           this.factsOf(context.sessionID).launchApprovedAt = undefined
+          this.clearLaunchApproval(context.sessionID)
           return this.startGoal(context.sessionID, String(args.slug), "tool")
         },
       ),
