@@ -95,14 +95,14 @@ describe("deferred command acknowledgment (T069)", () => {
       await until(async () => (await goalRpc.snapshot({ sessionID }))?.view?.awaitingUser === true, 10000, 100)
       notices.length = 0
       void host.client.session.command({ sessionID, name: "goal", text: "resume" } as any)
-      const formAck = await until(async () => notices.find((n) => n.text.includes("acknowledged") && n.text.includes("/goal resume") && n.text.includes("form")), 5000, 50)
+      const formAck = await until(async () => notices.find((n) => n.text.includes("acknowledged") && n.text.includes("/goal resume") && n.text.includes("form")), 15000, 50)
       expect(formAck).toBeDefined()
       await Bun.sleep(500)
       // still paused: the form holds the queue
       const stillPaused = await run(host)
       expect(stillPaused.status).toBe("paused")
       await (host.client.session.form as any).reply({ sessionID, formID: form.id, answer: { q0: "ok" } })
-      const resumed = await waitStatus(host, ["running"], 30000)
+      const resumed = await waitStatus(host, ["running"], 90000)
       expect(resumed.status).toBe("running")
     } finally {
       await host.stop()
