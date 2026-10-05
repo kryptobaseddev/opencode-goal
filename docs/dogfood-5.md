@@ -211,7 +211,18 @@ timing-sensitive test (`live-counters`, a 45s mid-flight observation window) and
 failures were then shared through the tool cache. The batch re-ran on an otherwise idle
 machine against the settled tree; concurrent heavy runs and evidence runs do not mix.
 
-<!-- SECTION-FILLED-AFTER-SIGNOFF: the owner's dashboard sign-off record. -->
+**§10 sign-off record (C4, final).** At the v0.3.2 reinstall gate — after the moved tag's
+round-two fixes — the owner validated the dashboard live and **approved C4 through the
+native in-composer ask-tool form** (the option "Approve C4 (triggers verify)"), which the
+engine relayed through this release's own T075 decision-form path; the reply dispatched the
+same act the dialog carries and the ledger recorded the approval as `by: human` (final,
+never re-checked). The round that got here: round one failed with three named defects
+(§7b) — text-wall panel, `tab` not cycling with the composer focused, nothing selectable —
+all fixed within the existing IA and gate-asserted (`panel.decisions-act-rows`), the single
+v0.3.2 tag moved to the fixed tree, git-install re-proven, and the owner reinstalled the
+moved tag before approving.
+
+<!-- SECTION-FILLED-AFTER-SIGNOFF: filled — see the sign-off record above. -->
 
 ## 11. What the next session inherits
 
