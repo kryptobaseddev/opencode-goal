@@ -96,28 +96,29 @@ describe("card readability (T073)", () => {
     const narrow = cardCompactLines(view, at, 30)
     const cut = narrow.find((l) => l.tab === "progress" && l.text.includes("…"))!
     expect(cut.text).not.toContain("soak runs of the full checkout path")
-    // the matching panel tab renders the statement fully (wrapped, no …)
-    const progress = render(dashboardLines(view, "progress", at, 46))
-    expect(progress).toContain("p95 stays under 250ms across 3 soak runs")
-    expect(progress).toContain("of the full checkout path")
+    // the matching panel tab renders the statement fully (wrapped to its
+    // width — line breaks, never ellipsis)
+    const flat = (s: string) => s.replace(/\n/g, " ")
+    const progress = flat(dashboardLines(view, "progress", at, 46).map((l) => l.text).join("\n"))
+    expect(progress).toContain("p95 stays under 250ms across 3 soak runs of the full checkout path")
     expect(progress).not.toContain("…")
   })
 
   test("the expanded view renders every row fully at any width", () => {
+    const flat = (s: string) => s.replace(/\n/g, " ")
     for (const width of [24, 40, 60, 100]) {
       const lines = cardExpandedLines(view, at, width)
       const text = render(lines)
       expect(text).not.toContain("…")
       // every criterion statement appears in full (as wrapped fragments)
       for (const c of view.criteria) {
-        const words = c.statement.split(" ")
-        for (const w of words) expect(text).toContain(w)
+        for (const w of c.statement.split(" ")) expect(text).toContain(w)
       }
-      expect(text).toContain(view.title)
+      expect(flat(text)).toContain(view.title)
       expect(text).toContain("plan")
       expect(text).toContain("last verdict — failed")
       // the plan is complete: every step, not just the active one
-      for (const s of view.steps) expect(text).toContain(s.title)
+      for (const s of view.steps) expect(flat(text)).toContain(s.title)
     }
   })
 

@@ -7,7 +7,7 @@
 // native Select components. The raw ledger timeline is gone from the UI (it
 // stays in the file).
 import type { GoalSummary, GoalView, TimelineEntry } from "../rpc"
-import { bar, elapsed, fit, fmtTokens, type Line, type Tone } from "./format"
+import { bar, elapsed, endStateCopy, fit, fmtTokens, type Line, type Tone } from "./format"
 import { tracerLines } from "./tracer"
 
 
@@ -59,13 +59,19 @@ export function cardCompactLines(view: GoalView, now: number, width = 40): Line[
   }
   const tokens = view.usage.tokens ? ` · ${fmtTokens(view.usage.tokens)} tok` : ""
   lines.push({ text: fit(`turn ${view.turn}${tokens}`, width), tone: view.budgetRatio >= 0.8 ? "warning" : "muted" })
-  if (view.progress) lines.push({ text: fit(`↻ ${view.progress.note}`, width), tone: "muted", tab: "now" })
+  // T071: at a terminal state the card says the loop stopped and where the
+  // follow-ups live (the progress note is moot then). Compact form: the slug
+  // path fits the sidebar; the full line lives in the banner and the panel.
+  const stopped = endStateCopy(view.status, view.slug)
+  if (stopped) lines.push({ text: fit(`■ loop stopped — follow-ups: .opencode/goals/${view.slug}/`, width), tone: stopped.tone })
+  else if (view.progress) lines.push({ text: fit(`↻ ${view.progress.note}`, width), tone: "muted", tab: "now" })
   // T073: the expand affordance always occupies the card's last line — the
   // cap stays 12; the sections the width truncated name their panel tab so
-  // the affordance is a click-through, not a dead hint.
+  // the affordance is a click-through, not a dead hint. Short enough to stay
+  // readable at the narrowest sidebar.
   const tabs = [...new Set(lines.filter((l) => l.tab && l.text.includes("…")).map((l) => l.tab!))]
   const affordance = tabs.length
-    ? `↳ more${tabs.length > 1 ? ` (${tabs.length} sections)` : ""} — leader+g → ${TAB_LABEL[tabs[0] as DashboardTab]}`
+    ? `↳ leader+g → ${TAB_LABEL[tabs[0] as DashboardTab]}${tabs.length > 1 ? ` (+${tabs.length - 1})` : ""}`
     : "↳ full card — leader+g"
   lines.push({ text: fit(affordance, width), tone: "info" })
   return lines.slice(0, 12)
@@ -86,6 +92,8 @@ export function cardExpandedLines(view: GoalView, now: number, width = 46): Line
     for (const r of rest) lines.push({ text: r, tone })
   }
   emit(`◎ GOAL ${st.icon} ${st.label}${view.reason ? ` — ${view.reason}` : ""}`, st.tone, { bold: true })
+  const stopped = endStateCopy(view.status, view.slug)
+  if (stopped) emit(stopped.text, stopped.tone)
   emit(view.title, "base", { bold: true, tab: "now" })
   if (view.actionRequired) emit(`⚑ ${view.actionRequired}`, "error", { bold: true, tab: "decisions" })
   lines.push({ text: `criteria ${bar(provenCount(view), view.criteria.length)} ${provenCount(view)}/${view.criteria.length}`, tone: provenCount(view) === view.criteria.length && view.criteria.length ? "success" : "muted", tab: "progress" })
@@ -264,6 +272,9 @@ export function dashboardLines(view: GoalView, tab: DashboardTab, now: number, w
   }
 
   lines.push({ text: "", tone: "base" })
-  lines.push({ text: fit("C criterion · I invariant · S plan step · ↑↓/tab/enter to act", width), tone: "muted" })
+  // T073: the legend wraps to two short lines so it never truncates at the
+  // panel's narrowest width
+  lines.push({ text: fit("C criterion · I invariant · S plan step", width), tone: "muted" })
+  lines.push({ text: fit("↑↓/tab/enter to act", width), tone: "muted" })
   return lines
 }

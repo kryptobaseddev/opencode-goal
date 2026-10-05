@@ -62,7 +62,7 @@ export const M = {
       { label: "Write a goal", run: "/goal new <what you want done>" },
     ]),
   goalSummary: (headline: string, caveats: number, status2: string) =>
-    msg(`goal.summary.${status2}`, status2 === "complete" ? "success" : "warning", `goal.summary — ${headline}${caveats ? ` (${caveats} caveat${caveats > 1 ? "s" : ""}: provenance and unproven scope flagged in the dialog/evidence)` : ""}`, [
+    msg(`goal.summary.${status2}`, status2 === "complete" ? "success" : "warning", `goal.summary — ${headline}${caveats ? ` (${caveats} caveat${caveats > 1 ? "s" : ""}: provenance and unproven scope flagged in the dialog/evidence)` : ""}. The loop has stopped; follow-ups live in this dialog and the goal folder.`, [
       { label: "Show status", run: "/goal status" },
       ...(status2 === "complete" ? [{ label: "Archive", run: "/goal archive", act: "archive" }, { label: "Start the next goal", run: "/goal new <what you want next>" }] : [{ label: "Resolve review", run: "/goal approve <C#>" }]),
     ]),
@@ -103,7 +103,7 @@ export const M = {
     msg("goal.paused.stalled", "info", `Goal paused — ${why}. /goal resume to continue.`, [resume, abort]),
   verifying: () => msg("goal.verifying", "info", `Verifying the goal: host checks run first, then the independent verifier child. Nothing to do until goal.summary lands.`, [{ label: "Show status", run: "/goal status" }]),
   complete: (title: string, caveats: number) =>
-    msg("goal.complete", "success", `Goal complete: ${title}.${caveats ? ` ${caveats} caveat${caveats > 1 ? "s" : ""} in the summary (provenance/unproven scope).` : ""} Every required criterion was verified.`, [
+    msg("goal.complete", "success", `Goal complete: ${title}.${caveats ? ` ${caveats} caveat${caveats > 1 ? "s" : ""} in the summary (provenance/unproven scope).` : ""} Every required criterion was verified. The loop has stopped — nothing further runs on its own; follow-ups live in the summary dialog and the goal folder.`, [
       { label: "Archive goal", run: "/goal archive", act: "archive" },
       { label: "Start the next goal", run: "/goal new <what you want next>" },
     ], "done"),
@@ -139,6 +139,11 @@ export const M = {
       { label: "Show status", run: "/goal status" },
       { label: "Owner: keep steering", run: "reply in the session (it pauses the wait)" },
     ]),
+  commandDeferred: (sub: string, held: "turn" | "form") =>
+    msg("goal.command.deferred", "info", `/goal ${sub} acknowledged — queued behind the active ${held}; it runs the moment it ends. Nothing is lost, nothing runs early.`, [
+      { label: "Show status", run: "/goal status" },
+      { label: "Act now anyway", run: "/goal pause or /goal abort run immediately" },
+    ]),
   amendProposed: (summary: string) =>
     msg("goal.amend.proposed", "warning", `Amendment proposed: ${summary}. Review the diff; confirming re-locks the contract with a new generation.`, [
       { label: "Confirm re-lock", run: "/goal amend confirm", act: "amend", arg: "confirm" },
@@ -156,14 +161,19 @@ export const M = {
       abort,
     ], "question"),
   completeDecision: (title: string, cleoPresent: boolean, unproven: number) =>
-    msg("goal.complete.decision", "success", `Goal complete: ${title}.${unproven ? ` ${unproven} discussed-but-unproven item(s) are flagged in the summary.` : ""} What next?`, [
+    msg("goal.complete.decision", "success", `Goal complete: ${title}.${unproven ? ` ${unproven} discussed-but-unproven item(s) are flagged in the summary.` : ""} The loop has stopped. What next?`, [
       { label: "Start the next goal", run: "start the write-goal interview for the next goal", act: "start-next" },
+      // T070: "Decompose with CLEO" was a dead-end guidance row — it is a
+      // real act now, dispatching the decomposition prompt into the session.
+      ...(cleoPresent
+        ? [{ label: "Decompose with CLEO", run: "file the follow-ups as CLEO tasks in this session", act: "decompose" }]
+        : []),
       archive,
       // guidance rows carry no act — the TUI renders them as visible rows
-      // instead of dropping them (T067: "why was I only offered Archive?")
-      cleoPresent
-        ? { label: "Decompose with CLEO", run: "cleo add --type task (this project is linked)" }
-        : { label: "Install CLEO for tracking", run: "install CLEO — no .cleo workspace in this project yet" },
+      // instead of dropping them (T067: "why was I only offered Archive?");
+      // with CLEO linked, Decompose is act-able, so only the install case
+      // stays guidance
+      ...(cleoPresent ? [] : [{ label: "Install CLEO for tracking", run: "install CLEO — no .cleo workspace in this project yet" }]),
     ], "done"),
 }
 

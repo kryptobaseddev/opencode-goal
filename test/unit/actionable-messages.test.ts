@@ -31,6 +31,7 @@ const samples: Record<string, () => EngineMessage> = {
   attached: () => M.attached("Ship the widget", "paused"),
   archived: () => M.archived("Ship the widget", "ship-the-widget"),
   goalWait: () => M.goalWait(120, "build running"),
+  commandDeferred: () => M.commandDeferred("resume", "turn"),
   amendProposed: () => M.amendProposed("outcome: unchanged · criteria changed [C15]"),
   supersedeAck: () => M.supersedeAck("ship-v3", "ship-v2", "running"),
   pausedAfterVerdict: () => M.pausedAfterVerdict("C15 FAILED [host] output lacks \"0.3.0\""),

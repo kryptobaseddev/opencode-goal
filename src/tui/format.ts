@@ -74,9 +74,28 @@ export function pillText(view: GoalView, now: number): string {
 
 const RESUME = "/goal resume"
 
+/** T071: completion silence read as broken. Every terminal surface states
+ *  that the loop has stopped and where the follow-ups live. */
+export function endStateCopy(status: string, slug: string): { text: string; tone: Tone } | undefined {
+  switch (status) {
+    case "complete":
+      return { text: `◎ ✓ complete — the loop has stopped. Follow-ups: the Goal panel (leader+g) and .opencode/goals/${slug}/`, tone: "success" }
+    case "failed":
+      return { text: `◎ ✗ failed — the loop has stopped. What happened: the Goal panel (leader+g) and .opencode/goals/${slug}/`, tone: "error" }
+    case "aborted":
+      return { text: `◎ ■ aborted — the loop has stopped. History stays in .opencode/goals/${slug}/`, tone: "muted" }
+    default:
+      return undefined
+  }
+}
+
 /** Shown above the composer only when the owner is needed. */
 export function bannerText(view: GoalView): { text: string; tone: Tone } | undefined {
   const st = statusOf(view.status)
+  // T071: terminal states say the loop stopped and where follow-ups live —
+  // silence after complete read as broken.
+  const terminal = endStateCopy(view.status, view.slug)
+  if (terminal && view.status !== "running") return terminal
   if (view.awaitingUser && ["running", "waiting", "verifying"].includes(view.status)) return { text: "◎ The goal is waiting for your answer.", tone: "warning" }
   switch (view.status) {
     case "paused":

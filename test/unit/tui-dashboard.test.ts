@@ -89,7 +89,9 @@ describe("the tabbed panel (T056 B/E)", () => {
       const text = lines.map((l) => l.text)
       expect(text[0]).toMatch(/^◎ GOAL ⚑ needs review$/)
       expect(text[1]).toContain(tab === "now" ? "▸Now" : tab === "progress" ? "▸Progress" : tab === "decisions" ? "▸Decisions" : "▸Goals")
-      expect(text.at(-1)).toContain("C criterion · I invariant · S plan step")
+      // T073: the legend wraps to two lines so it never truncates
+      expect(text.at(-2)).toContain("C criterion · I invariant · S plan step")
+      expect(text.at(-1)).toContain("↑↓/tab/enter to act")
     }
   })
 

@@ -15,7 +15,8 @@ exports[`the tabbed panel (T056 B/E) snapshots pin all four tabs 1`] = `
     "muted|· verdict failed — C2 rejected 3 times",
     "muted|· verdict failed — C2 FAILED [host] p95 312ms",
     "base|",
-    "muted|C criterion · I invariant · S plan step · ↑↓/tab/enter to a…",
+    "muted|C criterion · I invariant · S plan step",
+    "muted|↑↓/tab/enter to act",
   ],
   [
     "warning|*◎ GOAL ⚑ needs review",
@@ -36,7 +37,8 @@ exports[`the tabbed panel (T056 B/E) snapshots pin all four tabs 1`] = `
     "warning|*last verdict — failed",
     "warning|C2 FAILED [host] p95 312ms (run 2/3)",
     "base|",
-    "muted|C criterion · I invariant · S plan step · ↑↓/tab/enter to a…",
+    "muted|C criterion · I invariant · S plan step",
+    "muted|↑↓/tab/enter to act",
   ],
   [
     "warning|*◎ GOAL ⚑ needs review",
@@ -51,7 +53,8 @@ exports[`the tabbed panel (T056 B/E) snapshots pin all four tabs 1`] = `
     "muted|· verdict failed — C2 rejected 3 times",
     "muted|· verdict failed — C2 FAILED [host] p95 312ms",
     "base|",
-    "muted|C criterion · I invariant · S plan step · ↑↓/tab/enter to a…",
+    "muted|C criterion · I invariant · S plan step",
+    "muted|↑↓/tab/enter to act",
   ],
   [
     "warning|*◎ GOAL ⚑ needs review",
@@ -64,7 +67,8 @@ exports[`the tabbed panel (T056 B/E) snapshots pin all four tabs 1`] = `
     "muted|S S2 · Remove the N+1 in loadCart",
     "muted|S S3 · Document the change",
     "base|",
-    "muted|C criterion · I invariant · S plan step · ↑↓/tab/enter to a…",
+    "muted|C criterion · I invariant · S plan step",
+    "muted|↑↓/tab/enter to act",
   ],
 ]
 `;

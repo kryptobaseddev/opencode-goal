@@ -18,7 +18,7 @@ import { goalHelp } from "./help"
 import { cleoFacts, cleoLinkEvent, type Runner } from "../engine/cleo-link"
 import { buildPostGoalSummary } from "../summary/build"
 import { completionAudit } from "../summary/audit"
-import { M, renderMessage, type EngineMessage } from "./messages"
+import { M, renderMessage, type Choice, type EngineMessage } from "./messages"
 
 /** Spawn the cleo CLI with a hard timeout; all failures resolve safely. */
 const defaultRunner: Runner = (command, args, timeoutMs = 2500) =>
@@ -69,7 +69,7 @@ export const DEFAULTS: Options = {
 }
 
 type Loaded = { contract: Contract; lock: string; text: string }
-type SessionFacts = { busy: boolean; forms: Set<string>; launchApprovedAt?: number; cancelledAt?: number; lastFormAnswer?: { labels: string[]; at: number } }
+type SessionFacts = { busy: boolean; forms: Set<string>; launchApprovedAt?: number; cancelledAt?: number; lastFormAnswer?: { labels: string[]; at: number }; deferred: string[] }
 
 const canonical = (p: string) => {
   try {
@@ -202,8 +202,30 @@ export class GoalApp {
 
   private factsOf(sessionID: string): SessionFacts {
     let f = this.facts.get(sessionID)
-    if (!f) this.facts.set(sessionID, (f = { busy: false, forms: new Set() }))
+    if (!f) this.facts.set(sessionID, (f = { busy: false, forms: new Set(), deferred: [] }))
     return f
+  }
+
+  /** T069: /goal commands issued while the session is mid-turn (or holding a
+   *  form) used to land invisibly — the owner sent them and nothing visibly
+   *  happened until the turn ended. They now acknowledge IMMEDIATELY (a
+   *  notice) and execute when the turn/form resolves — never silent. */
+  private deferIfHeld(sessionID: string, text: string, sub: string): boolean {
+    const f = this.factsOf(sessionID)
+    if (!f.busy && f.forms.size === 0) return false
+    // control + read commands stay immediate: pause/abort are how you stop a
+    // runaway turn; status/list/help just read state
+    if (["", "status", "list", "help", "pause", "abort"].includes(sub)) return false
+    f.deferred.push(text)
+    this.noticeM(sessionID, M.commandDeferred(sub, f.busy ? "turn" : "form"))
+    return true
+  }
+
+  /** Runs whatever /goal commands deferred while the session was busy. */
+  private flushDeferred(sessionID: string) {
+    const f = this.factsOf(sessionID)
+    if (f.busy || f.forms.size > 0 || !f.deferred.length) return
+    for (const text of f.deferred.splice(0)) void this.command(sessionID, text)
   }
 
   // T068: launch approvals persist across plugin/server restarts inside the
@@ -361,9 +383,22 @@ export class GoalApp {
   private decide(sessionID: string | undefined, slug: string, kind: "needs_review" | "paused-after-verdict" | "blocked" | "budget_limited" | "amend-proposed" | "supersede-ack" | "complete" | "start-picker", message: EngineMessage, extra: Record<string, unknown> = {}) {
     const decisionId = `${kind}#${slug}@${Date.now().toString(36)}`
     if (sessionID) this.pendingDecisions.set(sessionID, { id: decisionId, kind, slug, at: Date.now() })
-    this.store.ledger(slug, { type: "decision", decisionId, turn: this.runs.get(sessionID ?? "")?.turn ?? 0, kind, message: renderMessage(message), choices: message.choices.map((c) => ({ label: c.label, act: c.act, arg: c.arg })) })
+    // T070: guidance-only rows (no act) are MARKED as guidance in the payload
+    // itself — every surface that renders the decision (TUI dialog, native
+    // form) shows them as advice, not buttons. Keys are only present when
+    // set: an explicit `act: undefined` fails the event schema.
+    const choicePayload = (c: Choice) => ({ label: c.label, run: c.run, ...(c.act ? { act: c.act } : { guidance: true }), ...(c.arg ? { arg: c.arg } : {}) })
+    const choices = message.choices.map(choicePayload)
+    this.store.ledger(slug, {
+      type: "decision",
+      decisionId,
+      turn: this.runs.get(sessionID ?? "")?.turn ?? 0,
+      kind,
+      message: renderMessage(message),
+      choices: message.choices.map((c) => (c.act ? { label: c.label, act: c.act, ...(c.arg ? { arg: c.arg } : {}) } : { label: c.label, guidance: true })),
+    })
     void this.rpc?.events
-      .emit("decision", { ...(sessionID ? { sessionID } : {}), slug, kind, decisionId, title: message.id, message: renderMessage(message), choices: message.choices, ...extra })
+      .emit("decision", { ...(sessionID ? { sessionID } : {}), slug, kind, decisionId, title: message.id, message: renderMessage(message), choices, ...extra })
       .catch(() => {})
     this.noticeM(sessionID, message)
   }
@@ -657,6 +692,9 @@ export class GoalApp {
         f.forms.delete(data.id)
         const answers = Object.values(data.answer ?? {}).flatMap((v) => (Array.isArray(v) ? v : [v])).map(String)
         f.lastFormAnswer = { labels: answers, at: Date.now() }
+        // T069: commands that deferred behind the form run now — unless the
+        // reply itself started a new turn (busy flips before the flush)
+        this.flushDeferred(data.sessionID)
         // T068: tolerant launch matching — the skill's own rule tells agents to
         // label the recommended option "(Recommended)", so the byte-exact
         // match refused legitimately approved launches live. Any answer that
@@ -675,13 +713,20 @@ export class GoalApp {
         const f = this.factsOf(data.sessionID)
         f.forms.delete(data.id)
         f.cancelledAt = Date.now()
+        this.flushDeferred(data.sessionID)
         return
       }
     }
     const sid: string | undefined = data.sessionID
     if (!sid) return
     if (type === "session.execution.started") this.factsOf(sid).busy = true
-    if (type === "session.execution.succeeded" || type === "session.execution.failed" || type === "session.execution.interrupted") this.factsOf(sid).busy = false
+    if (type === "session.execution.succeeded" || type === "session.execution.failed" || type === "session.execution.interrupted") {
+      this.factsOf(sid).busy = false
+      // T069: deferred /goal commands run the moment the turn ends — the
+      // ack promised exactly that. Before any goal handling so commands for
+      // goal-less sessions flush too.
+      this.flushDeferred(sid)
+    }
     const state = this.runs.get(sid)
     if (!state) return
     switch (type) {
@@ -1097,7 +1142,7 @@ export class GoalApp {
 
   // ───────────────────────────── owner actions (command, RPC)
 
-  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend" | "archive" | "attach" | "start" | "start-next", arg?: string): Promise<{ ok: boolean; message: string }> {
+  async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend" | "archive" | "attach" | "start" | "start-next" | "decompose", arg?: string): Promise<{ ok: boolean; message: string }> {
     return this.serial(async () => {
       // T066: the next owner act resolves the session's pending decision —
       // the ledger carries the pairing (offered → answered).
@@ -1112,6 +1157,29 @@ export class GoalApp {
       if (action === "start-next") {
         await this.ctx.session.prompt({ sessionID, text: `Start the next goal: interview the owner for what they want done next (the write-goal skill guides the frontier rounds; no draft exists yet).`, skills: [{ id: "write-goal" }] } as any).catch(() => {})
         return { ok: true, message: "Dispatched the write-goal interview — the next question lands in this session." }
+      }
+      // T070: "Decompose with CLEO" was a dead-end guidance row at the
+      // complete decision — picking it only toasted. It is a real act now:
+      // the decomposition prompt lands in THIS session, and the next turn
+      // files the completed goal's follow-ups as CLEO tasks.
+      if (action === "decompose") {
+        const state0 = this.runs.get(sessionID)
+        const slug = state0?.slug ?? (arg ?? "").trim()
+        const cleo = await cleoFacts(this.root, defaultRunner)
+        if (!cleo) return { ok: false, message: "No .cleo workspace in this project — install CLEO first, then Decompose works as an act." }
+        if (!slug) return { ok: false, message: "Which goal? /goal decompose <slug> (or run it from the goal's session)." }
+        this.store.ledger(slug, { type: "decompose-dispatched", by: "owner", from: sessionID })
+        await this.ctx.session
+          .prompt({
+            sessionID,
+            text: [
+              `CLEO-DECOMPOSE the goal "${slug}": read .opencode/goals/${slug}/ (the latest summary under evidence/, the ledger, and goal.yaml) and decompose the follow-ups into CLEO tasks.`,
+              "For each follow-up (the summary's Follow-ups section, any discussed-but-unproven plan steps, and the non-goals the owner may want next): run `cleo add --type task --title <summary> --acceptance <how to prove it>` (plus `--parent <epic>` when the board has one), then link related tasks with `cleo relates add` where order matters.",
+              "The goal folder is owner-owned history — read it, never edit it. Report the filed task ids when done.",
+            ].join("\n"),
+          } as any)
+          .catch(() => {})
+        return { ok: true, message: `Dispatched the CLEO decomposition of "${slug}" — the next turn files the follow-ups as tasks.` }
       }
       // T060: the start picker's dialog dispatches act "start" with the slug
       // as arg — the standard start path, in THIS session. startGoalLocked,
@@ -1315,6 +1383,8 @@ export class GoalApp {
     const [head = "", ...rest] = text.split(/\s+/)
     const arg = rest.join(" ").trim()
     const sub = head.toLowerCase()
+    // T069: acknowledge + defer while a turn or form holds the session
+    if (this.deferIfHeld(sessionID, text, sub)) return
     // Results go to the TUI as notices, never into the transcript: a synthetic
     // message here would land inside the turn the command just started.
     const say = async (message: string, level: "info" | "success" | "warning" | "error" = "info") => this.notice(sessionID, message, level)
@@ -1423,7 +1493,8 @@ export class GoalApp {
       case "reject":
       case "amend":
       case "archive":
-      case "attach": {
+      case "attach":
+      case "decompose": {
         const result = await this.ownerAct(sessionID, sub as any, arg)
         return say(result.message, result.ok ? "success" : "error")
       }

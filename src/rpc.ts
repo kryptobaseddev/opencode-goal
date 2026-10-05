@@ -18,7 +18,7 @@ export const GoalRpc = {
         type: "object",
         properties: {
           sessionID: { type: "string", minLength: 1, maxLength: 256 },
-          action: { type: "string", enum: ["pause", "resume", "abort", "verify", "approve", "reject", "amend", "archive", "attach", "start", "start-next"] },
+          action: { type: "string", enum: ["pause", "resume", "abort", "verify", "approve", "reject", "amend", "archive", "attach", "start", "start-next", "decompose"] },
           arg: { type: "string", maxLength: 2000 },
         },
         required: ["sessionID", "action"],

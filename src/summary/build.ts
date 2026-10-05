@@ -120,6 +120,11 @@ export function buildPostGoalSummary(input: SummaryInput): PostGoalSummary {
   lines.push(`# Post-goal summary — ${contract.title}`)
   lines.push(`${headline} · ${state.turn} turn(s)`)
   lines.push("")
+  // T071: completion silence read as broken — the summary states plainly
+  // that the loop has stopped and names where the follow-ups live.
+  lines.push(`The loop has stopped (${state.status}). Nothing further runs, verifies, or spends on its own.`)
+  lines.push(`Follow-ups live here: the list below, the Goal panel (leader+g), and .opencode/goals/${state.slug}/ (ledger, evidence, this summary).`)
+  lines.push("")
   lines.push(`Outcome (as contracted): ${contract.outcome}`)
   lines.push("")
   lines.push("## Criteria")

@@ -331,7 +331,8 @@ export default {
             title: `Goal — ${data.kind ?? "decision"}`,
             options: [
               ...actionable.map((c, i) => ({ title: c.label, value: String(i), description: c.run ?? "" })),
-              ...guidance.map((c, i) => ({ title: `ℹ ${c.label}`, value: `guide:${i}`, description: c.run ?? "" })),
+              // T070: guidance rows are marked as guidance in the copy itself
+              ...guidance.map((c, i) => ({ title: `ℹ ${c.label}`, value: `guide:${i}`, description: `guidance — ${c.run ?? ""}` })),
             ],
           })
           if (pick === undefined || pick === null) return
