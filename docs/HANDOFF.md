@@ -30,16 +30,27 @@ Read this first, then `AGENTS.md`, then [design.md](design.md). Observed OpenCod
 Backlog beyond: relay mode, goal queues, home-screen board, Claude Code / Codex adapters,
 headless runner, npm publishing.
 
-## 3. Next session
+## 3. The roadmap (owner decision 2026-10-06)
 
-1. `cleo briefing`; `cleo session start --scope epic:T002 --name "v0.3.2 trust the card"`.
-2. Decide the direction (sidebar trust+UX first vs the ask-tool surface vs the backlog), then
-   `/goal new` over the chosen slice. T072–T074 hang together as one release; T075 is
-   independent; T069/T070/T071 are small fixes that can ride along.
-3. The v0.3.1 run is complete — `/goal archive ship-v031-launch-experience` whenever ready
-   (history intact).
-4. The pty gate (`scripts/tui-smoke.ts --assert`) is the launch surface's proof — extend it to
-   the card/panel work (T072/T073/T074).
+**v0.3.2 — trust the card (LIVE, run `10d4b515b001`, lock `13d4fc71`)**: T069–T076 — snapshot
+convergence, card readability + expand, dashboard live validation, native in-composer forms at
+every decision point, decompose-as-act, end-state copy, deferred-command acks, start-clean
+hand-off via tabs.open+focus. The contract is locked with 13 criteria; the run lives in session
+`ses_ef2b88fa…` ("goal kickoff · ship-v032-trust-the-card").
+
+**v0.3.3 — the goal manager (next)**: T077+T078+T079 — every active goal across all sessions in
+the sidebar, the primary session as mission control (goals × sessions × agents, one surface,
+act on any goal from there), click-to-expand + tabs.focus navigation. Builds directly on
+v0.3.2's foundations (T073's expand affordance, T074's validated panel, T076's tab hand-off).
+The plugin tabs API is confirmed rich (open/focus/list with busy/attention state).
+
+Backlog beyond: relay mode, goal queues, home-screen board, adapters, headless runner, npm.
+
+## 3a. Session hygiene
+
+- The v0.3.1 run is complete — `/goal archive ship-v031-launch-experience` whenever ready.
+- The v0.3.2 run is live in its own session; this primary session is the goal manager's future
+  home (T078).
 
 ## 4. Lessons from the v0.3.1 run (all in dogfood-4)
 
