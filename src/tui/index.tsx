@@ -73,11 +73,33 @@ export default {
     // in the dialog), only for the session the goal belongs to.
     // T065: dialogs are not scrollable — the full text once overflowed off
     // the screen; dialogs carry a screen-fit digest, the panel keeps the rest.
+    // T066: sequencing state — dialogs stay FIRST at a transition; a summary
+    // arriving while a decision dialog is open queues behind it and renders
+    // as the screen-fit digest when the decision closes.
+    const openDecisions = new Map<string, number>()
+    const pendingSummaries = new Map<string, { headline: string; text: string; status: string }>()
+    const flushSummary = (sessionID: string) => {
+      const queued = pendingSummaries.get(sessionID)
+      pendingSummaries.delete(sessionID)
+      if (!queued) return
+      void context.ui.dialog.alert({
+        title: `Goal summary — ${queued.status}`,
+        message: dialogDigest(queued.headline, queued.text),
+      })
+    }
     const offSummary = rpc.events.on("summary", (event: any) => {
       const data = event.data ?? {}
       const current = context.ui.router.current()
       if (current.type !== "session" || current.sessionID !== data.sessionID) {
         context.ui.toast.show({ title: "Goal summary", message: String(data.headline ?? data.text ?? ""), variant: "info", ...(data.sessionID ? { sessionID: data.sessionID } : {}) })
+        return
+      }
+      // T066: at a transition the decision dialog renders FIRST — a summary
+      // arriving while one is open queues behind it (headline as a toast so
+      // nothing is silent) and renders as the digest when the decision closes.
+      if (openDecisions.has(data.sessionID)) {
+        pendingSummaries.set(data.sessionID, { headline: String(data.headline ?? "summary"), text: String(data.text ?? data.headline ?? ""), status: String(data.status ?? "") })
+        context.ui.toast.show({ title: "Goal summary queued", message: String(data.headline ?? "the full summary opens after the decision"), variant: "info", ...(data.sessionID ? { sessionID: data.sessionID } : {}) })
         return
       }
       void context.ui.dialog.alert({
@@ -276,6 +298,8 @@ export default {
     // T050: decision dialogs. Every engine decision payload renders as a
     // selectable dialog wired to rpc.act — the owner picks instead of typing
     // commands. Choices without an act (guidance-only) fall back to an alert.
+    // T066: the dialog stays open until answered; its close flushes any
+    // queued summary digest for the same session.
     const offDecision = rpc.events.on("decision", (event: any) => {
       const data = event.data ?? {}
       const current = context.ui.router.current()
@@ -291,13 +315,22 @@ export default {
           await context.ui.dialog.alert({ title: `Goal — ${data.kind ?? "decision"}`, message: `${data.message ?? ""}\n\n${choices.map((c) => `• ${c.run ?? c.label}`).join("\n")}` })
           return
         }
-        const pick = await context.ui.dialog.select({
-          title: `Goal — ${data.kind ?? "decision"}`,
-          options: actionable.map((c, i) => ({ title: c.label, value: String(i), description: c.run ?? "" })),
-        })
-        if (pick === undefined || pick === null) return
-        const chosen = actionable[Number(pick)]
-        if (chosen?.act) await act(chosen.act, chosen.arg)
+        openDecisions.set(data.sessionID, (openDecisions.get(data.sessionID) ?? 0) + 1)
+        try {
+          const pick = await context.ui.dialog.select({
+            title: `Goal — ${data.kind ?? "decision"}`,
+            options: actionable.map((c, i) => ({ title: c.label, value: String(i), description: c.run ?? "" })),
+          })
+          if (pick !== undefined && pick !== null) {
+            const chosen = actionable[Number(pick)]
+            if (chosen?.act) await act(chosen.act, chosen.arg)
+          }
+        } finally {
+          const depth = (openDecisions.get(data.sessionID) ?? 1) - 1
+          if (depth <= 0) openDecisions.delete(data.sessionID)
+          else openDecisions.set(data.sessionID, depth)
+          flushSummary(data.sessionID)
+        }
       })()
     })
 

@@ -90,6 +90,8 @@ export class GoalApp {
   private loaded = new Map<string, Loaded>()
   private notes = new Map<string, string>()
   private facts = new Map<string, SessionFacts>()
+  /** T066: the session's offered-but-unanswered decision, for resolution pairing. */
+  private pendingDecisions = new Map<string, { id: string; kind: string; slug: string; at: number }>()
   private verifierInbox = new Map<string, VerifierVerdict[]>()
   private timers = new Map<string, ReturnType<typeof setTimeout>>()
   private registrations: Array<{ dispose: () => Promise<void> | void }> = []
@@ -349,9 +351,14 @@ export class GoalApp {
    * selectable dialog wired to rpc.act. Slash commands remain the power-user
    * path; nobody has to type an approval by hand.
    */
+  /** T066: every decision emission leaves a ledger trace — the payload, and
+   *  later its resolution (the next owner act on that session). */
   private decide(sessionID: string | undefined, slug: string, kind: "needs_review" | "paused-after-verdict" | "blocked" | "budget_limited" | "amend-proposed" | "supersede-ack" | "complete" | "start-picker", message: EngineMessage, extra: Record<string, unknown> = {}) {
+    const decisionId = `${kind}#${slug}@${Date.now().toString(36)}`
+    if (sessionID) this.pendingDecisions.set(sessionID, { id: decisionId, kind, slug, at: Date.now() })
+    this.store.ledger(slug, { type: "decision", decisionId, turn: this.runs.get(sessionID ?? "")?.turn ?? 0, kind, message: renderMessage(message), choices: message.choices.map((c) => ({ label: c.label, act: c.act, arg: c.arg })) })
     void this.rpc?.events
-      .emit("decision", { ...(sessionID ? { sessionID } : {}), slug, kind, title: message.id, message: renderMessage(message), choices: message.choices, ...extra })
+      .emit("decision", { ...(sessionID ? { sessionID } : {}), slug, kind, decisionId, title: message.id, message: renderMessage(message), choices: message.choices, ...extra })
       .catch(() => {})
     this.noticeM(sessionID, message)
   }
@@ -1076,6 +1083,13 @@ export class GoalApp {
 
   async ownerAct(sessionID: string, action: "pause" | "resume" | "abort" | "verify" | "approve" | "reject" | "amend" | "archive" | "attach" | "start", arg?: string): Promise<{ ok: boolean; message: string }> {
     return this.serial(async () => {
+      // T066: the next owner act resolves the session's pending decision —
+      // the ledger carries the pairing (offered → answered).
+      const pending = this.pendingDecisions.get(sessionID)
+      if (pending) {
+        this.pendingDecisions.delete(sessionID)
+        this.store.ledger(pending.slug, { type: "decision-resolved", decision: pending.id, kind: pending.kind, action, ...(arg ? { arg } : {}), ok: true })
+      }
       // T060: the start picker's dialog dispatches act "start" with the slug
       // as arg — the standard start path, in THIS session. startGoalLocked,
       // not startGoal: ownerAct already holds the queue (not reentrant).
