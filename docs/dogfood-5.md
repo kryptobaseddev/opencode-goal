@@ -124,15 +124,29 @@ dialog with Enter and dismisses the queued summary digest the same way.
 
 ## 7. The extended pty gate (C1)
 
-`scripts/tui-smoke.ts --assert` now runs TEN assertions on a real 50×180 pty: the v0.3.1
+`scripts/tui-smoke.ts --assert` now runs ELEVEN assertions on a real 50×180 pty: the v0.3.1
 seven (dialog opens / choices visible / screen-fit / keyboard-Enter / palette opens / palette
 lists Goal commands / engine left blocked) plus `card.shows-complete` and
 `card.loop-stopped-line` (T072's live proof — after the run settles, the sidebar shows
-`✓ complete`, `criteria ■■■■■■■■■■ 3/3` and the `■ loop stopped` line) and `panel.opens` +
-`panel.cycles-tabs` (the T074 pty walkthrough — the tab bar renders
-`Now │▸Progress│ Decisions │ Goals` and the tab key moves the marker to
-`▸Decisions`). The gate stayed deterministic across repeated runs (two consecutive PASS
-exit-0 in the run's shell history); the full suite (164 tests) is green alongside.
+`✓ complete`, `criteria ■■■■■■■■■■ 3/3` and the `■ loop stopped` line), `panel.opens` +
+`panel.cycles-tabs` (the T074 pty walkthrough — the bracketed tab bar renders
+`Now [Progress] Decisions Goals` and the tab key moves the marker to
+`[Decisions]`), and `panel.decisions-act-rows` (the sign-off fix: the Decisions tab
+always renders its keyboard-selectable act list). The gate stayed deterministic across
+repeated runs; the full suite (165 tests) is green alongside.
+
+## 7b. The first sign-off round failed — and that was the gate working (C4)
+
+The owner reinstalled v0.3.2 and named three defects live: the panel read as "just a bunch
+of text", `tab` cycled nothing, and nothing was selectable. All three were real: the panel
+never took focus (the composer swallowed `tab` — the pty gate had passed because its idle
+TUI happened to deliver the key), the Decisions tab rendered a text mirror instead of its
+Select whenever no decision was open (a quiet run showed zero interactive rows), and the
+tabs had no visual affordance. Fixed within the existing IA (no redesign): focus-on-open,
+decision rows + always-applicable quick acts (`quickActRows`) in one Select, bracketed
+active tab and section rules. The single v0.3.2 tag was MOVED to the fixed tree (the
+release was never signed off, so it had not completed; exactly one v0.3.2 tag exists) and
+the git-install proof re-run against the moved tag.
 
 ## 8. The release (C4, C9, C10, C11)
 

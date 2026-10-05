@@ -157,6 +157,38 @@ export function cardAffordanceTab(view: GoalView, now: number, width = 40): Dash
 
 const humanKinds = new Set(["verdict", "approve", "reject", "amend-proposed", "amended", "blocked", "complete", "summary", "flag", "attached", "paused", "resumed", "aborted", "budget_limited", "superseded-by", "approve ", "reject "])
 
+/** (T074 sign-off fix) Quick acts: owner actions that ALWAYS make sense for
+ *  the goal's current state — the Decisions tab is interactive even when no
+ *  decision is open (the owner's "nothing to select" defect: a wall of text
+ *  whenever the run is quiet). */
+export function quickActRows(view: GoalView): ActionRow[] {
+  const rows: ActionRow[] = []
+  if (["running", "waiting", "verifying"].includes(view.status)) {
+    rows.push({ label: "Pause the goal", description: "stop the loop; /goal resume picks it up", act: "pause" })
+    rows.push({ label: "Verify now", description: "run the host checks + verifier immediately", act: "verify" })
+  } else if (view.status === "paused") {
+    rows.push({ label: "Resume the goal", description: view.reason ?? "continue the loop", act: "resume" })
+    rows.push({ label: "Verify now", description: "run the host checks + verifier immediately", act: "verify" })
+  } else if (view.status === "blocked") {
+    rows.push({ label: "Resolved — resume", description: view.blocker?.reason ?? "the blocker is fixed", act: "resume" })
+    rows.push({ label: "Abort the goal", description: "stop for good; history stays", act: "abort" })
+  } else if (view.status === "needs_review") {
+    const unproven = view.criteria.filter((c) => !c.invariant && c.status !== "pass")
+    for (const c of unproven.slice(0, 3)) rows.push({ label: `Approve ${c.id} (final)`, description: c.statement, act: "approve", arg: c.id })
+    rows.push({ label: "Verify now", description: "run the host checks + verifier immediately", act: "verify" })
+  } else if (view.status === "budget_limited") {
+    rows.push({ label: "Abort the goal", description: "stop at the budget", act: "abort" })
+  } else if (isTerminalStatus(view.status)) {
+    rows.push({ label: "Archive the goal", description: "demote to goals-archive/ (history intact)", act: "archive" })
+    rows.push({ label: "Start the next goal", description: "open the write-goal interview", act: "start-next" })
+  }
+  rows.push({ label: "Pause/Resume/Verify are also one keystroke away", description: "/goal pause · /goal resume · /goal verify — or the palette (ctrl+p → Goal)" })
+  return rows
+}
+
+const TERMINAL_STATUSES = new Set(["complete", "failed", "aborted", "superseded"])
+const isTerminalStatus = (s: string) => TERMINAL_STATUSES.has(s)
+
 /** (E) only human-relevant events surface in the UI — raw turn/admit noise stays in the ledger file. */
 export const humanizedEvents = (view: GoalView, n: number): TimelineEntry[] => {
   const relevant = view.timeline.filter((e) => humanKinds.has(e.kind) || /^(owner|verdict|goal complete|summary|blocked|amended|flag)/i.test(e.text))
@@ -201,16 +233,21 @@ export function dialogDigest(title: string, text: string, maxLines = 14, maxCols
 /** (B) the tabbed panel body. Pure; snapshot-tested. T073: the panel is the
  *  expanded view of the compact card — every row wraps to the width instead
  *  of truncating with `…`, so nothing the card cut off is unreadable here at
- *  any width (the TUI passes the panel's real width). */
+ *  any width (the TUI passes the panel's real width). T074 sign-off fixes:
+ *  the ACTIVE tab is bracketed (visual structure beyond a wall of text),
+ *  section headers carry rules, and the Decisions tab ALWAYS renders a
+ *  keyboard-selectable act list (open decisions first, then quick acts). */
 export function dashboardLines(view: GoalView, tab: DashboardTab, now: number, width = 46, goals: GoalSummary[] = []): Line[] {
   const st = statusOf(view.status)
   const lines: Line[] = []
   const emit = (text: string, tone: Tone, bold = false) => {
     for (const part of wrap(text, width)) lines.push({ text: part, tone, ...(bold ? { bold: true } : {}) })
   }
-  const tabsHeader = DASHBOARD_TABS.map((t) => (t === tab ? `▸${TAB_LABEL[t]}` : ` ${TAB_LABEL[t]} `)).join("│")
+  const rule = () => lines.push({ text: "─".repeat(Math.max(8, Math.min(width, 40))), tone: "muted" })
+  const tabsHeader = DASHBOARD_TABS.map((t) => (t === tab ? `[${TAB_LABEL[t]}]` : ` ${TAB_LABEL[t]} `)).join("")
   lines.push({ text: fit(`◎ GOAL ${st.icon} ${st.label}`, width), tone: st.tone, bold: true })
-  lines.push({ text: fit(tabsHeader, width), tone: "base" })
+  lines.push({ text: fit(tabsHeader, width), tone: "base", bold: true })
+  rule()
   lines.push({ text: "", tone: "base" })
 
   if (tab === "now") {
@@ -225,6 +262,7 @@ export function dashboardLines(view: GoalView, tab: DashboardTab, now: number, w
     const events = humanizedEvents(view, 3)
     if (events.length) {
       lines.push({ text: "recent", tone: "base", bold: true })
+      rule()
       for (const e of events) emit(`· ${e.text}`, "muted")
     }
   } else if (tab === "progress") {
@@ -237,10 +275,12 @@ export function dashboardLines(view: GoalView, tab: DashboardTab, now: number, w
     for (const [label, items, tone] of groups) {
       if (!items.length) continue
       lines.push({ text: label, tone, bold: true })
+      rule()
       for (const c of items) emit(`${c.invariant ? "I" : "C"} ${c.id} — ${c.statement}${c.by ? ` (${c.by})` : ""}`, tone)
     }
     if (view.steps.length) {
       lines.push({ text: "plan", tone: "base", bold: true })
+      rule()
       for (const s of view.steps) emit(`S ${s.id} ${s.status === "done" ? "✓" : s.status === "active" ? "▸" : "·"} ${s.title}`, s.status === "active" ? "info" : s.status === "done" ? "success" : "muted")
     }
     if (view.verdict) {
@@ -248,25 +288,27 @@ export function dashboardLines(view: GoalView, tab: DashboardTab, now: number, w
       for (const l of view.verdict.lines.slice(0, 3)) emit(l.split("\n")[0]!, view.verdict.passed ? "success" : "warning")
     }
   } else if (tab === "decisions") {
-    const rows = decisionRows(view)
-    if (rows.length) {
-      lines.push({ text: "act on a row (↑↓ · enter)", tone: "base", bold: true })
-      for (const r of rows) emit(`▸ ${r.label}${r.description ? ` — ${r.description}` : ""}`, r.act ? "info" : "muted")
-    } else lines.push({ text: "no open decisions", tone: "success" })
-    const events = humanizedEvents(view, 8)
-    if (events.length) {
+    lines.push({ text: "act on a row (↑↓ · enter)", tone: "base", bold: true })
+    lines.push({ text: "", tone: "base" })
+    // the interactive rows render as the Select component in the TUI —
+    // these lines are the readable mirror of the same list
+    const history = humanizedEvents(view, 6)
+    if (history.length) {
       lines.push({ text: "history", tone: "base", bold: true })
-      for (const e of events) emit(`· ${e.text}`, "muted")
+      rule()
+      for (const e of history) emit(`· ${e.text}`, "muted")
     }
   } else {
     const others = goals.filter((g) => g.slug !== view.slug)
     emit(`this goal: ${view.title} (${st.label})`, "base", true)
     if (others.length) {
       lines.push({ text: "other goals", tone: "base", bold: true })
+      rule()
       for (const g of others) emit(`· ${g.slug} — ${g.title} (${g.status})${g.attachable ? " · attachable" : ""}`, g.terminal ? "muted" : "info")
     } else lines.push({ text: "no other goals in this project", tone: "muted" })
     if (view.steps.length) {
       lines.push({ text: "upcoming steps", tone: "base", bold: true })
+      rule()
       for (const s of view.steps.filter((s) => s.status !== "done")) emit(`S ${s.id} · ${s.title}`, "muted")
     }
   }

@@ -369,12 +369,22 @@ else:
            f"tab bar: {opened[1] if opened else 'NOT FOUND'}")
     if panel_tab_snapshot is None:
         record("panel.cycles-tabs", False, "no post-tab capture")
+        record("panel.decisions-act-rows", False, "no post-tab capture")
     else:
         before = tabbar(panel_snapshot)
         after = tabbar(panel_tab_snapshot)
         moved = bool(before and after and before[1] != after[1])
         record("panel.cycles-tabs", moved,
                f"tab bar before: {before[1] if before else '?'} → after: {after[1] if after else '?'}")
+        # T074 sign-off fix, gated: the Decisions tab is ALWAYS interactive —
+        # the keyboard-selectable act list renders (open decisions + quick
+        # acts), never a dead text wall
+        decisions_capture = panel_tab_snapshot if "[Decisions]" in "\n".join(panel_tab_snapshot) else panel_snapshot
+        decisions_text = "\n".join(decisions_capture)
+        has_act_header = "act on a row" in decisions_text
+        has_row = any(label in decisions_text for label in ["Archive the goal", "Start the next goal", "Approve", "Resume the goal", "Pause the goal"])
+        record("panel.decisions-act-rows", has_act_header and has_row,
+               f"act header={has_act_header}, act-able row visible={has_row}")
 
 os.kill(pid, signal.SIGTERM)
 failures = [name for name, ok_, _ in results if not ok_]

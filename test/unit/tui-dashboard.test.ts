@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { GoalView } from "../../src/rpc"
-import { cardCompactLines, dashboardLines, decisionRows, dialogDigest, DASHBOARD_TABS, humanizedEvents } from "../../src/tui/dashboard"
+import { cardCompactLines, dashboardLines, decisionRows, dialogDigest, DASHBOARD_TABS, humanizedEvents, quickActRows } from "../../src/tui/dashboard"
 
 // T056 — the dashboard rework. The v0.2 panel streamed raw ledger actions
 // (a wall of text) and the sidebar was completely overtaken. Pinned here:
@@ -88,7 +88,9 @@ describe("the tabbed panel (T056 B/E)", () => {
       const lines = dashboardLines(view, tab, at, 60)
       const text = lines.map((l) => l.text)
       expect(text[0]).toMatch(/^◎ GOAL ⚑ needs review$/)
-      expect(text[1]).toContain(tab === "now" ? "▸Now" : tab === "progress" ? "▸Progress" : tab === "decisions" ? "▸Decisions" : "▸Goals")
+      // T074 sign-off fix: the ACTIVE tab is bracketed
+      expect(text[1]).toContain(tab === "now" ? "[Now]" : tab === "progress" ? "[Progress]" : tab === "decisions" ? "[Decisions]" : "[Goals]")
+      expect(text[2]).toMatch(/^─+$/)
       // T073: the legend wraps to two lines so it never truncates
       expect(text.at(-2)).toContain("C criterion · I invariant · S plan step")
       expect(text.at(-1)).toContain("↑↓/tab/enter to act")
@@ -130,7 +132,21 @@ describe("the tabbed panel (T056 B/E)", () => {
     expect(rows.some((r) => r.act === "reject")).toBe(true)
     const text = dashboardLines(view, "decisions", at, 60).map((l) => l.text).join("\n")
     expect(text).toContain("act on a row (↑↓ · enter)")
-    expect(text).toContain("Approve C2")
+    expect(text).toContain("history")
+  })
+
+  test("T074 sign-off fix: quick acts keep every state interactive", () => {
+    const running = quickActRows({ ...view, status: "running", actionRequired: undefined })
+    expect(running.some((r) => r.act === "pause")).toBe(true)
+    expect(running.some((r) => r.act === "verify")).toBe(true)
+    const paused = quickActRows({ ...view, status: "paused" })
+    expect(paused.some((r) => r.act === "resume")).toBe(true)
+    const terminal = quickActRows({ ...view, status: "complete" })
+    expect(terminal.some((r) => r.act === "archive")).toBe(true)
+    expect(terminal.some((r) => r.act === "start-next")).toBe(true)
+    // every state offers at least one act-able row (never a dead text wall)
+    for (const status of ["running", "waiting", "verifying", "paused", "blocked", "needs_review", "budget_limited", "complete", "failed", "aborted", "superseded"])
+      expect(quickActRows({ ...view, status }).some((r: { act?: string }) => r.act), `${status} has an act`).toBe(true)
   })
 
   test("GOALS: other goals with attachable flags and upcoming steps", () => {

@@ -8,7 +8,7 @@ import { createStore, reconcile } from "solid-js/store"
 import { GoalRpc, type GoalView } from "../rpc"
 import { bannerText, pillText, statusText, type Tone } from "./format"
 import { tracerLines } from "./tracer"
-import { cardAffordanceTab, cardCompactLines, dashboardLines, decisionRows, dialogDigest, DASHBOARD_TABS, type DashboardTab } from "./dashboard"
+import { cardAffordanceTab, cardCompactLines, dashboardLines, decisionRows, dialogDigest, DASHBOARD_TABS, quickActRows, type DashboardTab } from "./dashboard"
 
 type Context = Plugin.Context
 
@@ -128,8 +128,10 @@ export default {
     // lands on the tab whose content the sidebar truncated — the affordance
     // is a click-through, not a dead hint.
     let panelOpen = false
+    let panelFocusPending = false
     const openPanel = () => {
       panelOpen = true
+      panelFocusPending = true // T074 sign-off fix: the panel TAKES focus on open so tab/↑↓/enter reach it (with the composer focused, tab cycled nothing)
       const id = currentSession()
       const v = id ? views[id] : undefined
       const target = v ? cardAffordanceTab(v, now(), SIDEBAR_WIDTH) : undefined
@@ -240,7 +242,19 @@ export default {
           ensure(input.sessionID)
           const view = input.name === PANEL_NAME ? views[input.sessionID] : undefined
           const width = typeof input.width === "number" ? input.width : 46
-          const rows = view && tab() === "decisions" ? decisionRows(view) : []
+          // T074 sign-off fix: focus the panel once on open (the composer
+          // otherwise keeps swallowing tab/↑↓)
+          if (input.name === PANEL_NAME && panelFocusPending && typeof input.focus === "function") {
+            panelFocusPending = false
+            try {
+              input.focus()
+            } catch {
+              // focus is best-effort; the palette/palette-command still works
+            }
+          }
+          // T074 sign-off fix: the Decisions tab is ALWAYS interactive —
+          // open decision rows first, then the always-applicable quick acts
+          const rows = view && tab() === "decisions" ? [...decisionRows(view), ...quickActRows(view)] : []
           if (tab() === "goals") void ensureGoals()
           return (
             <Show when={view}>
