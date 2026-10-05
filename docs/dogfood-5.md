@@ -151,19 +151,29 @@ the git-install proof re-run against the moved tag.
 ## 8. The release (C4, C9, C10, C11)
 
 `package.json` is `0.3.2` (C9: `node -e "process.exit(require('./package.json').version.startsWith('0.3.2')?0:1)"`
-exits 0), `CHANGELOG.md` carries the `## 0.3.2` entry naming every fix above and the S28/F9
-decision. The tag `v0.3.2` was pushed once (no staged tags) and proven installable from git
-in an isolated OpenCode (`OCGOAL_GIT_INSTALL=1 OCGOAL_GIT_SPEC="github:kryptobaseddev/opencode-goal#v0.3.2"
-bun test ./test/host/git-install.test.ts` → exit 0). The owner then reinstalled
-v0.3.2 (`plugin remove` old → `plugin add` the tag → `reload`) and signed off the dashboard
-live at the reinstall gate: the Now/Progress/Decisions/Goals tabs render readably, the C/I/S
-legend explains the marks, leader+g's replacement (F9) and the panel walkthrough work on
-their real TUI, and decision rows act — §10 carries the sign-off record.
+exits 0), `CHANGELOG.md` carries the `## 0.3.2` entry naming every fix above, the S28/F9
+decision and the sign-off fixes. The tag `v0.3.2` was created, pushed, and — when the
+owner's first sign-off round failed (§7b) — MOVED once to the fixed tree and force-pushed
+(the release had not completed, so exactly one `v0.3.2 tag exists throughout; no staged or
+intermediate tags). The git-install proof ran against BOTH tag states:
+`OCGOAL_GIT_INSTALL=1 OCGOAL_GIT_SPEC="github:kryptobaseddev/opencode-goal#v0.3.2"
+bun test ./test/host/git-install.test.ts` → exit 0 each time. The owner then reinstalled
+the moved v0.3.2 (`plugin remove` → `plugin add` the tag → `reload`) and signed off the
+dashboard live at the reinstall gate: the Now/Progress/Decisions/Goals tabs render
+readably, the C/I/S legend explains the marks, the F9 default and the panel walkthrough
+work on their real TUI, and decision rows act — §10 carries the sign-off record.
 
 ## 9. The claim/verdict cycle of this run
 
-<!-- SECTION-FILLED-AFTER-FIRST-CLAIM: the host verdict lines and the verifier child's
-     transcript anchors land here, byte-exact, after the run's own verification cycle. -->
+The run's own verification evidence is anchored here verbatim as it lands: each claim the
+worker makes is checked by the host (every command criterion on a single line, rehearsed)
+and then judged by the independent verifier child, whose transcripts and verdicts persist
+under `evidence/10d4b515b001/` (`verifier-transcript-turn-N-<ts>.json`, `verify-turn-N-<ts>.json`)
+with `/goal_verdict` as the child's tool surface and fenced-json fallbacks recorded as
+`verifier-fallback` when a child answers in prose.
+
+<!-- SECTION-FILLED-AFTER-FIRST-CLAIM: the actual verdict lines and transcript
+     anchors land here, byte-exact, after this run's own verification cycle. -->
 
 ## 10. Defects filed (CLEO task ids) and the sign-off record
 
