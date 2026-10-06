@@ -56,7 +56,10 @@ test("decision ledger: emissions traced with choices; the next owner act resolve
     await host.client.session.command({ sessionID, name: "goal", text: "start review" } as any)
     await waitStatus(host, ["needs_review"], 90000, "review")
 
-    // --- the wire order at the transition: decision first, summary after
+    // --- the wire order at the transition: decision first, summary after.
+    // Grace-wait (the v0.3.1 summary.test lesson): the rpc events can lag
+    // run.json under load — polling the wire beats one-shot reads.
+    const decisionOnWire = await until(async () => wire.includes("decision:needs_review"), 15000, 100)
     const decisionIdx = wire.indexOf("decision:needs_review")
     const summaryIdx = wire.indexOf("summary")
     expect(decisionIdx).toBeGreaterThanOrEqual(0)

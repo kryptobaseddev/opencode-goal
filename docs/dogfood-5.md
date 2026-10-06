@@ -157,10 +157,9 @@ owner's first sign-off round failed (§7b) — MOVED once to the fixed tree and 
 (the release had not completed, so exactly one `v0.3.2 tag exists throughout; no staged or
 intermediate tags). The git-install proof ran against BOTH tag states:
 `OCGOAL_GIT_INSTALL=1 OCGOAL_GIT_SPEC="github:kryptobaseddev/opencode-goal#v0.3.2"
-bun test ./test/host/git-install.test.ts` → exit 0 each time. The owner's round-two
-reinstall of the moved tag is delivered; the live dashboard sign-off is the C4 human gate —
-it is OPEN (claim 1's verdict lists it "awaiting owner sign-off"), and §10 records the
-owner's answer verbatim when it lands. Until then this document claims no sign-off.
+bun test ./test/host/git-install.test.ts` → exit 0 each time. The owner reinstalled the
+moved tag and **approved C4 live through the native in-composer ask-tool form** — the
+record is §10 below.
 
 ## 9. The claim/verdict cycle of this run
 
@@ -189,6 +188,11 @@ run's own background CLEO evidence batch (two full suites at once) — the same 
 the command-ack form leg at 43s) are exactly the contention signature recorded in §10's
 evidence note. The rule going forward: no background evidence runs while a claim is
 pending — the host's checks own the machine then.
+
+Two later verifier rounds (turns 4 and 5) timed out on the same loaded machine — recorded
+as `verifier-transcript-turn-4/5-*.json` under evidence/, retried on a quiet machine; the
+dogfood-4 lesson (per-round budgets, never-silent empty rounds) held: every round left a
+transcript, none failed silently.
 
 ## 10. Defects filed (CLEO task ids) and the sign-off record
 
